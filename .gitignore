@@ -38,6 +38,9 @@ static/uploads/*
 !static/uploads/.gitkeep
 data/pis_jobs.json
 
+# Internal planning docs
+YUK/
+
 # IDEs
 .vscode/
 .idea/
