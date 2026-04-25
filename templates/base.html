@@ -1,0 +1,992 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}J. Kalachand PIS{% endblock %}</title>
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='logo.png') }}">
+
+    <!-- DNS Prefetch & Preconnect for faster CDN loading -->
+    <link rel="dns-prefetch" href="//cdn.tailwindcss.com">
+    <link rel="dns-prefetch" href="//fonts.googleapis.com">
+    <link rel="dns-prefetch" href="//cdn.jsdelivr.net">
+    <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet" media="print" onload="this.media='all'">
+    <noscript><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"></noscript>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.3/dist/cdn.min.js"></script>
+
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        .smooth-scroll-area {
+            scroll-behavior: smooth;
+        }
+
+        [x-cloak] {
+            display: none !important;
+        }
+
+        /* Premium Sidebar Styles */
+        .nav-item-active {
+            background: rgba(239, 68, 68, 0.08);
+            backdrop-filter: blur(8px);
+            border-left: 4px solid #ef4444;
+            color: #b91c1c;
+        }
+
+        .nav-item-hover:hover {
+            background: rgba(241, 245, 249, 0.8);
+            transform: translateX(4px);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .back-button-hover:hover {
+            background: #f8fafc;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+        }
+
+        .sidebar-glass {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(12px);
+        }
+    </style>
+</head>
+
+<body class="bg-[#F8F9FC] flex h-screen overflow-hidden text-slate-600">
+
+    <!-- SIDEBAR: Light Theme -->
+    <aside
+        class="w-72 bg-white text-slate-600 border-r border-gray-100 hidden md:flex flex-col flex-shrink-0 z-30 shadow-[4px_0_24px_rgba(0,0,0,0.02)] transition-all duration-300 sticky top-0 h-screen">
+        <!-- Logo Area -->
+        <div class="h-20 flex items-center px-8 border-b border-gray-50">
+            <div class="flex items-center gap-3">
+                <img src="{{ url_for('static', filename='logo.png') }}" alt="J. Kalachand" class="h-9 w-auto object-contain">
+                <div>
+                    <h1 class="font-bold text-slate-800 text-lg tracking-tight leading-none">PIS Hub</h1>
+                    <p class="text-[10px] text-gray-400 font-bold tracking-wide uppercase mt-0.5">Internal System</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Navigation -->
+        <nav class="flex-1 px-4 py-6 space-y-1.5 overflow-y-auto">
+
+            <!-- Global Back Button -->
+            <button onclick="window.history.back()"
+                class="w-full flex items-center px-4 py-3 mb-6 bg-slate-50 text-slate-600 rounded-xl font-bold text-sm back-button-hover border border-slate-100/50 group transition-all">
+                <div
+                    class="w-8 h-8 rounded-lg bg-white shadow-sm flex items-center justify-center mr-3 group-hover:text-red-600 transition-colors">
+                    <svg class="w-4 h-4 text-slate-400 group-hover:text-red-500 transition-colors" fill="none"
+                        stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                            d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                    </svg>
+                </div>
+                <span>Go Back</span>
+            </button>
+
+            {% if session.get('role') == 'marketing' %}
+            <p class="px-4 text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-3 mt-2">Marketing</p>
+
+            {% set nav_base = "flex items-center px-4 py-3 rounded-xl font-bold text-sm transition-all duration-300
+            nav-item-hover group relative" %}
+            {% set nav_active = "nav-item-active" %}
+            {% set nav_inactive = "text-slate-500 hover:text-slate-900" %}
+
+            <a href="{{ url_for('dashboard_marketing') }}"
+                class="{{ nav_base }} {{ nav_active if request.endpoint == 'dashboard_marketing' else nav_inactive }}">
+                <svg class="w-4 h-4 mr-3 {{ 'text-red-600' if request.endpoint == 'dashboard_marketing' else 'text-gray-400 group-hover:text-slate-600' }}"
+                    fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                </svg>
+                <span>Overview</span>
+                {% if request.endpoint == 'dashboard_marketing' %}
+                <div class="absolute right-3 w-1.5 h-1.5 rounded-full bg-red-500"></div>
+                {% endif %}
+            </a>
+
+            <a href="{{ url_for('create_pis') }}"
+                class="{{ nav_base }} {{ nav_active if request.endpoint == 'create_pis' else nav_inactive }}">
+                <svg class="w-4 h-4 mr-3 {{ 'text-red-600' if request.endpoint == 'create_pis' else 'text-gray-400 group-hover:text-slate-600' }}"
+                    fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>New Product</span>
+            </a>
+
+            <a href="{{ url_for('create_bulk') }}"
+                class="{{ nav_base }} {{ nav_active if request.endpoint == 'create_bulk' else nav_inactive }}">
+                <svg class="w-4 h-4 mr-3 {{ 'text-red-600' if request.endpoint == 'create_bulk' else 'text-gray-400 group-hover:text-slate-600' }}"
+                    fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                </svg>
+                <span>Bulk Import</span>
+            </a>
+
+            <a href="{{ url_for('history_marketing') }}"
+                class="{{ nav_base }} {{ nav_active if request.endpoint == 'history_marketing' else nav_inactive }}">
+                <svg class="w-4 h-4 mr-3 {{ 'text-red-600' if request.endpoint == 'history_marketing' else 'text-gray-400 group-hover:text-slate-600' }}"
+                    fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>History Log</span>
+            </a>
+
+            <a href="{{ url_for('marketing_archive') }}"
+                class="{{ nav_base }} {{ nav_active if request.endpoint == 'marketing_archive' else nav_inactive }}">
+                <svg class="w-4 h-4 mr-3 {{ 'text-red-600' if request.endpoint == 'marketing_archive' else 'text-gray-400 group-hover:text-slate-600' }}"
+                    fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+                </svg>
+                <span>PDF Archive</span>
+            </a>
+
+            {% elif session.get('role') == 'director' %}
+            <p class="px-4 text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-3 mt-2">Director</p>
+
+            {% set nav_base = "flex items-center px-4 py-3 rounded-xl font-bold text-sm transition-all duration-300
+            nav-item-hover group relative" %}
+            {% set nav_active = "nav-item-active" %}
+            {% set nav_inactive = "text-slate-500 hover:text-slate-900" %}
+
+            <a href="{{ url_for('dashboard_director') }}"
+                class="{{ nav_base }} {{ nav_active if request.endpoint == 'dashboard_director' else nav_inactive }}">
+                <svg class="w-4 h-4 mr-3 {{ 'text-red-600' if request.endpoint == 'dashboard_director' else 'text-gray-400 group-hover:text-slate-600' }}"
+                    fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                </svg>
+                <span>Approvals</span>
+            </a>
+
+            <a href="{{ url_for('history_marketing') }}"
+                class="{{ nav_base }} {{ nav_active if request.endpoint == 'history_marketing' else nav_inactive }}">
+                <svg class="w-4 h-4 mr-3 {{ 'text-red-600' if request.endpoint == 'history_marketing' else 'text-gray-400 group-hover:text-slate-600' }}"
+                    fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>History Log</span>
+            </a>
+
+            <a href="{{ url_for('director_archive') }}"
+                class="{{ nav_base }} {{ nav_active if request.endpoint == 'director_archive' else nav_inactive }}">
+                <svg class="w-4 h-4 mr-3 {{ 'text-red-600' if request.endpoint == 'director_archive' else 'text-gray-400 group-hover:text-slate-600' }}"
+                    fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+                </svg>
+                <span>PDF Archive</span>
+            </a>
+
+            {% elif session.get('role') == 'web' %}
+            <p class="px-4 text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-3 mt-2">Web Team</p>
+
+            {% set nav_base = "flex items-center px-4 py-3 rounded-xl font-bold text-sm transition-all duration-300
+            nav-item-hover group relative" %}
+            {% set nav_active = "bg-indigo-50/50 backdrop-blur-md border-left-4 border-indigo-600 text-indigo-700" %}
+            {% set nav_inactive = "text-slate-500 hover:text-slate-900" %}
+
+            <a href="{{ url_for('dashboard_web') }}"
+                class="{{ nav_base }} {{ nav_active if request.endpoint == 'dashboard_web' else nav_inactive }}">
+                <svg class="w-4 h-4 mr-3 {{ 'text-indigo-600' if request.endpoint == 'dashboard_web' else 'text-gray-400 group-hover:text-slate-600' }}"
+                    fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+                </svg>
+                <span>Tasks Pipeline</span>
+            </a>
+
+            <a href="{{ url_for('history_marketing') }}"
+                class="{{ nav_base }} {{ nav_active if request.endpoint == 'history_marketing' else nav_inactive }}">
+                <svg class="w-4 h-4 mr-3 {{ 'text-indigo-600' if request.endpoint == 'history_marketing' else 'text-gray-400 group-hover:text-slate-600' }}"
+                    fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>History Log</span>
+            </a>
+
+            <a href="{{ url_for('web_archive') }}"
+                class="{{ nav_base }} {{ nav_active if request.endpoint == 'web_archive' else nav_inactive }}">
+                <svg class="w-4 h-4 mr-3 {{ 'text-indigo-600' if request.endpoint == 'web_archive' else 'text-gray-400 group-hover:text-slate-600' }}"
+                    fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+                </svg>
+                <span>PDF Archive</span>
+            </a>
+
+            <a href="{{ url_for('web_forbidden_words') }}"
+                class="{{ nav_base }} {{ nav_active if request.endpoint == 'web_forbidden_words' else nav_inactive }}">
+                <svg class="w-4 h-4 mr-3 {{ 'text-indigo-600' if request.endpoint == 'web_forbidden_words' else 'text-gray-400 group-hover:text-slate-600' }}"
+                    fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                </svg>
+                <span>Forbidden Words</span>
+            </a>
+            {% elif session.get('role') == 'admin' %}
+            <p class="px-4 text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-3 mt-2">Admin</p>
+
+            {% set nav_base = "flex items-center px-4 py-3 rounded-xl font-bold text-sm transition-all duration-300 nav-item-hover group relative" %}
+            {% set nav_active = "nav-item-active" %}
+            {% set nav_inactive = "text-slate-500 hover:text-slate-900" %}
+
+            <a href="{{ url_for('admin_users') }}"
+                class="{{ nav_base }} {{ nav_active if request.endpoint == 'admin_users' else nav_inactive }}">
+                <svg class="w-4 h-4 mr-3 {{ 'text-red-600' if request.endpoint == 'admin_users' else 'text-gray-400 group-hover:text-slate-600' }}"
+                    fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
+                </svg>
+                <span>User Management</span>
+            </a>
+
+            <a href="{{ url_for('admin_prompts') }}"
+                class="{{ nav_base }} {{ nav_active if request.endpoint == 'admin_prompts' else nav_inactive }}">
+                <svg class="w-4 h-4 mr-3 {{ 'text-red-600' if request.endpoint == 'admin_prompts' else 'text-gray-400 group-hover:text-slate-600' }}"
+                    fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                </svg>
+                <span>Prompt Management</span>
+            </a>
+
+            {% else %}
+            <a href="{{ url_for('login') }}"
+                class="flex items-center px-4 py-2.5 text-gray-500 hover:text-slate-800 rounded-lg font-medium">
+                <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+                </svg>
+                <span>Login</span>
+            </a>
+            {% endif %}
+
+        </nav>
+
+        <!-- User Profile -->
+        <div class="p-4 border-t border-gray-100">
+            <div class="bg-gray-50 rounded-xl p-3 mb-3 flex items-center gap-3 border border-gray-100">
+                <div
+                    class="w-8 h-8 rounded-full bg-white text-red-600 shadow-sm flex items-center justify-center text-xs font-bold border border-gray-100">
+                    {{ session.get('username', 'U')[0]|upper }}
+                </div>
+                <div class="overflow-hidden">
+                    <p class="text-xs font-extrabold text-slate-900 truncate tracking-tight">{{ session.get('username', session.get('role', 'User')|capitalize) }}
+                    </p>
+                    <div class="flex items-center gap-1.5 mt-0.5">
+                        <div class="w-1 h-1 rounded-full bg-emerald-500 animate-pulse"></div>
+                        <p class="text-[9px] font-bold text-emerald-600 uppercase tracking-widest">{{ session.get('role', 'user')|capitalize }}</p>
+                    </div>
+                </div>
+            </div>
+            <a href="{{ url_for('logout') }}"
+                class="flex items-center justify-center w-full px-4 py-2 text-xs font-bold text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                Sign Out
+            </a>
+        </div>
+    </aside>
+
+    <main class="flex-1 overflow-y-auto overflow-x-hidden relative smooth-scroll-area bg-[#F8F9FC] min-h-0 min-w-0">
+        <!-- Top Bar for Mobile -->
+        <div
+            class="md:hidden h-16 bg-white border-b border-gray-100 flex items-center justify-between px-6 sticky top-0 z-50">
+            <div class="font-bold text-lg text-slate-800">J. Kalachand PIS</div>
+            <button class="text-slate-600">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+            </button>
+        </div>
+
+        <div class="p-6 md:p-10 max-w-[1600px] mx-auto min-h-full">
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            <div class="mb-6 space-y-2 max-w-4xl mx-auto" x-data="{ show: true }" x-show="show"
+                x-init="setTimeout(() => show = false, 5000)">
+                {% for category, message in messages %}
+                <div class="p-3.5 rounded-xl text-sm font-medium flex justify-between items-center shadow-sm border
+                    {% if 'error' in category %} bg-red-50 text-red-700 border-red-100
+                    {% else %} bg-emerald-50 text-emerald-700 border-emerald-100 {% endif %}">
+                    <div class="flex items-center gap-2.5">
+                        {% if 'error' in category %}
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        {% else %}
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                        {% endif %}
+                        <span>{{ message }}</span>
+                    </div>
+                    <button @click="show = false" class="opacity-60 hover:opacity-100 transition-opacity">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            {% endwith %}
+
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+
+    <!-- GLOBAL PURGE CONFIRMATION MODAL -->
+    <div id="globalPurgeModal"
+        class="fixed inset-0 bg-black/40 hidden items-center justify-center z-[100] backdrop-blur-sm transition-all">
+        <div class="bg-white rounded-3xl w-full max-w-md p-8 shadow-2xl transform scale-100 transition-all text-center">
+            <div
+                class="w-16 h-16 bg-red-50 text-red-600 rounded-2xl flex items-center justify-center mb-6 mx-auto shadow-sm">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-4v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+            </div>
+
+            <h3 class="font-bold text-2xl text-gray-900 mb-3">Clear All Data?</h3>
+            <p class="text-sm text-gray-500 mb-8 leading-relaxed px-4">
+                This is a <span class="font-bold text-red-600 uppercase tracking-tighter">permanent action</span>.
+                All products, history logs, and uploaded images will be <span
+                    class="font-medium text-slate-800">permanently deleted</span> from the system.
+            </p>
+
+            <div class="flex gap-3">
+                <button type="button" onclick="closeGlobalPurgeModal()"
+                    class="flex-1 bg-gray-100 text-gray-700 py-3.5 rounded-2xl font-bold hover:bg-gray-200 transition-colors">
+                    Keep Everything
+                </button>
+                <form id="globalPurgeForm" action="{{ url_for('purge_all_data') }}" method="POST" class="flex-1">
+                    <button type="submit" onclick="this.innerHTML='Purging...'; this.disabled=true; this.form.submit();"
+                        class="w-full bg-red-600 text-white py-3.5 rounded-2xl font-bold hover:bg-red-700 transition-colors shadow-lg shadow-red-100">
+                        Yes, Clear All
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function openGlobalPurgeModal() {
+            const modal = document.getElementById('globalPurgeModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+        function closeGlobalPurgeModal() {
+            const modal = document.getElementById('globalPurgeModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+    </script>
+    {% block modals %}{% endblock %}
+
+    <!-- ================= GLOBAL IMAGE LIGHTBOX ================= -->
+    <div id="imageLightbox" class="fixed inset-0 z-[200] hidden items-center justify-center" onclick="if(event.target===this)closeLightbox()">
+        <!-- Backdrop -->
+        <div class="absolute inset-0 bg-black/80 backdrop-blur-md lightbox-backdrop"></div>
+        
+        <!-- Close Button -->
+        <button onclick="closeLightbox()" class="absolute top-6 right-6 z-10 w-10 h-10 bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center text-white transition-all hover:scale-110">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+        </button>
+
+        <!-- Navigation Arrows -->
+        <button id="lightboxPrev" onclick="event.stopPropagation();navigateLightbox(-1)" class="absolute left-4 z-10 w-12 h-12 bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center text-white transition-all hover:scale-110 hidden">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+            </svg>
+        </button>
+        <button id="lightboxNext" onclick="event.stopPropagation();navigateLightbox(1)" class="absolute right-4 z-10 w-12 h-12 bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center text-white transition-all hover:scale-110 hidden">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+            </svg>
+        </button>
+
+        <!-- Image Counter -->
+        <div id="lightboxCounter" class="absolute bottom-6 left-1/2 -translate-x-1/2 z-10 px-4 py-1.5 bg-white/10 backdrop-blur-sm rounded-full text-white text-xs font-bold hidden"></div>
+
+        <!-- Image Container -->
+        <div class="relative z-[1] max-w-[90vw] max-h-[90vh] flex items-center justify-center">
+            <img id="lightboxImage" src="" alt="Preview" class="max-w-full max-h-[85vh] object-contain rounded-2xl shadow-2xl ring-1 ring-white/10 lightbox-image">
+        </div>
+    </div>
+
+    <style>
+        /* Lightbox Animations */
+        .lightbox-backdrop {
+            animation: lightboxFadeIn 0.25s ease-out;
+        }
+        .lightbox-image {
+            animation: lightboxZoomIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        @keyframes lightboxFadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes lightboxZoomIn {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        /* Clickable gallery images cursor */
+        .gallery-clickable {
+            cursor: zoom-in;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .gallery-clickable:hover {
+            transform: scale(1.02);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+    </style>
+
+    <script>
+        // Global Lightbox State
+        let lightboxImages = [];
+        let lightboxIndex = 0;
+
+        function openLightbox(src, galleryImages) {
+            const modal = document.getElementById('imageLightbox');
+            const img = document.getElementById('lightboxImage');
+            const prevBtn = document.getElementById('lightboxPrev');
+            const nextBtn = document.getElementById('lightboxNext');
+            const counter = document.getElementById('lightboxCounter');
+
+            img.src = src;
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            document.body.style.overflow = 'hidden';
+
+            // Gallery navigation
+            if (galleryImages && galleryImages.length > 1) {
+                lightboxImages = galleryImages;
+                lightboxIndex = galleryImages.indexOf(src);
+                if (lightboxIndex === -1) lightboxIndex = 0;
+                prevBtn.classList.remove('hidden');
+                nextBtn.classList.remove('hidden');
+                counter.classList.remove('hidden');
+                counter.textContent = (lightboxIndex + 1) + ' / ' + lightboxImages.length;
+                updateLightboxNav();
+            } else {
+                lightboxImages = [];
+                prevBtn.classList.add('hidden');
+                nextBtn.classList.add('hidden');
+                counter.classList.add('hidden');
+            }
+        }
+
+        function closeLightbox() {
+            const modal = document.getElementById('imageLightbox');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            document.body.style.overflow = '';
+            document.getElementById('lightboxImage').src = '';
+        }
+
+        function navigateLightbox(dir) {
+            if (!lightboxImages.length) return;
+            lightboxIndex = (lightboxIndex + dir + lightboxImages.length) % lightboxImages.length;
+            const img = document.getElementById('lightboxImage');
+            img.style.animation = 'none';
+            img.offsetHeight; // trigger reflow
+            img.style.animation = '';
+            img.src = lightboxImages[lightboxIndex];
+            document.getElementById('lightboxCounter').textContent = (lightboxIndex + 1) + ' / ' + lightboxImages.length;
+            updateLightboxNav();
+        }
+
+        function updateLightboxNav() {
+            // Always show both (circular navigation)
+        }
+
+        // Keyboard navigation
+        document.addEventListener('keydown', (e) => {
+            const modal = document.getElementById('imageLightbox');
+            if (modal.classList.contains('hidden')) return;
+            if (e.key === 'Escape') closeLightbox();
+            if (e.key === 'ArrowLeft') navigateLightbox(-1);
+            if (e.key === 'ArrowRight') navigateLightbox(1);
+        });
+    </script>
+
+    <!-- ========== GLOBAL BACKGROUND PROCESSING INDICATOR ========== -->
+    <div id="bgProcessIndicator" 
+         style="display:none; opacity:0; transform: translateY(12px) scale(0.96);"
+         class="fixed bottom-6 right-24 z-[95] transition-all duration-500 ease-out pointer-events-auto">
+        <div class="relative bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden min-w-[220px] max-w-[320px]">
+            <!-- Thin progress bar at top -->
+            <div id="bgProcessBar" class="absolute top-0 left-0 h-[3px] bg-gradient-to-r from-red-500 to-red-600 transition-all duration-700 ease-out rounded-full" style="width: 0%"></div>
+            
+            <div class="flex items-center gap-3 px-4 py-3">
+                <!-- Status icon container -->
+                <div id="bgProcessIcon" class="flex-shrink-0 w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-300">
+                    <!-- Spinner (default) -->
+                    <svg id="bgIconSpin" class="w-4 h-4 animate-spin text-red-600" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <!-- Check -->
+                    <svg id="bgIconCheck" class="w-4 h-4 text-emerald-600 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
+                    </svg>
+                    <!-- Error -->
+                    <svg id="bgIconError" class="w-4 h-4 text-red-500 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                    </svg>
+                    <!-- Upload -->
+                    <svg id="bgIconUpload" class="w-4 h-4 text-blue-600 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                    </svg>
+                </div>
+                
+                <!-- Text -->
+                <div class="flex-1 min-w-0">
+                    <p id="bgProcessTitle" class="text-[11px] font-bold text-gray-900 truncate">Processing...</p>
+                    <p id="bgProcessDetail" class="text-[10px] text-gray-400 font-medium truncate"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    /**
+     * Global Background Processing API
+     * Usage:
+     *   bgProcess.show('saving', 'Auto-saving changes...')
+     *   bgProcess.show('processing', 'Submitting to Director...', 'Please wait')
+     *   bgProcess.success('Saved successfully')
+     *   bgProcess.error('Save failed')
+     *   bgProcess.hide()
+     */
+    window.bgProcess = (function() {
+        const el = document.getElementById('bgProcessIndicator');
+        const bar = document.getElementById('bgProcessBar');
+        const title = document.getElementById('bgProcessTitle');
+        const detail = document.getElementById('bgProcessDetail');
+        const iconBox = document.getElementById('bgProcessIcon');
+        const icons = {
+            spin: document.getElementById('bgIconSpin'),
+            check: document.getElementById('bgIconCheck'),
+            error: document.getElementById('bgIconError'),
+            upload: document.getElementById('bgIconUpload')
+        };
+        
+        let hideTimer = null;
+        let progressTimer = null;
+        let currentProgress = 0;
+        
+        function showIcon(name) {
+            Object.values(icons).forEach(i => i.classList.add('hidden'));
+            if (icons[name]) icons[name].classList.remove('hidden');
+        }
+        
+        function setIconBg(cls) {
+            iconBox.className = 'flex-shrink-0 w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-300 ' + cls;
+        }
+        
+        function animateIn() {
+            el.style.display = 'block';
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    el.style.opacity = '1';
+                    el.style.transform = 'translateY(0) scale(1)';
+                });
+            });
+        }
+        
+        function animateOut() {
+            el.style.opacity = '0';
+            el.style.transform = 'translateY(12px) scale(0.96)';
+            setTimeout(() => { el.style.display = 'none'; }, 500);
+        }
+        
+        function simulateProgress() {
+            clearInterval(progressTimer);
+            currentProgress = 15;
+            bar.style.width = currentProgress + '%';
+            progressTimer = setInterval(() => {
+                if (currentProgress < 85) {
+                    currentProgress += Math.random() * 12;
+                    bar.style.width = Math.min(currentProgress, 85) + '%';
+                }
+            }, 600);
+        }
+        
+        return {
+            show(type, msg, detailMsg) {
+                clearTimeout(hideTimer);
+                clearInterval(progressTimer);
+                
+                title.textContent = msg || 'Processing...';
+                detail.textContent = detailMsg || '';
+                detail.style.display = detailMsg ? 'block' : 'none';
+                
+                if (type === 'saving') {
+                    showIcon('spin');
+                    setIconBg('bg-amber-50');
+                    icons.spin.classList.remove('text-red-600');
+                    icons.spin.classList.add('text-amber-500');
+                    bar.className = bar.className.replace(/from-\S+ to-\S+/, 'from-amber-400 to-amber-500');
+                } else if (type === 'uploading') {
+                    showIcon('upload');
+                    setIconBg('bg-blue-50');
+                    bar.className = bar.className.replace(/from-\S+ to-\S+/, 'from-blue-400 to-blue-500');
+                } else {
+                    showIcon('spin');
+                    setIconBg('bg-red-50');
+                    icons.spin.classList.remove('text-amber-500');
+                    icons.spin.classList.add('text-red-600');
+                    bar.className = bar.className.replace(/from-\S+ to-\S+/, 'from-red-500 to-red-600');
+                }
+                
+                simulateProgress();
+                animateIn();
+            },
+            
+            success(msg) {
+                clearInterval(progressTimer);
+                clearTimeout(hideTimer);
+                
+                bar.style.width = '100%';
+                bar.className = bar.className.replace(/from-\S+ to-\S+/, 'from-emerald-400 to-emerald-500');
+                showIcon('check');
+                setIconBg('bg-emerald-50');
+                title.textContent = msg || 'Done';
+                detail.textContent = '';
+                detail.style.display = 'none';
+                
+                animateIn();
+                hideTimer = setTimeout(() => animateOut(), 2500);
+            },
+            
+            error(msg) {
+                clearInterval(progressTimer);
+                clearTimeout(hideTimer);
+                
+                bar.style.width = '100%';
+                bar.className = bar.className.replace(/from-\S+ to-\S+/, 'from-red-400 to-red-500');
+                showIcon('error');
+                setIconBg('bg-red-50');
+                title.textContent = msg || 'Something went wrong';
+                detail.textContent = '';
+                detail.style.display = 'none';
+                
+                animateIn();
+                hideTimer = setTimeout(() => animateOut(), 4000);
+            },
+            
+            hide() {
+                clearInterval(progressTimer);
+                clearTimeout(hideTimer);
+                animateOut();
+            }
+        };
+    })();
+
+    /**
+     * Global non-blocking form submission
+     * Converts a standard form POST into a background fetch + redirect.
+     * The user sees the toast indicator while the form processes.
+     * Usage: bgSubmitForm(formElement, { message: '...', redirectUrl: '...' })
+     */
+    window.bgSubmitForm = async function(form, opts = {}) {
+        const msg = opts.message || 'Processing...';
+        const redirect = opts.redirectUrl;
+        const detail = opts.detail || '';
+        
+        bgProcess.show('processing', msg, detail);
+        
+        try {
+            const formData = new FormData(form);
+            const response = await fetch(form.action || window.location.href, {
+                method: 'POST',
+                body: formData,
+                redirect: 'follow'
+            });
+            
+            if (response.ok || response.redirected) {
+                bgProcess.success(opts.successMsg || 'Done ✓');
+                if (redirect) {
+                    setTimeout(() => { window.location.href = redirect; }, 600);
+                } else if (response.redirected) {
+                    setTimeout(() => { window.location.href = response.url; }, 600);
+                }
+            } else {
+                bgProcess.error('Request failed');
+            }
+        } catch (err) {
+            bgProcess.error('Network error');
+            console.error('bgSubmitForm error:', err);
+        }
+    };
+    </script>
+
+    <!-- ========== FLOATING PIS GENERATION TRACKER ========== -->
+    <!-- PIS Job Tracker — only visible on the Marketing dashboard -->
+    {% if session.get('role') == 'marketing' %}
+    <div x-data="pisTracker()" x-init="startPolling()" x-cloak x-show="showPanel"
+        class="fixed bottom-6 right-6 z-[90] w-80" id="pisTrackerWidget">
+
+        <div class="bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden">
+
+            <!-- Header -->
+            <div class="px-4 py-3 flex items-center justify-between"
+                :class="hasActive ? 'bg-gradient-to-r from-red-600 to-red-700 text-white' : 'bg-gradient-to-r from-emerald-600 to-emerald-700 text-white'">
+                <div class="flex items-center gap-2">
+                    <!-- Spinner or Check -->
+                    <svg x-show="hasActive" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <svg x-show="!hasActive" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
+                    </svg>
+                    <span class="text-xs font-bold uppercase tracking-wider" x-text="hasActive ? 'Processing...' : 'Complete!'"></span>
+                </div>
+                <span class="text-[10px] font-bold bg-white/20 px-2 py-0.5 rounded-full" x-text="jobs.length + ' job' + (jobs.length !== 1 ? 's' : '')"></span>
+            </div>
+
+            <!-- Job List -->
+            <div class="max-h-80 overflow-y-auto divide-y divide-slate-50">
+                <template x-for="job in jobs" :key="job.id">
+                    <div class="px-4 py-3">
+                        <div class="flex items-start justify-between gap-2 mb-1.5">
+                            <div class="flex-1 min-w-0">
+                                <p class="text-xs font-bold text-slate-800 truncate" x-text="job.model_name"></p>
+                                <p class="text-[10px] font-medium truncate mt-0.5"
+                                    :class="job.status === 'completed' ? 'text-emerald-600' : job.status === 'failed' ? 'text-red-500' : 'text-slate-400'"
+                                    x-text="job.message"></p>
+                            </div>
+                            <!-- Status Icon -->
+                            <div class="flex-shrink-0 mt-0.5">
+                                <template x-if="job.status === 'processing'">
+                                    <div class="w-5 h-5 border-2 border-red-200 border-t-red-600 rounded-full animate-spin"></div>
+                                </template>
+                                <template x-if="job.status === 'queued'">
+                                    <div class="w-5 h-5 bg-amber-50 text-amber-500 rounded-full flex items-center justify-center">
+                                        <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.414L11 9.586V6z"/></svg>
+                                    </div>
+                                </template>
+                                <template x-if="job.status === 'completed'">
+                                    <div class="w-5 h-5 bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center">
+                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+                                    </div>
+                                </template>
+                                <template x-if="job.status === 'failed'">
+                                    <div class="w-5 h-5 bg-red-50 text-red-500 rounded-full flex items-center justify-center">
+                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"/></svg>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+
+                        <!-- Progress Bar (active jobs) -->
+                        <template x-if="job.status === 'processing' || job.status === 'queued'">
+                            <div class="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden mt-1.5">
+                                <div class="h-full rounded-full transition-all duration-700"
+                                    :class="job.status === 'queued' ? 'bg-amber-300' : 'bg-gradient-to-r from-red-400 to-red-600'"
+                                    :style="'width:' + job.progress + '%'"></div>
+                            </div>
+                        </template>
+
+                        <!-- Actions (completed/failed) -->
+                        <template x-if="job.status === 'completed' || job.status === 'failed'">
+                            <div class="flex items-center gap-2 mt-2">
+                                <template x-if="job.status === 'completed' && job.redirect_url">
+                                    <a :href="job.redirect_url"
+                                        class="flex-1 text-center px-2.5 py-1.5 bg-red-50 hover:bg-red-100 text-red-700 rounded-lg text-[10px] font-bold transition-colors">
+                                        View PIS →
+                                    </a>
+                                </template>
+                                <button @click="dismissJob(job.id)"
+                                    class="px-2.5 py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-500 rounded-lg text-[10px] font-bold transition-colors"
+                                    :class="job.status === 'completed' ? '' : 'flex-1 text-center'">
+                                    Dismiss
+                                </button>
+                            </div>
+                        </template>
+                    </div>
+                </template>
+            </div>
+
+            <!-- Auto-refresh countdown -->
+            <template x-if="!hasActive && jobs.length > 0 && _refreshing">
+                <div class="px-4 py-2 bg-emerald-50 text-center border-t border-emerald-100">
+                    <p class="text-[10px] font-bold text-emerald-700 animate-pulse">Refreshing page in a moment...</p>
+                </div>
+            </template>
+        </div>
+    </div>
+
+    <script>
+    function pisTracker() {
+        return {
+            jobs: [],
+            pollInterval: null,
+            _wasActive: false,
+            _refreshing: false,
+            _visible: false,             // Once set to true, stays true until page reload
+            _doneConfirmCount: 0,        // Consecutive polls confirming all jobs finished
+            _requiredConfirms: 3,        // Number of consecutive confirms before reload
+
+            get activeCount() {
+                return this.jobs.filter(j => j.status === 'queued' || j.status === 'processing').length;
+            },
+
+            get hasActive() {
+                return this.activeCount > 0;
+            },
+
+            /** True only when every non-dismissed job has reached a terminal state with progress 100 */
+            get allTrulyDone() {
+                if (this.jobs.length === 0) return false;
+                return this.jobs.every(j =>
+                    (j.status === 'completed' || j.status === 'failed') && j.progress >= 100
+                );
+            },
+
+            get showPanel() {
+                // Panel stays visible once _visible is set — never hides until page reloads
+                return this._visible;
+            },
+
+            startPolling() {
+                this.fetchJobs();
+                this.pollInterval = setInterval(() => this.fetchJobs(), 3000);
+            },
+
+            async fetchJobs() {
+                try {
+                    // Cache-bust to prevent stale browser-cached responses
+                    const res = await fetch('/api/pis/jobs?_t=' + Date.now());
+                    if (!res.ok) return;                    // Don't update state on server errors
+                    const data = await res.json();
+                    if (!Array.isArray(data)) return;       // Guard against malformed responses
+                    this.jobs = data;
+
+                    // Once we see any jobs, lock the panel visible
+                    if (this.jobs.length > 0) {
+                        this._visible = true;
+                    }
+
+                    if (this.hasActive) {
+                        // Still processing — reset any completion countdown
+                        this._wasActive = true;
+                        this._doneConfirmCount = 0;
+                        clearInterval(this.pollInterval);
+                        this.pollInterval = setInterval(() => this.fetchJobs(), 3000);
+
+                    } else if (this._wasActive && this.allTrulyDone) {
+                        // Jobs LOOK finished — require multiple consecutive confirms
+                        this._doneConfirmCount++;
+                        console.log(`[PIS Tracker] Completion confirm ${this._doneConfirmCount}/${this._requiredConfirms}`);
+
+                        if (this._doneConfirmCount >= this._requiredConfirms && !this._refreshing) {
+                            // Confirmed done across multiple polls — safe to reload
+                            this._wasActive = false;
+                            this._refreshing = true;
+                            clearInterval(this.pollInterval);
+                            setTimeout(() => window.location.reload(), 2000);
+                        }
+                        // else keep polling at fast rate to gather more confirms
+
+                    } else if (this.jobs.length === 0 && !this._refreshing) {
+                        // No jobs at all — slow poll
+                        this._doneConfirmCount = 0;
+                        clearInterval(this.pollInterval);
+                        this.pollInterval = setInterval(() => this.fetchJobs(), 10000);
+                    }
+                } catch (e) {
+                    // Fetch failed — do NOT treat as "no active jobs"
+                    // Keep polling at current rate; don't increment done counter
+                    console.warn('[PIS Tracker] Poll failed, will retry:', e);
+                }
+            },
+
+            async dismissJob(jobId) {
+                try {
+                    await fetch(`/api/pis/jobs/${jobId}`, { method: 'DELETE' });
+                    this.jobs = this.jobs.filter(j => j.id !== jobId);
+                    // If all jobs dismissed, hide the panel
+                    if (this.jobs.length === 0 && !this._refreshing) {
+                        this._visible = false;
+                    }
+                } catch (e) { /* silent */ }
+            }
+        };
+    }
+    </script>
+    {% endif %}
+
+    <!-- Global Broken Image Handler: catches ANY failed image load -->
+    <script>
+    document.addEventListener('error', function(e) {
+        if (e.target.tagName === 'IMG') {
+            const img = e.target;
+            // Only handle product images (inside cards/galleries), not SVGs or icons
+            if (img.closest('.gallery-clickable') || img.classList.contains('gallery-clickable') || 
+                img.closest('[class*="aspect-"]') || img.closest('[class*="object-"]') ||
+                img.src.includes('/static/uploads/')) {
+                
+                img.style.display = 'none';
+                
+                // Create a clean placeholder
+                const placeholder = document.createElement('div');
+                placeholder.className = 'flex flex-col items-center justify-center gap-1 text-gray-300 w-full h-full';
+                placeholder.innerHTML = `
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" 
+                            d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                    </svg>
+                    <span class="text-[10px] font-bold uppercase tracking-wider">No Image</span>
+                `;
+                img.parentNode.insertBefore(placeholder, img.nextSibling);
+            }
+        }
+    }, true);
+    </script>
+
+</body>
+
+</html>

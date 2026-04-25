@@ -1,0 +1,243 @@
+{% extends "base.html" %}
+
+{% block content %}
+<script>
+    // Inject category tree as proper JSON to avoid Jinja HTML-escaping issues
+    window.__CATEGORY_TREE__ = {{ category_tree | tojson | safe }};
+</script>
+<div x-data="forbiddenWordsManager()" x-init="init()" x-cloak>
+
+    <!-- Section Header -->
+    <div class="mb-6 relative rounded-2xl bg-white border border-gray-100 p-8 shadow-sm overflow-hidden">
+        <div class="absolute inset-0 bg-[radial-gradient(#fef2f2_1px,transparent_1px)] [background-size:16px_16px] opacity-40"></div>
+        <div class="absolute right-0 top-0 w-64 h-64 bg-red-50 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 opacity-60"></div>
+        <div class="relative z-10 flex flex-col md:flex-row justify-between items-center gap-6">
+            <div>
+                <h2 class="text-3xl font-bold text-slate-800 mb-2 flex items-center gap-3">
+                    <div class="w-10 h-10 bg-red-50 rounded-xl flex items-center justify-center text-red-500">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                        </svg>
+                    </div>
+                    Forbidden Words
+                </h2>
+                <p class="text-slate-500 text-sm">Manage words that are <strong class="text-red-600">blocked</strong> from AI-generated specsheets, organized by product category.</p>
+            </div>
+            <div class="flex items-center gap-3">
+                <div class="px-4 py-2.5 bg-red-50 border border-red-100 rounded-xl text-xs font-bold text-red-600 flex items-center gap-2 shadow-sm">
+                    <span class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+                    <span x-text="totalWords + ' words blocked'"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Category A Tabs + Content -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden min-h-[500px]">
+
+        <!-- Cat A Tab Bar -->
+        <div class="px-6 py-4 border-b border-gray-100 overflow-x-auto">
+            <div class="flex items-center gap-2 min-w-max">
+                <template x-for="catA in catAList" :key="catA">
+                    <button @click="selectedCatA = catA"
+                        :class="selectedCatA === catA ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200' : 'bg-gray-50 text-slate-600 hover:bg-gray-100 border border-gray-200'"
+                        class="px-4 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap"
+                        x-text="catA"></button>
+                </template>
+            </div>
+        </div>
+
+        <!-- Search Bar -->
+        <div class="px-6 py-3 border-b border-gray-100 bg-white">
+            <div class="relative max-w-md">
+                <svg class="w-4 h-4 absolute left-3 top-2.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                <input x-model="search" type="text" placeholder="Search categories or words..."
+                    class="w-full pl-9 pr-4 py-2 bg-gray-50 border border-transparent focus:bg-white focus:border-indigo-100 focus:ring-4 focus:ring-indigo-50 rounded-lg text-sm font-medium transition-all outline-none placeholder-gray-400">
+                <button x-show="search.length > 0" @click="search = ''" class="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- Cat B Accordion Groups -->
+        <div class="p-6 bg-slate-50/50 space-y-4">
+            <template x-if="selectedCatA && categoryTree[selectedCatA]">
+                <div class="space-y-3">
+                    <template x-for="catB in getCatBList()" :key="selectedCatA + '__' + catB">
+                        <div x-show="matchesGroupSearch(catB, getCatCList(catB))"
+                            class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+                            
+                            <!-- Cat B Header (Collapsible) -->
+                            <button @click="toggleGroup(selectedCatA + '__' + catB)"
+                                class="w-full px-5 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors group">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-500 group-hover:bg-indigo-100 transition-colors">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6z" />
+                                        </svg>
+                                    </div>
+                                    <span class="font-bold text-sm text-slate-700" x-text="catB"></span>
+                                    <span class="text-[10px] font-bold text-gray-400 bg-gray-50 px-2 py-0.5 rounded-full"
+                                        x-text="getCatCList(catB).length + ' categories'"></span>
+                                </div>
+                                <svg class="w-4 h-4 text-gray-400 transition-transform duration-200" 
+                                    :class="openGroups[selectedCatA + '__' + catB] ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </button>
+
+                            <!-- Cat C Cards (Expanded Content) -->
+                            <div x-show="openGroups[selectedCatA + '__' + catB]">
+                                <div class="px-5 pb-5 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                                    <template x-for="catC in getCatCList(catB)" :key="catC">
+                                        <div x-show="matchesCatSearch(catC)" class="border border-gray-100 rounded-xl p-4 bg-slate-50/50 hover:border-indigo-100 transition-colors">
+                                            
+                                            <!-- Cat C Header -->
+                                            <div class="flex items-center justify-between mb-3">
+                                                <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wide" x-text="catC"></h4>
+                                                <span class="text-[10px] font-bold tabular-nums px-2 py-0.5 rounded-full"
+                                                    :class="(words[catC] && words[catC].length > 0) ? 'bg-red-50 text-red-600' : 'bg-gray-100 text-gray-400'"
+                                                    x-text="(words[catC] ? words[catC].length : 0) + ' words'"></span>
+                                            </div>
+
+                                            <!-- Input + Add -->
+                                            <div class="flex gap-2 mb-3">
+                                                <input type="text" placeholder="Type a word & press Enter..." 
+                                                    @keydown.enter="addWord(catC, $el.value); $el.value = ''"
+                                                    class="flex-1 px-3 py-2 text-xs bg-white border border-gray-200 rounded-lg focus:border-indigo-300 focus:ring-2 focus:ring-indigo-50 outline-none transition-all placeholder-gray-400">
+                                                <button @click="let el = $event.target.previousElementSibling; addWord(catC, el.value); el.value = ''"
+                                                    class="px-3 py-2 bg-indigo-600 text-white rounded-lg text-xs font-bold hover:bg-indigo-700 transition-colors flex-shrink-0 shadow-sm shadow-indigo-200">
+                                                    Add
+                                                </button>
+                                            </div>
+
+                                            <!-- Word Chips -->
+                                            <div class="flex flex-wrap gap-1.5 min-h-[28px]">
+                                                <template x-for="word in (words[catC] || [])" :key="word">
+                                                    <span class="inline-flex items-center gap-1 px-2.5 py-1 bg-red-50 text-red-700 rounded-md text-[11px] font-semibold border border-red-100 group hover:bg-red-100 transition-colors">
+                                                        <span x-text="word"></span>
+                                                        <button @click="removeWord(catC, word)"
+                                                            class="text-red-400 hover:text-red-700 transition-colors ml-0.5 text-xs leading-none">✕</button>
+                                                    </span>
+                                                </template>
+                                                <template x-if="!words[catC] || words[catC].length === 0">
+                                                    <span class="text-[10px] text-gray-400 italic py-1">No forbidden words set</span>
+                                                </template>
+                                            </div>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+
+                        </div>
+                    </template>
+                </div>
+            </template>
+        </div>
+    </div>
+</div>
+
+<script>
+function forbiddenWordsManager() {
+    return {
+        categoryTree: window.__CATEGORY_TREE__ || {},
+        catAList: [],
+        selectedCatA: '',
+        openGroups: {},
+        words: {},
+        search: '',
+        
+        get totalWords() {
+            let count = 0;
+            for (const cat in this.words) {
+                count += this.words[cat].length;
+            }
+            return count;
+        },
+        
+        async init() {
+            // Build Cat A list from the injected JSON (no escaping issues)
+            this.catAList = Object.keys(this.categoryTree).sort();
+            this.selectedCatA = this.catAList[0] || '';
+            
+            try {
+                const res = await fetch('/api/forbidden_words');
+                this.words = await res.json();
+            } catch (e) {
+                console.error('Failed to load forbidden words:', e);
+                this.words = {};
+            }
+        },
+        
+        toggleGroup(key) {
+            this.openGroups[key] = !this.openGroups[key];
+        },
+        
+        getCatBList() {
+            if (!this.selectedCatA || !this.categoryTree[this.selectedCatA]) return [];
+            return Object.keys(this.categoryTree[this.selectedCatA]).sort();
+        },
+        
+        getCatCList(catB) {
+            if (!this.selectedCatA || !this.categoryTree[this.selectedCatA] || !this.categoryTree[this.selectedCatA][catB]) return [];
+            return this.categoryTree[this.selectedCatA][catB];
+        },
+        
+        matchesCatSearch(catC) {
+            if (!this.search.trim()) return true;
+            const q = this.search.trim().toLowerCase();
+            if (catC.toLowerCase().includes(q)) return true;
+            const catWords = this.words[catC] || [];
+            return catWords.some(w => w.toLowerCase().includes(q));
+        },
+        
+        matchesGroupSearch(catB, catCList) {
+            if (!this.search.trim()) return true;
+            if (!catCList) return false;
+            const q = this.search.trim().toLowerCase();
+            if (catB.toLowerCase().includes(q)) return true;
+            return catCList.some(c => this.matchesCatSearch(c));
+        },
+        
+        async addWord(category, word) {
+            word = (word || '').trim().toLowerCase();
+            if (!word) return;
+            
+            try {
+                const res = await fetch('/api/forbidden_words', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ category, word })
+                });
+                const data = await res.json();
+                if (data.ok) {
+                    this.words[category] = data.words;
+                }
+            } catch (e) {
+                console.error('Failed to add word:', e);
+            }
+        },
+        
+        async removeWord(category, word) {
+            try {
+                const res = await fetch('/api/forbidden_words', {
+                    method: 'DELETE',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ category, word })
+                });
+                const data = await res.json();
+                if (data.ok) {
+                    this.words[category] = data.words;
+                }
+            } catch (e) {
+                console.error('Failed to remove word:', e);
+            }
+        }
+    };
+}
+</script>
+{% endblock %}

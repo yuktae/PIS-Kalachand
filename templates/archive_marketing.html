@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div x-data="{ 
+    search: '',
+    products: [
+        {% for p in products %}
+        {
+            id: {{ p.id }},
+            model_name: `{{ p.model_name }}`,
+            brand: `{{ p.pis_data.header_info.brand if p.pis_data and p.pis_data.header_info else 'Unknown' }}`,
+            date: `{{ p.created_at.strftime('%d %b %Y') }}`,
+            pis_pdf_url: `{{ url_for('download_pis_pdf', product_id=p.id) }}`,
+            spec_pdf_url: `{{ url_for('download_specsheet', product_id=p.id) }}`
+        },
+        {% endfor %}
+    ],
+    get filteredProducts() {
+        return this.products.filter(p => {
+            const matchesSearch = p.model_name.toLowerCase().includes(this.search.toLowerCase()) || 
+                                  p.brand.toLowerCase().includes(this.search.toLowerCase());
+            return matchesSearch;
+        });
+    }
+}">
+
+    <!-- HERO SECTION -->
+    <div class="mb-8 relative rounded-2xl bg-white border border-gray-100 p-8 shadow-sm overflow-hidden">
+        <div
+            class="absolute inset-0 bg-[radial-gradient(#f1f5f9_1px,transparent_1px)] [background-size:16px_16px] opacity-50">
+        </div>
+        <div class="relative z-10 flex flex-col md:flex-row justify-between items-center gap-6">
+            <div>
+                <h2 class="text-3xl font-bold text-slate-800 mb-2">Marketing PDF Archive</h2>
+                <p class="text-slate-500 text-sm">Access final PIS and SpecSheets for all <span
+                        class="font-bold text-green-600">Approved</span> products.</p>
+            </div>
+
+            <!-- Search -->
+            <div class="relative w-full md:w-64">
+                <svg class="w-4 h-4 absolute left-3 top-2.5 text-gray-400" fill="none" stroke="currentColor"
+                    viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                <input x-model="search" type="text" placeholder="Search archive..."
+                    class="w-full pl-9 pr-4 py-2 bg-gray-50 border border-transparent focus:bg-white focus:border-red-100 focus:ring-4 focus:ring-red-50 rounded-lg text-sm font-medium transition-all outline-none placeholder-gray-400">
+            </div>
+        </div>
+    </div>
+
+    <!-- PDF ARCHIVE TABLE -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mb-12">
+        <div class="px-6 py-5 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+            <div class="flex items-center gap-3">
+                <div class="p-2 bg-slate-100 rounded-lg text-slate-500">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+                    </svg>
+                </div>
+                <div>
+                    <h3 class="font-bold text-slate-800">Marketing Archive</h3>
+                    <p class="text-xs text-slate-500">Repository of all finalized documents</p>
+                </div>
+            </div>
+            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider"
+                x-text="filteredProducts.length + ' Files'"></span>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm text-slate-600">
+                <thead class="bg-gray-50 text-xs uppercase font-semibold text-slate-500">
+                    <tr>
+                        <th class="px-6 py-3">Product Name</th>
+                        <th class="px-6 py-3">Brand</th>
+                        <th class="px-6 py-3">Approval Date</th>
+                        <th class="px-6 py-3">PIS Document</th>
+                        <th class="px-6 py-3">Spec Sheet</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    <template x-for="p in filteredProducts" :key="'archive-'+p.id">
+                        <tr class="hover:bg-slate-50 transition-colors">
+                            <td class="px-6 py-3 font-medium text-slate-800" x-text="p.model_name"></td>
+                            <td class="px-6 py-3 text-slate-500" x-text="p.brand"></td>
+                            <td class="px-6 py-3 text-slate-400 text-xs" x-text="p.date"></td>
+                            <td class="px-6 py-3">
+                                <a :href="p.pis_pdf_url" target="_blank"
+                                    class="inline-flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100 transition-colors border border-red-100">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                    </svg>
+                                    Download PIS
+                                </a>
+                            </td>
+                            <td class="px-6 py-3">
+                                <a :href="p.spec_pdf_url" target="_blank"
+                                    class="inline-flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 transition-colors border border-blue-100">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                    </svg>
+                                    Download Spec
+                                </a>
+                            </td>
+                        </tr>
+                    </template>
+                    <template x-if="filteredProducts.length === 0">
+                        <tr>
+                            <td colspan="5" class="px-6 py-8 text-center text-slate-400 text-sm">
+                                No archived documents found matching your search.
+                            </td>
+                        </tr>
+                    </template>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

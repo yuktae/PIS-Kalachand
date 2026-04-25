@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>Product Information Sheet - {{ product.model_name }}</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;700;800&display=swap"
+        rel="stylesheet">
+
+    <style>
+        @page {
+            size: A4;
+            margin: 0;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', sans-serif;
+            font-size: 10px;
+            color: #334155;
+            line-height: 1.5;
+            background-color: #ffffff;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        .page {
+            padding: 40px;
+            position: relative;
+            min-height: 297mm;
+        }
+
+        /* ---------------- HEADER ---------------- */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 30px;
+            gap: 40px;
+        }
+
+        .header-left {
+            flex: 1;
+        }
+
+        .document-type {
+            display: inline-block;
+            background: #dc2626;
+            color: #ffffff;
+            padding: 4px 12px;
+            border-radius: 6px;
+            font-size: 9px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 12px;
+        }
+
+        .brand-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 4px;
+        }
+
+        .product-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 28px;
+            font-weight: 800;
+            color: #1e293b;
+            margin: 0 0 6px 0;
+            line-height: 1.1;
+        }
+
+        .model-number {
+            font-size: 14px;
+            color: #64748b;
+            font-weight: 500;
+        }
+
+        .header-right {
+            width: 250px;
+            flex-shrink: 0;
+        }
+
+        .hero-image-wrap {
+            background: #ffffff;
+            border-radius: 20px;
+            padding: 10px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+            border: 1px solid #f1f5f9;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .main-image {
+            width: 100%;
+            height: auto;
+            display: block;
+            mix-blend-mode: multiply;
+            border-bottom: 1px solid #f1f5f9;
+            padding-bottom: 10px;
+        }
+
+        .image-gallery {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+        }
+
+        .gallery-image {
+            width: 100%;
+            aspect-ratio: 1/1;
+            object-fit: contain;
+            border-radius: 8px;
+            border: 1px solid #f1f5f9;
+            mix-blend-mode: multiply;
+            background: #fff;
+        }
+
+        /* ---------------- SECTION STYLE ---------------- */
+        .section-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 13px;
+            font-weight: 700;
+            color: #dc2626;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .section-title::after {
+            content: "";
+            flex: 1;
+            height: 1px;
+            background: #e2e8f0;
+        }
+
+        /* ---------------- GRID LAYOUT ---------------- */
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-top: 20px;
+        }
+
+        /* ---------------- CARDS ---------------- */
+        .card {
+            background: #f8fafc;
+            border-radius: 16px;
+            padding: 20px;
+            border: 1px solid #f1f5f9;
+        }
+
+        .description-text {
+            font-size: 11px;
+            color: #475569;
+            line-height: 1.7;
+            white-space: pre-wrap;
+        }
+
+        /* ---------------- FEATURES ---------------- */
+        .feature-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .feature-item {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+            align-items: flex-start;
+        }
+
+        .feature-bullet {
+            width: 6px;
+            height: 6px;
+            background: #ef4444;
+            border-radius: 50%;
+            margin-top: 6px;
+            flex-shrink: 0;
+        }
+
+        /* ---------------- SPECS TABLE ---------------- */
+        .spec-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .spec-row {
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .spec-key {
+            padding: 8px 0;
+            color: #64748b;
+            font-weight: 600;
+            width: 40%;
+            vertical-align: top;
+        }
+
+        .spec-value {
+            padding: 8px 0;
+            color: #1e293b;
+            font-weight: 500;
+            vertical-align: top;
+        }
+
+        /* ---------------- FOOTER ---------------- */
+        .footer {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: #1e293b;
+            color: #94a3b8;
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 9px;
+        }
+
+        .footer-brand {
+            color: #ffffff;
+            font-weight: 700;
+            letter-spacing: 1px;
+        }
+
+        .no-break {
+            page-break-inside: avoid;
+            break-inside: avoid;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="page">
+        <!-- HEADER -->
+        <header class="header">
+            <div class="header-left">
+                <div class="document-type">INTERNAL DOCUMENT (PIS)</div>
+                <div class="brand-label">{{ data.header_info.brand }}</div>
+                <h1 class="product-title">{{ data.header_info.product_name }}</h1>
+                <div class="model-number">MODEL: {{ data.header_info.model_number }}</div>
+
+                {% if data.header_info.price_estimate %}
+                <div style="margin-top: 20px;">
+                    <span style="font-weight: 700; color: #dc2626;">ESTIMATED PRICE:</span>
+                    <span style="font-size: 14px; font-weight: 800; color: #1e293b;">{{ data.header_info.price_estimate
+                        }}</span>
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="header-right">
+                {% if all_images_b64 %}
+                <div class="hero-image-wrap">
+                    {# Main Image #}
+                    <img src="{{ all_images_b64[0] }}" alt="Product Main Image" class="main-image">
+
+                    {# Gallery for additional images (if more than 1) #}
+                    {% if all_images_b64|length > 1 %}
+                    <div class="image-gallery">
+                        {% for img_b64 in all_images_b64[1:] %}
+                        <img src="{{ img_b64 }}" alt="Product Detail Image" class="gallery-image">
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </header>
+
+        <!-- DESCRIPTION/OVERVIEW -->
+        <div class="card no-break" style="margin-bottom: 30px;">
+            <div class="section-title">SHORT DESCRIPTION</div>
+            <div class="description-text">
+                {{ data.range_overview }}
+            </div>
+        </div>
+
+        <div class="grid">
+            <!-- KEY HIGHLIGHTS -->
+            <div class="no-break">
+                <div class="section-title">Key Highlights</div>
+                <ul class="feature-list">
+                    {% for arg in data.sales_arguments %}
+                    <li class="feature-item">
+                        <span class="feature-bullet"></span>
+                        <span>{{ arg }}</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+
+                <div class="card no-break" style="margin-top: 30px; background: #fef2f2; border-color: #fee2e2;">
+                    <div class="section-title" style="color: #991b1b;">Warranty & Support</div>
+                    <div style="font-size: 10px; color: #7f1d1d;">
+                        <strong>Period:</strong> {{ data.warranty_service.period }}<br>
+                        <strong>Coverage:</strong> {{ data.warranty_service.coverage }}
+                    </div>
+                </div>
+            </div>
+
+            <!-- TECHNICAL DETAILS -->
+            <div class="no-break">
+                <div class="section-title">Technical Specifications</div>
+                <table class="spec-table">
+                    {% for key, value in data.technical_specifications.items() %}
+                    <tr class="spec-row">
+                        <td class="spec-key">{{ key }}</td>
+                        <td class="spec-value">{{ value }}</td>
+                    </tr>
+                    {% endfor %}
+                </table>
+            </div>
+        </div>
+
+        <!-- FOOTER -->
+        <footer class="footer">
+            <div>
+                <span class="footer-brand">J. KALACHAND</span> &nbsp;|&nbsp; PRODUCT INTELLIGENCE SYSTEM (PIS)
+            </div>
+            <div>
+                REF: PIS-{{ product.id }} &nbsp;|&nbsp; GENERATED ON {{ date_generated }}
+            </div>
+        </footer>
+    </div>
+
+</body>
+
+</html>

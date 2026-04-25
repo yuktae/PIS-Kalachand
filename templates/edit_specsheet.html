@@ -1,0 +1,2038 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="max-w-7xl mx-auto pb-32">
+    <form method="POST">
+
+        {# --- STICKY HEADER --- #}
+        <div class="sticky top-0 z-50 backdrop-blur-md bg-white/90 border-b border-gray-100 transition-all">
+
+            <div class="px-8 py-4 flex items-center justify-between flex-wrap gap-4">
+                <div>
+                    <h2 class="text-xl font-semibold text-gray-900">Edit SpecSheet</h2>
+                    <div class="flex items-center gap-2 text-xs text-gray-500 mt-1 flex-wrap">
+                        <span class="font-medium text-gray-900">{{ product.model_name }}</span>
+                        <span>·</span>
+                        {% if product.workflow_stage == 'ready_for_web' %}
+                        <span
+                            class="px-2 py-0.5 rounded text-[10px] font-bold bg-green-50 text-green-700 border border-green-100 whitespace-nowrap">Draft SpecSheet</span>
+                        {% elif product.workflow_stage == 'specsheet_draft' %}
+                        <span
+                            class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-100 whitespace-nowrap">In Process</span>
+                        {% elif product.workflow_stage == 'web_changes_requested' %}
+                        <span
+                            class="px-2 py-0.5 rounded text-[10px] font-bold bg-red-50 text-red-700 border border-red-100 whitespace-nowrap">Change Requested</span>
+                        {% elif product.workflow_stage == 'pending_director_spec' %}
+                        <span
+                            class="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-100 whitespace-nowrap">Need Review</span>
+                        {% elif product.workflow_stage == 'finalized' %}
+                        <span
+                            class="px-2 py-0.5 rounded text-[10px] font-bold bg-green-50 text-green-700 border border-green-100 whitespace-nowrap">SpecSheet Approved</span>
+                        {% else %}
+                        <span
+                            class="px-2 py-0.5 rounded text-[10px] font-bold bg-gray-50 text-gray-700 border border-gray-100">{{
+                            product.workflow_stage|replace('_', ' ') }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-3 flex-wrap">
+                    <a href="{{ url_for('dashboard_web') }}"
+                        class="text-sm font-medium text-gray-500 hover:text-gray-800 transition-colors">
+                        Cancel
+                    </a>
+
+                    <a href="{{ url_for('download_specsheet', product_id=product.id) }}" target="_blank"
+                        class="px-4 py-2 rounded-lg bg-gray-50 hover:bg-gray-100 border border-gray-200 text-gray-700 text-sm font-semibold transition-colors flex items-center gap-2">
+                        <svg class="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        Preview PDF
+                    </a>
+
+                    <a href="{{ url_for('download_specsheet_csv', product_id=product.id) }}"
+                        class="px-4 py-2 rounded-lg bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-700 text-sm font-semibold transition-colors flex items-center gap-2">
+                        <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+                        </svg>
+                        Export CSV
+                    </a>
+
+                    <div id="saveStatus"
+                        class="flex items-center gap-2 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all duration-300 opacity-0 bg-gray-50 text-gray-400">
+                        <div class="status-dot w-1.5 h-1.5 rounded-full bg-gray-300"></div>
+                        <span class="status-text">Saved </span>
+                    </div>
+
+                    <button type="submit" name="action" value="save"
+                        class="px-4 py-2 rounded-lg bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm font-semibold shadow-sm transition-colors">
+                        Save Draft
+                    </button>
+
+                    {% set spec_approved = product.workflow_stage == 'finalized' %}
+                    <button type="button" id="needReviewBtn" onclick="openSubmitModal()"
+                        class="px-5 py-2 rounded-lg text-sm font-semibold shadow-sm transition-colors flex items-center gap-2
+                        {% if spec_approved %}bg-gray-300 text-gray-500 cursor-not-allowed{% else %}bg-indigo-600 hover:bg-indigo-700 text-white{% endif %}"
+                        {% if spec_approved %}disabled{% endif %}>
+                        <span>Need Review</span>
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <div class="px-8 pb-3 flex justify-between items-center gap-8 overflow-x-auto">
+                <nav class="flex gap-1 bg-gray-100/50 p-1 rounded-xl flex-shrink-0 overflow-x-auto whitespace-nowrap scrollbar-thin">
+                    <a href="#header"
+                        class="nav-link px-4 py-1.5 rounded-lg text-xs font-bold text-gray-500 hover:text-gray-900 transition-all">Header</a>
+                    <a href="#content"
+                        class="nav-link px-4 py-1.5 rounded-lg text-xs font-bold text-gray-500 hover:text-gray-900 transition-all whitespace-nowrap">Short Description</a>
+                    <a href="#features"
+                        class="nav-link px-4 py-1.5 rounded-lg text-xs font-bold text-gray-500 hover:text-gray-900 transition-all whitespace-nowrap">Key Features</a>
+                    <a href="#seo"
+                        class="nav-link px-4 py-1.5 rounded-lg text-xs font-bold text-gray-500 hover:text-gray-900 transition-all">SEO</a>
+                    <a href="#categories"
+                        class="nav-link px-4 py-1.5 rounded-lg text-xs font-bold text-gray-500 hover:text-gray-900 transition-all">Classification</a>
+                    <a href="#tech_specs"
+                        class="nav-link px-4 py-1.5 rounded-lg text-xs font-bold text-gray-500 hover:text-gray-900 transition-all whitespace-nowrap">Technical Specs</a>
+                    <a href="#warranty"
+                        class="nav-link px-4 py-1.5 rounded-lg text-xs font-bold text-gray-500 hover:text-gray-900 transition-all">Warranty</a>
+                </nav>
+
+                <div class="flex-1 h-1 bg-gray-100 rounded-full overflow-hidden shadow-inner relative">
+                    <div id="scrollProgress"
+                        class="h-full bg-gradient-to-r from-red-500 via-red-600 to-red-700 w-0 transition-all duration-150 ease-out shadow-[0_0_10px_rgba(220,38,38,0.5)]">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+
+        <div class="mt-8 px-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
+
+            {# --- LEFT COLUMN (MAIN CONTENT) --- #}
+            <div class="lg:col-span-9 space-y-8 min-w-0">
+
+                {# 0. HEADER INFO (Editable) #}
+                <section id="header" class="section-card scroll-mt-40 border-l-4 border-l-red-500">
+                    <div class="flex items-center gap-3 mb-6">
+                        <div class="p-2 bg-red-50 text-red-600 rounded-lg">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-gray-900 text-lg">Header Information</h3>
+                            <p class="text-xs text-gray-500">Essential product details for the SpecSheet.</p>
+                        </div>
+                    </div>
+
+                    {% if product.revision_data and product.revision_data.get('header_info') %}
+                    <div id="rev-card-header"
+                        class="mb-6 bg-amber-50 border border-amber-200 rounded-xl p-5 relative overflow-hidden animate-fade-in shadow-sm">
+                        <div
+                            class="flex items-center gap-2 mb-3 text-amber-800 font-bold text-xs uppercase tracking-wide">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M13 10V3L4 14h7v7l9-11h-7z" />
+                            </svg>
+                            Director Change Request
+                        </div>
+                        <div class="text-sm text-gray-800 mb-4 font-medium border-l-2 border-amber-300 pl-3">
+                            "{{ product.revision_data['header_info']['comment'] }}"
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 ai-fields-header">
+                            <div>
+                                <label class="text-[10px] uppercase font-bold text-green-600 mb-1 block">Product
+                                    Name</label>
+                                <input type="text" data-key="product_name"
+                                    value="{{ product.revision_data['header_info']['ai_suggestion'].get('product_name', '') }}"
+                                    class="w-full p-2 rounded-lg border border-green-200 text-xs bg-white focus:ring-2 focus:ring-green-100 focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="text-[10px] uppercase font-bold text-green-600 mb-1 block">Model
+                                    Number</label>
+                                <input type="text" data-key="model_number"
+                                    value="{{ product.revision_data['header_info']['ai_suggestion'].get('model_number', '') }}"
+                                    class="w-full p-2 rounded-lg border border-green-200 text-xs bg-white focus:ring-2 focus:ring-green-100 focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="text-[10px] uppercase font-bold text-green-600 mb-1 block">Brand</label>
+                                <input type="text" data-key="brand"
+                                    value="{{ product.revision_data['header_info']['ai_suggestion'].get('brand', '') }}"
+                                    class="w-full p-2 rounded-lg border border-green-200 text-xs bg-white focus:ring-2 focus:ring-green-100 focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="text-[10px] uppercase font-bold text-green-600 mb-1 block">Estimated
+                                    Price</label>
+                                <input type="text" data-key="price_estimate"
+                                    value="{{ product.revision_data['header_info']['ai_suggestion'].get('price_estimate', '') }}"
+                                    class="w-full p-2 rounded-lg border border-green-200 text-xs bg-white focus:ring-2 focus:ring-green-100 focus:outline-none">
+                            </div>
+                        </div>
+                        <div class="flex gap-2">
+                            <button type="button" onclick="acceptRevision(this)" data-section="header"
+                                class="px-4 py-2 bg-green-600 text-white text-xs font-bold rounded-lg hover:bg-green-700 shadow-sm transition-all">Accept</button>
+                            <button type="button" onclick="retryRevision(this)" data-section="header_info"
+                                data-id="{{ product.id }}"
+                                class="px-4 py-2 bg-blue-50 text-blue-600 text-xs font-bold rounded-lg hover:bg-blue-100 border border-blue-100">Retry</button>
+                            <button type="button" onclick="this.closest('.animate-fade-in').remove()"
+                                class="px-4 py-2 bg-white border border-gray-300 text-gray-600 text-xs font-bold rounded-lg">Ignore</button>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1.5 block">Product
+                                Name</label>
+                            <input type="text" name="product_name"
+                                value="{{ spec_data.header_info.product_name if spec_data.header_info else product.model_name }}"
+                                class="input" placeholder="e.g. Samsung 500L Refrigerator">
+                        </div>
+                        <div>
+                            <label class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1.5 block">Model
+                                Number</label>
+                            <input type="text" name="model_number"
+                                value="{{ spec_data.header_info.model_number if spec_data.header_info else product.model_name }}"
+                                class="input" placeholder="e.g. RT50K6330SL">
+                        </div>
+                        <div>
+                            <label
+                                class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1.5 block">Brand</label>
+                            <input type="text" name="brand"
+                                value="{{ spec_data.header_info.brand if spec_data.header_info else '' }}" class="input"
+                                placeholder="e.g. Samsung">
+                        </div>
+                        <div>
+                            <label
+                                class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1.5 block">Estimated
+                                Price</label>
+                            <input type="text" name="price_estimate"
+                                value="{{ spec_data.header_info.price_estimate if spec_data.header_info else '' }}"
+                                class="input" placeholder="e.g. Rs 24,990">
+                        </div>
+                    </div>
+                </section>
+
+                {# 1. CUSTOMER CONTENT (Editable) #}
+                <section id="content" class="section-card scroll-mt-40 border-l-4 border-l-indigo-500">
+                    <div class="flex items-center gap-3 mb-6">
+                        <div class="p-2 bg-indigo-50 text-indigo-600 rounded-lg">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-gray-900 text-lg">Short Description</h3>
+                            <p class="text-xs text-gray-500">Customer-facing description for the website/PDF.</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-blue-50 border border-blue-100 rounded-xl p-4 mb-6 flex gap-3">
+                        <div class="text-blue-500 flex-shrink-0 pt-1">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                        <p class="text-sm text-blue-800 leading-relaxed">
+                            <strong>AI Suggestion:</strong> This text was re-written to be benefit-driven and
+                            customer-friendly.
+                        </p>
+                    </div>
+
+                    {% if product.revision_data and product.revision_data.get('range_overview') %}
+                    <div id="rev-card-description"
+                        class="mb-6 bg-amber-50 border border-amber-200 rounded-xl p-5 relative overflow-hidden animate-fade-in shadow-sm">
+                        <div
+                            class="flex items-center gap-2 mb-3 text-amber-800 font-bold text-xs uppercase tracking-wide">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M13 10V3L4 14h7v7l9-11h-7z" />
+                            </svg>
+                            Director Change Request
+                        </div>
+                        <div class="text-sm text-gray-800 mb-4 font-medium border-l-2 border-amber-300 pl-3">
+                            "{{ product.revision_data['range_overview']['comment'] }}"
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                            <div>
+                                <label class="text-[10px] uppercase font-bold text-gray-400 mb-1 block">Original</label>
+                                <div
+                                    class="bg-white p-3 rounded-lg border border-gray-200 text-xs text-gray-400 line-through leading-relaxed max-h-32 overflow-y-auto">
+                                    {{ product.revision_data['range_overview']['original'] }}
+                                </div>
+                            </div>
+                            <div>
+                                <label class="text-[10px] uppercase font-bold text-green-600 mb-1 block">AI Suggestion
+                                    (Editable)</label>
+                                <textarea
+                                    class="w-full p-3 rounded-lg border border-green-300 text-xs text-green-900 leading-relaxed shadow-sm resize-none focus:ring-2 focus:ring-green-200 focus:outline-none"
+                                    rows="5">{{ product.revision_data['range_overview']['ai_suggestion'] }}</textarea>
+                            </div>
+                        </div>
+                        <div class="flex gap-2">
+                            <button type="button" onclick="acceptRevision(this)" data-section="seo"
+                                class="px-4 py-2 bg-green-600 text-white text-xs font-bold rounded-lg shadow-sm hover:bg-green-700 transition-colors">Accept</button>
+                            <button type="button" onclick="retryRevision(this)" data-section="range_overview"
+                                data-id="{{ product.id }}"
+                                class="px-4 py-2 bg-blue-50 text-blue-600 text-xs font-bold rounded-lg hover:bg-blue-100 transition-colors flex items-center gap-1 border border-blue-200">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                </svg>
+                                Retry
+                            </button>
+                            <button type="button" onclick="this.closest('.animate-fade-in').remove()"
+                                class="px-4 py-2 bg-white border border-gray-300 text-gray-600 text-xs font-bold rounded-lg hover:bg-gray-50 transition-colors">Ignore</button>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <div>
+                        <label class="text-xs font-bold text-gray-400 mb-1.5 block">Short
+                            Description</label>
+                        <textarea id="input-seo" name="customer_friendly_description" rows="10"
+                            class="textarea">{{ spec_data.customer_friendly_description }}</textarea>
+                    </div>
+                </section>
+
+                {# 2. KEY FEATURES (Editable) #}
+                <section id="features" class="section-card scroll-mt-40">
+                    <h3 class="section-title">Key Features List</h3>
+
+                    {% if product.revision_data and product.revision_data.get('sales_arguments') %}
+                    <div id="rev-card-features"
+                        class="mb-6 bg-amber-50 border border-amber-200 rounded-xl p-5 relative overflow-hidden animate-fade-in">
+                        <div
+                            class="flex items-center gap-2 mb-3 text-amber-800 font-bold text-xs uppercase tracking-wide">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M13 10V3L4 14h7v7l9-11h-7z" />
+                            </svg>
+                            Director Change Request
+                        </div>
+                        <div class="text-sm text-gray-800 mb-4 font-medium border-l-2 border-amber-300 pl-3">
+                            "{{ product.revision_data['sales_arguments']['comment'] }}"
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="text-[10px] uppercase font-bold text-green-600 mb-1 block">AI Suggestion
+                                (Editable)</label>
+                            <textarea id="ai-edit-features"
+                                class="w-full p-3 rounded-lg border border-green-300 text-xs text-green-900 shadow-sm focus:ring-2 focus:ring-green-200 focus:outline-none"
+                                rows="6">{% if product.revision_data['sales_arguments']['ai_suggestion'] is string %}{{ product.revision_data['sales_arguments']['ai_suggestion'] }}{% else %}{% for arg in product.revision_data['sales_arguments']['ai_suggestion'] %}• {{ arg }}
+{% endfor %}{% endif %}</textarea>
+                        </div>
+
+                        <div class="flex gap-2">
+                            <button type="button" onclick="acceptRevision(this)" data-section="features"
+                                class="px-4 py-2 bg-green-600 text-white text-xs font-bold rounded-lg shadow-sm hover:bg-green-700 transition-colors">Accept</button>
+                            <button type="button" onclick="retryRevision(this)" data-section="sales_arguments"
+                                data-id="{{ product.id }}"
+                                class="px-4 py-2 bg-blue-50 text-blue-600 text-xs font-bold rounded-lg hover:bg-blue-100 transition-colors flex items-center gap-1 border border-blue-200">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                </svg>
+                                Retry
+                            </button>
+                            <button type="button" onclick="this.closest('.animate-fade-in').remove()"
+                                class="px-4 py-2 bg-white border border-gray-300 text-gray-600 text-xs font-bold rounded-lg hover:bg-gray-50 transition-colors">Ignore</button>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <div class="space-y-3" id="features-container"
+                        data-features='{{ spec_data.get("key_features", []) | tojson }}'
+                        x-data="{ features: JSON.parse($el.dataset.features || '[]') }">
+                        <template x-for="(feat, index) in features" :key="index">
+                            <div class="row group !bg-gray-50 !border-transparent">
+                                <div class="w-6 h-6 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-xs font-bold flex-shrink-0"
+                                    x-text="index + 1"></div>
+                                <input type="text" name="key_features" x-model="features[index]"
+                                    class="row-input text-gray-800">
+                                <button type="button" @click="features.splice(index, 1)"
+                                    class="remove opacity-0 group-hover:opacity-100">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </template>
+                        <button type="button" @click="features.push('')" class="add-btn">+ Add Feature Point</button>
+                    </div>
+                </section>
+
+                {# 3. SEO METADATA (Editable) #}
+                <section id="seo" class="section-card scroll-mt-40">
+                    <div class="flex items-center gap-3 mb-6">
+                        <div class="p-2 bg-green-50 text-green-600 rounded-lg">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-gray-900 text-lg">SEO Metadata</h3>
+                            <p class="text-xs text-gray-500">For Website CMS Upload.</p>
+                        </div>
+                    </div>
+
+                    {% if product.revision_data and product.revision_data.get('seo_optimization') %}
+                    <div id="rev-card-seo"
+                        class="mb-6 bg-amber-50 border border-amber-200 rounded-xl p-5 relative animate-fade-in shadow-sm">
+                        <div
+                            class="flex items-center gap-2 mb-3 text-amber-800 font-bold text-xs uppercase tracking-wide">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M13 10V3L4 14h7v7l9-11h-7z" />
+                            </svg>
+                            SEO Optimization Request
+                        </div>
+                        <div class="text-sm text-gray-800 mb-4 font-medium border-l-2 border-amber-300 pl-3">
+                            "{{ product.revision_data['seo_optimization']['comment'] }}"
+                        </div>
+                        <div class="space-y-4 mb-4 ai-fields-seo">
+                            <div>
+                                <label class="text-[10px] uppercase font-bold text-green-600 mb-1 block">Meta
+                                    Title</label>
+                                <input type="text" data-key="meta_title"
+                                    value="{{ product.revision_data['seo_optimization']['ai_suggestion'].get('meta_title', '') }}"
+                                    class="w-full p-2 rounded-lg border border-green-200 text-xs bg-white focus:ring-2 focus:ring-green-100 focus:outline-none">
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="text-[10px] uppercase font-bold text-green-600 mb-1 block">Meta
+                                        Description</label>
+                                    <textarea data-key="meta_description" rows="3"
+                                        class="w-full p-2 rounded-lg border border-green-200 text-xs bg-white focus:ring-2 focus:ring-green-100 focus:outline-none resize-none">{{ product.revision_data['seo_optimization']['ai_suggestion'].get('meta_description', '') }}</textarea>
+                                </div>
+                                <div>
+                                    <label class="text-[10px] uppercase font-bold text-green-600 mb-1 block">SEO
+                                        Keywords</label>
+                                    <textarea data-key="keywords" rows="3"
+                                        class="w-full p-2 rounded-lg border border-green-200 text-xs bg-white focus:ring-2 focus:ring-green-100 focus:outline-none resize-none">{{ product.revision_data['seo_optimization']['ai_suggestion'].get('keywords', '') }}</textarea>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="text-[10px] uppercase font-bold text-indigo-600 mb-1 block">Refined
+                                    Description (Short Copy)</label>
+                                <textarea data-key="refined_description" rows="4"
+                                    class="w-full p-2 rounded-lg border border-indigo-200 text-xs bg-white focus:ring-2 focus:ring-indigo-100 focus:outline-none resize-none">{{ product.revision_data['seo_optimization']['ai_suggestion'].get('refined_description', '') }}</textarea>
+                            </div>
+                        </div>
+                        <div class="flex gap-2">
+                            <button type="button" onclick="acceptRevision(this)" data-section="seo"
+                                class="px-4 py-2 bg-green-600 text-white text-xs font-bold rounded-lg shadow-sm hover:bg-green-700 transition-all">Accept</button>
+                            <button type="button" onclick="retryRevision(this)" data-section="seo_optimization"
+                                data-id="{{ product.id }}"
+                                class="px-4 py-2 bg-blue-50 text-blue-600 text-xs font-bold rounded-lg hover:bg-blue-100 border border-blue-100">Retry</button>
+                            <button type="button" onclick="this.closest('.animate-fade-in').remove()"
+                                class="px-4 py-2 bg-white border border-gray-300 text-gray-600 text-xs font-bold rounded-lg">Ignore</button>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <div class="space-y-6">
+                        <div x-data="{ charCount: $refs.metaTitle ? $refs.metaTitle.value.length : 0 }">
+                            <div class="flex items-center justify-between mb-1.5">
+                                <label class="text-xs font-bold text-gray-400 uppercase tracking-wide">Meta
+                                    Title (Max 60 chars)</label>
+                                <span class="text-[11px] font-bold tabular-nums transition-colors"
+                                    :class="charCount > 55 ? 'text-red-500' : charCount > 40 ? 'text-green-500' : 'text-gray-400'"
+                                    x-text="charCount + ' / 60'"></span>
+                            </div>
+                            <input type="text" name="seo_meta_title" value="{{ spec_data.get('seo', {}).get('meta_title', '') }}"
+                                class="input" maxlength="60" placeholder="Product Name | J. Kalachand Mauritius"
+                                x-ref="metaTitle"
+                                x-init="charCount = $refs.metaTitle.value.length"
+                                @input="charCount = $refs.metaTitle.value.length">
+                        </div>
+                        <div x-data="{ charCount: $refs.metaDesc ? $refs.metaDesc.value.length : 0 }">
+                            <div class="flex items-center justify-between mb-1.5">
+                                <label class="text-xs font-bold text-gray-400 uppercase tracking-wide">Meta
+                                    Description (Max 160 chars)</label>
+                                <span class="text-[11px] font-bold tabular-nums transition-colors"
+                                    :class="charCount > 150 ? 'text-red-500' : charCount > 100 ? 'text-green-500' : 'text-gray-400'"
+                                    x-text="charCount + ' / 160'"></span>
+                            </div>
+                            <textarea name="seo_meta_description" rows="3" class="textarea" maxlength="160"
+                                placeholder="Compelling description mentioning Mauritius location & delivery"
+                                x-ref="metaDesc"
+                                x-init="charCount = $refs.metaDesc.value.length"
+                                @input="charCount = $refs.metaDesc.value.length">{{ spec_data.get('seo', {}).get('meta_description', '') }}</textarea>
+                        </div>
+                        <div>
+                            <label class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1.5 block">SEO
+                                Keywords</label>
+                            <textarea name="seo_keywords" rows="3" class="textarea"
+                                placeholder="product mauritius, brand mauritius, buy mauritius, port louis, delivery mauritius, mauritius price">{{ spec_data.get('seo', {}).get('keywords', '') }}</textarea>
+                        </div>
+                        <div class="pt-4 border-t border-gray-100">
+                            <label
+                                class="text-xs font-bold text-indigo-600 uppercase tracking-wide mb-1.5 block flex items-center gap-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                </svg>
+                                Web Keywords (Internal Site Search)
+                            </label>
+                            <textarea name="internal_web_keywords" rows="3"
+                                class="textarea border-indigo-100 bg-indigo-50/20 focus:border-indigo-500"
+                                placeholder="e.g. fridge, samsung, kfc, refrigerator, silver">{{ spec_data.get('internal_web_keywords', '') }}</textarea>
+                        </div>
+
+                        {% if product.revision_data and product.revision_data.get('internal_web_keywords') %}
+                        <div id="rev-card-keywords"
+                            class="mt-4 bg-amber-50 border border-amber-200 rounded-xl p-5 relative animate-fade-in shadow-sm">
+                            <div class="flex items-center gap-2 mb-3 text-amber-800 font-bold text-xs uppercase">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                </svg>
+                                Keywords Revision
+                            </div>
+                            <div class="text-sm text-gray-800 mb-4 font-medium border-l-2 border-amber-300 pl-3">
+                                "{{ product.revision_data['internal_web_keywords']['comment'] }}"
+                            </div>
+                            <div class="mb-4">
+                                <textarea
+                                    class="w-full p-3 rounded-lg border border-green-300 text-xs text-green-900 bg-white/50 focus:outline-none"
+                                    rows="2">{{ product.revision_data['internal_web_keywords']['ai_suggestion'] }}</textarea>
+                            </div>
+                            <div class="flex gap-2">
+                                <button type="button" onclick="acceptRevision(this)" data-section="internal_keywords"
+                                    class="px-4 py-2 bg-green-600 text-white text-xs font-bold rounded-lg">Accept</button>
+                                <button type="button" onclick="retryRevision(this)" data-section="internal_web_keywords"
+                                    data-id="{{ product.id }}"
+                                    class="px-4 py-2 bg-blue-50 text-blue-600 text-xs font-bold rounded-lg border border-blue-100">Retry</button>
+                                <button type="button" onclick="this.closest('.animate-fade-in').remove()"
+                                    class="px-4 py-2 bg-white border border-gray-300 text-gray-600 text-xs font-bold rounded-lg">Ignore</button>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </section>
+
+                {# NEW: PRODUCT CLASSIFICATION SECTION #}
+                <section id="categories" class="section-card scroll-mt-40 border-l-4 border-l-purple-500">
+                    <div class="flex items-center justify-between mb-6">
+                        <div class="flex items-center gap-3">
+                            <div class="p-2 bg-purple-50 text-purple-600 rounded-lg">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-gray-900 text-lg">Product Classification</h3>
+                                <p class="text-xs text-gray-500">For website navigation and SEO</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {% if product.revision_data and product.revision_data.get('product_classification') %}
+                    <div id="rev-card-classification"
+                        class="mb-6 bg-amber-50 border border-amber-200 rounded-xl p-5 relative animate-fade-in shadow-sm">
+                        <div class="flex items-center gap-2 mb-3 text-amber-800 font-bold text-xs uppercase">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M13 10V3L4 14h7v7l9-11h-7z" />
+                            </svg>
+                            Classification Feedback
+                        </div>
+                        <div class="text-sm text-gray-800 mb-4 font-medium border-l-2 border-amber-300 pl-3">
+                            "{{ product.revision_data['product_classification']['comment'] }}"
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 ai-fields-classification">
+                            <div>
+                                <label class="text-[10px] uppercase font-bold text-green-600 mb-1 block">Category
+                                    A</label>
+                                <input type="text" data-key="category_1"
+                                    value="{{ product.revision_data['product_classification']['ai_suggestion'].get('category_1', '') }}"
+                                    class="w-full p-2 rounded-lg border border-green-200 text-xs bg-white focus:ring-2 focus:ring-green-100 focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="text-[10px] uppercase font-bold text-green-600 mb-1 block">Category
+                                    B</label>
+                                <input type="text" data-key="category_2"
+                                    value="{{ product.revision_data['product_classification']['ai_suggestion'].get('category_2', '') }}"
+                                    class="w-full p-2 rounded-lg border border-green-200 text-xs bg-white focus:ring-2 focus:ring-green-100 focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="text-[10px] uppercase font-bold text-green-600 mb-1 block">Category
+                                    C</label>
+                                <input type="text" data-key="category_3"
+                                    value="{{ product.revision_data['product_classification']['ai_suggestion'].get('category_3', '') }}"
+                                    class="w-full p-2 rounded-lg border border-green-200 text-xs bg-white focus:ring-2 focus:ring-green-100 focus:outline-none">
+                            </div>
+                        </div>
+                        <div class="flex gap-2">
+                            <button type="button" onclick="acceptRevision(this)" data-section="classification"
+                                class="px-4 py-2 bg-green-600 text-white text-xs font-bold rounded-lg">Accept</button>
+                            <button type="button" onclick="retryRevision(this)" data-section="product_classification"
+                                data-id="{{ product.id }}"
+                                class="px-4 py-2 bg-blue-50 text-blue-600 text-xs font-bold rounded-lg">Retry</button>
+                            <button type="button" onclick="this.closest('.animate-fade-in').remove()"
+                                class="px-4 py-2 bg-white border border-gray-300 text-gray-600 text-xs font-bold rounded-lg">Ignore</button>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6" x-data="categoryDropdowns()" x-init="init()">
+                        <div>
+                            <label class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1.5 block">
+                                Category A
+                            </label>
+                            <select name="category_1" x-model="catA" @change="onCatAChange()"
+                                class="input bg-purple-50/30 border-purple-100 focus:border-purple-300 w-full">
+                                <option value="">-- Select Category A --</option>
+                                <template x-for="a in catAOptions" :key="a">
+                                    <option :value="a" x-text="a" :selected="a === catA"></option>
+                                </template>
+                                <option value="__custom__">✏️ Custom...</option>
+                            </select>
+                            <input x-show="catA === '__custom__'" type="text" name="category_1_custom" x-model="catACustom"
+                                class="input mt-2 bg-white border-purple-200" placeholder="Enter custom Category A">
+                        </div>
+                        <div>
+                            <label class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1.5 block">
+                                Category B
+                            </label>
+                            <select name="category_2" x-model="catB" @change="onCatBChange()"
+                                class="input bg-purple-50/30 border-purple-100 focus:border-purple-300 w-full">
+                                <option value="">-- Select Category B --</option>
+                                <template x-for="b in catBOptions" :key="b">
+                                    <option :value="b" x-text="b" :selected="b === catB"></option>
+                                </template>
+                                <option value="__custom__">✏️ Custom...</option>
+                            </select>
+                            <input x-show="catB === '__custom__'" type="text" name="category_2_custom" x-model="catBCustom"
+                                class="input mt-2 bg-white border-purple-200" placeholder="Enter custom Category B">
+                        </div>
+                        <div>
+                            <label class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1.5 block">
+                                Category C
+                            </label>
+                            <select name="category_3" x-model="catC"
+                                class="input bg-purple-50/30 border-purple-100 focus:border-purple-300 w-full">
+                                <option value="">-- Select Category C --</option>
+                                <template x-for="c in catCOptions" :key="c">
+                                    <option :value="c" x-text="c" :selected="c === catC"></option>
+                                </template>
+                                <option value="__custom__">✏️ Custom...</option>
+                            </select>
+                            <input x-show="catC === '__custom__'" type="text" name="category_3_custom" x-model="catCCustom"
+                                class="input mt-2 bg-white border-purple-200" placeholder="Enter custom Category C">
+                        </div>
+                    </div>
+
+                    <div class="mt-4 p-4 bg-blue-50 border border-blue-100 rounded-xl">
+                        <p class="text-xs text-blue-700">
+                            <span class="font-bold">ℹ️ Categories sourced from Magento.</span>
+                            Select from existing categories or choose "Custom" to enter a new one.
+                        </p>
+                    </div>
+
+                    <script>
+                    function categoryDropdowns() {
+                        return {
+                            tree: {},
+                            catA: '{{ spec_data.get("categories", {}).get("category_1", "") }}',
+                            catB: '{{ spec_data.get("categories", {}).get("category_2", "") }}',
+                            catC: '{{ spec_data.get("categories", {}).get("category_3", "") }}',
+                            catACustom: '',
+                            catBCustom: '',
+                            catCCustom: '',
+                            catAOptions: [],
+                            catBOptions: [],
+                            catCOptions: [],
+                            async init() {
+                                try {
+                                    const resp = await fetch('/api/magento_categories');
+                                    this.tree = await resp.json();
+                                } catch (e) {
+                                    console.warn('Could not load Magento categories:', e);
+                                    this.tree = {};
+                                }
+                                this.catAOptions = Object.keys(this.tree).sort();
+                                // If values were pre-set (from AI), populate B and C options
+                                if (this.catA && this.tree[this.catA]) {
+                                    this.catBOptions = Object.keys(this.tree[this.catA]).sort();
+                                    if (this.catB && this.tree[this.catA][this.catB]) {
+                                        this.catCOptions = this.tree[this.catA][this.catB].sort();
+                                    }
+                                }
+                                // If current value isn't in options, keep it (AI might have set a custom one)
+                                if (this.catA && !this.catAOptions.includes(this.catA)) {
+                                    this.catAOptions.unshift(this.catA);
+                                }
+                                if (this.catB && !this.catBOptions.includes(this.catB)) {
+                                    this.catBOptions.unshift(this.catB);
+                                }
+                                if (this.catC && !this.catCOptions.includes(this.catC)) {
+                                    this.catCOptions.unshift(this.catC);
+                                }
+                            },
+                            onCatAChange() {
+                                if (this.catA === '__custom__') {
+                                    this.catBOptions = [];
+                                    this.catCOptions = [];
+                                    this.catB = '__custom__';
+                                    this.catC = '__custom__';
+                                    return;
+                                }
+                                this.catB = '';
+                                this.catC = '';
+                                this.catBOptions = this.tree[this.catA] ? Object.keys(this.tree[this.catA]).sort() : [];
+                                this.catCOptions = [];
+                            },
+                            onCatBChange() {
+                                if (this.catB === '__custom__') {
+                                    this.catCOptions = [];
+                                    this.catC = '__custom__';
+                                    return;
+                                }
+                                this.catC = '';
+                                this.catCOptions = (this.tree[this.catA] && this.tree[this.catA][this.catB])
+                                    ? this.tree[this.catA][this.catB].sort()
+                                    : [];
+                            }
+                        };
+                    }
+                    </script>
+                </section>
+
+                {# 4. TECH SPECS (Editable) #}
+                <section id="tech_specs" class="section-card scroll-mt-40">
+                    <div class="flex justify-between items-center border-b border-gray-100 pb-4 mb-6">
+                        <div>
+                            <h3 class="section-title mb-0">Technical Specifications</h3>
+                            <p class="text-xs text-gray-500 mt-1">Edit, add, or remove specifications</p>
+                        </div>
+                    </div>
+
+                    {% if product.revision_data and product.revision_data.get('technical_specifications') %}
+                    <div id="rev-card-specs"
+                        class="mb-6 mx-8 bg-amber-50 border border-amber-200 rounded-xl p-5 relative animate-fade-in shadow-sm">
+                        <div class="flex items-center gap-2 mb-3 text-amber-800 font-bold text-xs uppercase">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M13 10V3L4 14h7v7l9-11h-7z" />
+                            </svg>
+                            Specifications Feedback
+                        </div>
+                        <div class="text-sm text-gray-800 mb-4 font-medium border-l-2 border-amber-300 pl-3">
+                            "{{ product.revision_data['technical_specifications']['comment'] }}"
+                        </div>
+                        <div class="space-y-2 mb-4 ai-fields-specs" id="ai-specs-container-{{ product.id }}">
+                            {% if product.revision_data['technical_specifications']['ai_suggestion'] is mapping %}
+                            {% for key, val in
+                            product.revision_data['technical_specifications']['ai_suggestion'].items() %}
+                            <div class="flex gap-2 ai-spec-row">
+                                <input type="text" data-spec-key value="{{ key }}"
+                                    class="w-1/3 p-2 rounded-lg border border-green-200 text-[10px] font-bold bg-white focus:ring-2 focus:ring-green-100">
+                                <input type="text" data-spec-val value="{{ val }}"
+                                    class="flex-1 p-2 rounded-lg border border-green-200 text-[10px] bg-white focus:ring-2 focus:ring-green-100">
+                            </div>
+                            {% endfor %}
+                            {% else %}
+                            <textarea
+                                class="w-full p-3 rounded-lg border border-green-300 text-xs font-mono text-green-900 bg-white/50 resize-none"
+                                rows="6">{{ product.revision_data['technical_specifications']['ai_suggestion'] }}</textarea>
+                            {% endif %}
+                        </div>
+                        <div class="flex gap-2">
+                            <button type="button" onclick="acceptRevision(this)" data-section="specs"
+                                class="px-4 py-2 bg-green-600 text-white text-xs font-bold rounded-lg">Accept
+                                Changes</button>
+                            <button type="button" onclick="retryRevision(this)" data-section="technical_specifications"
+                                data-id="{{ product.id }}"
+                                class="px-4 py-2 bg-blue-50 text-blue-600 text-xs font-bold rounded-lg">Retry
+                                AI</button>
+                            <button type="button" onclick="this.closest('.animate-fade-in').remove()"
+                                class="px-4 py-2 bg-white border border-gray-300 text-gray-600 text-xs font-bold rounded-lg">Ignore</button>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <div class="space-y-3"
+                        data-specs='{{ (spec_data.get("technical_specifications", product.pis_data.get("technical_specifications", {})) or {}) | tojson }}'
+                        x-data="{ 
+                            specs: Object.entries(JSON.parse($el.dataset.specs || '{}')).map(([k, v]) => ({ key: k, value: v })),
+                            addSpec() {
+                                this.specs.push({ key: '', value: '' });
+                                // Focus the new input after a tick
+                                $nextTick(() => {
+                                    const rows = $el.querySelectorAll('.spec-row-input');
+                                    if (rows.length > 0) rows[rows.length - 1].focus();
+                                });
+                            }
+                        }">
+
+                        <template x-for="(spec, index) in specs" :key="index">
+                            <div class="row group !bg-gray-50 !border-transparent">
+                                <input type="text" x-model="spec.key"
+                                    class="w-1/3 font-semibold text-gray-700 bg-white border-r border-gray-200 px-3 py-2 rounded-l-lg text-sm spec-row-input"
+                                    placeholder="Spec Name">
+                                <input type="text" x-model="spec.value"
+                                    class="flex-1 text-gray-600 px-3 py-2 text-sm bg-transparent" placeholder="Value">
+                                <button type="button" @click="specs.splice(index, 1)"
+                                    class="remove opacity-0 group-hover:opacity-100">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </template>
+
+                        <button type="button" @click="addSpec()" class="add-btn">+ Add Specification</button>
+
+                        <!-- Hidden field to submit specs as JSON -->
+                        <input type="hidden" name="technical_specifications"
+                            :value="JSON.stringify(Object.fromEntries(specs.filter(s => s.key.trim()).map(s => [s.key.trim(), s.value])))">
+                    </div>
+                </section>
+
+                {# 5. WARRANTY (Editable) #}
+                <section id="warranty" class="section-card scroll-mt-40">
+                    <div class="flex items-center gap-3 mb-6">
+                        <div class="p-2 bg-blue-50 text-blue-600 rounded-lg">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-gray-900 text-lg">Warranty & Service</h3>
+                            <p class="text-xs text-gray-500">Warranty details for the product.</p>
+                        </div>
+                    </div>
+
+                    {% if product.revision_data and product.revision_data.get('warranty_service') %}
+                    <div id="rev-card-warranty"
+                        class="mb-6 bg-amber-50 border border-amber-200 rounded-xl p-5 relative animate-fade-in shadow-sm">
+                        <div class="flex items-center gap-2 mb-3 text-amber-800 font-bold text-xs uppercase">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M13 10V3L4 14h7v7l9-11h-7z" />
+                            </svg>
+                            Warranty Feedback
+                        </div>
+                        <div class="text-sm text-gray-800 mb-4 font-medium border-l-2 border-amber-300 pl-3">
+                            "{{ product.revision_data['warranty_service']['comment'] }}"
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 ai-fields-warranty">
+                            <div>
+                                <label class="text-[10px] uppercase font-bold text-green-600 mb-1 block">Warranty
+                                    Period</label>
+                                <input type="text" data-key="period"
+                                    value="{{ product.revision_data['warranty_service']['ai_suggestion'].get('period', '') }}"
+                                    class="w-full p-2 rounded-lg border border-green-200 text-xs bg-white focus:ring-2 focus:ring-green-100 focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="text-[10px] uppercase font-bold text-green-600 mb-1 block">Warranty
+                                    Coverage</label>
+                                <input type="text" data-key="coverage"
+                                    value="{{ product.revision_data['warranty_service']['ai_suggestion'].get('coverage', '') }}"
+                                    class="w-full p-2 rounded-lg border border-green-200 text-xs bg-white focus:ring-2 focus:ring-green-100 focus:outline-none">
+                            </div>
+                        </div>
+                        <div class="flex gap-2">
+                            <button type="button" onclick="acceptRevision(this)" data-section="warranty"
+                                class="px-4 py-2 bg-green-600 text-white text-xs font-bold rounded-lg">Accept</button>
+                            <button type="button" onclick="retryRevision(this)" data-section="warranty_service"
+                                data-id="{{ product.id }}"
+                                class="px-4 py-2 bg-blue-50 text-blue-600 text-xs font-bold rounded-lg">Retry
+                                AI</button>
+                            <button type="button" onclick="this.closest('.animate-fade-in').remove()"
+                                class="px-4 py-2 bg-white border border-gray-300 text-gray-600 text-xs font-bold rounded-lg">Ignore</button>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="text-xs font-bold text-gray-400 mb-1.5 block">Warranty Period</label>
+                            <input type="text" name="warranty_period"
+                                value="{{ spec_data.get('warranty', spec_data.get('warranty_service', {})).get('period', '') or (product.pis_data.get('warranty_service', {}).get('period', '') if product.pis_data else '') }}"
+                                class="input" placeholder="e.g. 1 Year">
+                        </div>
+                        <div>
+                            <label class="text-xs font-bold text-gray-400 mb-1.5 block">Warranty Coverage</label>
+                            <input type="text" name="warranty_coverage"
+                                value="{{ spec_data.get('warranty', spec_data.get('warranty_service', {})).get('coverage', '') or (product.pis_data.get('warranty_service', {}).get('coverage', '') if product.pis_data else '') }}"
+                                class="input" placeholder="e.g. Parts & Labor">
+                        </div>
+                    </div>
+                </section>
+
+            </div>
+
+            {# --- RIGHT COLUMN (SIDEBAR) --- #}
+            <div class="lg:col-span-3 space-y-6 min-w-0">
+
+                {# Sidebar Director Notes #}
+                {% if product.director_spec_comments %}
+                <div class="section-card p-5 !bg-red-50 !border-l-4 !border-red-500 !shadow-none">
+                    <div class="flex items-center gap-2 mb-3">
+                        <div class="p-1 bg-white text-red-500 rounded-md shadow-sm">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+                            </svg>
+                        </div>
+                        <h3 class="text-sm font-bold text-red-900">Director Notes</h3>
+                    </div>
+                    <p class="text-xs text-red-800 italic leading-relaxed">
+                        "{{ product.director_spec_comments }}"
+                    </p>
+                </div>
+                {% endif %}
+
+                {# --- PRODUCT GALLERY (scrolls normally) --- #}
+                <div class="section-card overflow-hidden !p-0">
+                    <!-- Gallery Header -->
+                    <div class="bg-gradient-to-r from-slate-50 to-gray-50 px-5 py-4 border-b border-gray-100">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2.5">
+                                <div class="w-8 h-8 rounded-lg bg-white shadow-sm border border-gray-200 flex items-center justify-center">
+                                    <svg class="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <p class="text-xs font-extrabold text-slate-800 tracking-tight">Product Gallery</p>
+                                    <p class="text-[10px] text-gray-400 font-medium">
+                                        {% set img_count = (1 if product.image_path else 0) + (product.additional_images|length if product.additional_images else 0) %}
+                                        {{ img_count }} image{{ 's' if img_count != 1 else '' }}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Action Buttons -->
+                        <div class="flex items-center gap-2 mt-3">
+                            <input type="file" id="imageUpload" accept="image/*" class="hidden" onchange="uploadImage(this)">
+                            <button type="button" onclick="document.getElementById('imageUpload').click()"
+                                class="flex-1 text-[11px] font-bold text-slate-600 bg-white hover:bg-gray-50 border border-gray-200 px-3 py-2 rounded-lg transition-all flex items-center justify-center gap-1.5">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                                </svg>
+                                Upload
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="p-4">
+                        <!-- Main Image -->
+                        <div id="mainImageContainer" class="mb-3 group relative">
+                            <div class="aspect-[4/3] bg-white rounded-xl flex items-center justify-center overflow-hidden border-2 border-gray-100 relative shadow-sm hover:shadow-md transition-shadow">
+                                {% if product.image_path %}
+                                <img src="{{ url_for('static', filename=product.image_path) }}"
+                                    class="object-contain w-full h-full p-3 mix-blend-multiply gallery-clickable"
+                                    onclick="event.stopPropagation(); openLightbox(this.src, galleryImagesSpec)">
+                                <button type="button" onclick="deleteImage('{{ product.image_path }}')"
+                                    class="absolute top-2.5 right-2.5 bg-white/95 text-red-500 p-1.5 rounded-lg shadow-md opacity-0 group-hover:opacity-100 transition-all hover:bg-red-50 hover:scale-110 backdrop-blur-sm border border-gray-100">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                </button>
+                                <span class="absolute bottom-2.5 left-2.5 bg-gradient-to-r from-slate-800 to-slate-700 text-white text-[9px] font-bold px-2.5 py-1 rounded-md uppercase tracking-wider shadow-sm">★ Main</span>
+                                {% else %}
+                                <div class="flex flex-col items-center gap-2 py-6">
+                                    <div class="w-12 h-12 rounded-2xl bg-gray-50 border-2 border-dashed border-gray-200 flex items-center justify-center">
+                                        <svg class="w-6 h-6 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                        </svg>
+                                    </div>
+                                    <p class="text-[11px] text-gray-400 font-medium">No main image</p>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Additional Images Grid -->
+                        <div id="additionalImagesContainer">
+                            {% if product.additional_images %}
+                            <div class="grid grid-cols-2 gap-2">
+                                {% for img_path in product.additional_images %}
+                                <div class="aspect-square bg-white rounded-xl flex items-center justify-center overflow-hidden border border-gray-100 relative group cursor-pointer hover:border-indigo-200 hover:shadow-sm transition-all">
+                                    <img src="{{ url_for('static', filename=img_path) }}" class="object-cover w-full h-full hover:scale-105 transition-transform duration-300 gallery-clickable"
+                                        onclick="event.stopPropagation(); openLightbox(this.src, galleryImagesSpec)">
+                                    <button type="button" onclick="deleteImage('{{ img_path }}')"
+                                        class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent flex items-end justify-center pb-3 text-white opacity-0 group-hover:opacity-100 transition-all duration-200">
+                                        <span class="flex items-center gap-1 text-[10px] font-bold bg-red-500/90 px-2.5 py-1 rounded-md backdrop-blur-sm">
+                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                            </svg>
+                                            Remove
+                                        </span>
+                                    </button>
+                                    <span class="absolute top-1.5 right-1.5 bg-white/80 text-[8px] font-bold text-gray-500 w-5 h-5 rounded-md flex items-center justify-center backdrop-blur-sm border border-gray-100">{{ loop.index }}</span>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                {# --- FORBIDDEN WORDS (sticky — stays pinned on scroll) --- #}
+                <div class="sticky top-28" style="overflow-wrap: break-word; word-wrap: break-word;">
+                <div class="section-card p-5" x-data="forbiddenQuickAdd()" x-init="init()">
+                    <div class="flex justify-between items-center mb-3">
+                        <div class="flex items-center gap-2">
+                            <div class="p-1 bg-red-50 text-red-500 rounded-md">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                                </svg>
+                            </div>
+                            <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Forbidden Words</p>
+                        </div>
+                        <a href="{{ url_for('web_forbidden_words') }}" class="text-[10px] text-indigo-600 hover:text-indigo-700 font-bold">
+                            Manage All →
+                        </a>
+                    </div>
+                    <p class="text-[10px] text-gray-500 mb-3">Words blocked from AI-generated content. Add here or use the <a href="{{ url_for('web_forbidden_words') }}" class="text-indigo-600 font-bold hover:underline">full manager</a>.</p>
+                    
+                    <!-- Category Select with search -->
+                    <div class="relative mb-2" @click.away="catDropOpen = false">
+                        <button type="button" @click="catDropOpen = !catDropOpen"
+                            class="w-full px-3 py-2 text-xs bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-indigo-300 focus:ring-2 focus:ring-indigo-50 flex items-center justify-between text-left"
+                            :class="selectedCategory ? 'text-slate-800 font-semibold' : 'text-gray-400'">
+                            <span x-text="selectedCategory || 'Select Category...'"></span>
+                            <svg class="w-3.5 h-3.5 text-gray-400 transition-transform" :class="catDropOpen ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                            </svg>
+                        </button>
+                        <!-- Dropdown -->
+                        <div x-show="catDropOpen" x-transition
+                            class="absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-hidden">
+                            <div class="p-2 border-b border-gray-100">
+                                <input type="text" x-model="catSearch" placeholder="Search categories..."
+                                    class="w-full px-2.5 py-1.5 text-[11px] bg-gray-50 border border-gray-200 rounded-md outline-none focus:border-indigo-300 placeholder-gray-400"
+                                    @click.stop>
+                            </div>
+                            <div class="overflow-y-auto max-h-36">
+                                <template x-for="cat in filteredCategories" :key="cat">
+                                    <button type="button" @click="selectedCategory = cat; catDropOpen = false; catSearch = ''"
+                                        class="w-full px-3 py-2 text-left text-[11px] hover:bg-indigo-50 transition-colors flex items-center justify-between"
+                                        :class="selectedCategory === cat ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-600'">
+                                        <span x-text="cat"></span>
+                                        <span x-show="words[cat] && words[cat].length > 0"
+                                            class="text-[9px] bg-red-50 text-red-600 px-1.5 py-0.5 rounded font-bold"
+                                            x-text="words[cat].length"></span>
+                                    </button>
+                                </template>
+                                <div x-show="filteredCategories.length === 0" class="px-3 py-3 text-[10px] text-gray-400 text-center italic">
+                                    No categories found
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Input + Add -->
+                    <div class="flex gap-2 mb-3">
+                        <input type="text" placeholder="Type a word..." x-model="newWord"
+                            @keydown.enter.prevent="addWord()"
+                            :disabled="!selectedCategory"
+                            class="flex-1 px-3 py-2 text-xs bg-white border border-gray-200 rounded-lg focus:border-indigo-300 focus:ring-2 focus:ring-indigo-50 outline-none transition-all placeholder-gray-400 disabled:opacity-40">
+                        <button type="button" @click="addWord()" :disabled="!selectedCategory || !newWord.trim()"
+                            class="px-3 py-2 bg-red-600 text-white rounded-lg text-xs font-bold hover:bg-red-700 transition-colors flex-shrink-0 disabled:opacity-40 disabled:cursor-not-allowed">
+                            Block
+                        </button>
+                    </div>
+
+                    <!-- Current Words for Selected Category -->
+                    <template x-if="selectedCategory && words[selectedCategory] && words[selectedCategory].length > 0">
+                        <div class="flex flex-wrap gap-1.5 pt-1">
+                            <template x-for="word in words[selectedCategory]" :key="word">
+                                <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-red-50 text-red-700 rounded-md text-[10px] font-semibold border border-red-100">
+                                    <span x-text="word"></span>
+                                    <button type="button" @click="removeWord(word)" class="text-red-400 hover:text-red-700 text-xs leading-none">✕</button>
+                                </span>
+                            </template>
+                        </div>
+                    </template>
+
+                    <!-- Counter -->
+                    <div class="mt-2 flex items-center gap-1.5">
+                        <span class="w-1.5 h-1.5 rounded-full" :class="totalWords > 0 ? 'bg-red-400' : 'bg-gray-300'"></span>
+                        <span class="text-[10px] text-gray-400 font-bold" x-text="totalWords + ' total words blocked'"></span>
+                    </div>
+
+                    <!-- Rework Divider -->
+                    <div class="mt-4 pt-4 border-t border-gray-100">
+                        <template x-if="!reworking && !reworkConfirm">
+                            <button type="button" @click="reworkConfirm = true"
+                                class="w-full flex items-center justify-center gap-2 px-3 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white rounded-xl text-[11px] font-bold transition-all shadow-sm shadow-amber-200 hover:shadow-md hover:shadow-amber-200">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                                </svg>
+                                Rework Specsheet
+                            </button>
+                        </template>
+
+                        <!-- Confirmation State -->
+                        <template x-if="reworkConfirm && !reworking">
+                            <div class="space-y-2">
+                                <div class="flex items-start gap-2 p-2.5 bg-amber-50 rounded-lg border border-amber-100">
+                                    <svg class="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+                                    </svg>
+                                    <p class="text-[10px] text-amber-800 leading-relaxed">
+                                        This will <strong>regenerate all AI content</strong> using current forbidden words. Existing edits will be overwritten.
+                                    </p>
+                                </div>
+                                <div class="flex gap-2">
+                                    <button type="button" @click="reworkConfirm = false"
+                                        class="flex-1 px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg text-[11px] font-bold transition-colors">
+                                        Cancel
+                                    </button>
+                                    <button type="button" @click="startRework()"
+                                        class="flex-1 px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-[11px] font-bold transition-colors">
+                                        Confirm Rework
+                                    </button>
+                                </div>
+                            </div>
+                        </template>
+
+                        <!-- Progress State -->
+                        <template x-if="reworking">
+                            <div class="space-y-2">
+                                <div class="flex items-center gap-2">
+                                    <svg class="w-4 h-4 text-amber-500 animate-spin" fill="none" viewBox="0 0 24 24">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    <span class="text-[11px] font-bold text-slate-600" x-text="reworkMessage"></span>
+                                </div>
+                                <div class="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                                    <div class="h-full bg-gradient-to-r from-amber-400 to-orange-500 rounded-full transition-all duration-500"
+                                        :style="'width:' + reworkProgress + '%'"></div>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+                </div> {# end sticky forbidden words wrapper #}
+
+            </div>
+
+        </div>
+    </form>
+</div>
+
+<style>
+    /* Modern Scroll Spy Nav */
+    .nav-link {
+        padding: 0.5rem 1rem;
+        border-radius: 0.5rem;
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: #64748b;
+        transition: all 0.2s;
+        text-decoration: none;
+        white-space: nowrap;
+    }
+
+    .nav-link:hover {
+        color: #1f2937;
+        background: #e2e8f0;
+    }
+
+    .nav-link.active {
+        background: #dc2626;
+        color: #ffffff;
+        box-shadow: 0 2px 8px rgba(220, 38, 38, 0.3);
+        font-weight: 700;
+    }
+
+    /* Cards */
+    .section-card {
+        border-radius: 1.25rem;
+        background: #fff;
+        padding: 2rem;
+        box-shadow: 0 4px 20px -5px rgba(0, 0, 0, 0.05);
+        border: 1px solid #f1f5f9;
+    }
+
+    .section-title {
+        font-size: 1.125rem;
+        font-weight: 700;
+        color: #111827;
+        margin-bottom: 1.5rem;
+        letter-spacing: -0.025em;
+    }
+
+    /* Inputs */
+    .input,
+    .textarea {
+        width: 100%;
+        padding: 0.75rem 1rem;
+        border-radius: 0.75rem;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        font-size: 0.875rem;
+        color: #1e293b;
+        transition: all 0.2s;
+    }
+
+    .input:focus,
+    .textarea:focus {
+        background: #fff;
+        border-color: #6366f1;
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+    }
+
+    .textarea {
+        resize: none;
+        line-height: 1.6;
+    }
+
+    /* Dynamic Rows */
+    .row {
+        display: flex;
+        gap: 0.75rem;
+        align-items: center;
+        background: #f8fafc;
+        padding: 0.75rem 1rem;
+        border-radius: 0.75rem;
+        border: 1px solid transparent;
+        transition: all 0.2s;
+    }
+
+    .row:hover {
+        border-color: #e2e8f0;
+        background: #fff;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.03);
+    }
+
+    .row-input {
+        flex: 1;
+        background: transparent;
+        font-size: 0.875rem;
+        border: none;
+        outline: none;
+        color: #334155;
+    }
+
+    .remove {
+        color: #cbd5e1;
+        transition: color 0.2s;
+        padding: 4px;
+        border-radius: 4px;
+    }
+
+    .remove:hover {
+        color: #ef4444;
+        background: #fef2f2;
+    }
+
+    /* Buttons */
+    .add-btn {
+        margin-top: 1rem;
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: #4f46e5;
+        background: transparent;
+        padding: 0.5rem 0.75rem;
+        border-radius: 0.5rem;
+        transition: background 0.2s;
+    }
+
+    .add-btn:hover {
+        background: #e0e7ff;
+    }
+
+    /* Animation */
+    .animate-fade-in {
+        animation: fadeIn 0.4s ease-out;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(5px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* Thin sidebar scrollbar */
+    .scrollbar-thin::-webkit-scrollbar {
+        width: 4px;
+    }
+    .scrollbar-thin::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    .scrollbar-thin::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 4px;
+    }
+    .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
+    }
+    .scrollbar-thin {
+        scrollbar-width: thin;
+        scrollbar-color: #cbd5e1 transparent;
+    }
+
+    /* Forbidden words container — zoom & responsive safety */
+    .section-card p,
+    .section-card span,
+    .section-card button,
+    .section-card input,
+    .section-card a {
+        max-width: 100%;
+    }
+
+    /* Ensure the sidebar column never clips at zoom */
+    .lg\:col-span-3 {
+        overflow: visible;
+    }
+
+    /* Forbidden words tag wrapping at zoom */
+    .section-card .flex-wrap {
+        overflow-wrap: break-word;
+        word-break: break-word;
+    }
+</style>
+
+<script>
+    /* Gallery images for lightbox */
+    const galleryImagesSpec = [
+        {% if product.image_path %}'{{ url_for('static', filename=product.image_path) }}',{% endif %}
+        {% if product.additional_images %}{% for img in product.additional_images %}'{{ url_for('static', filename=img) }}',{% endfor %}{% endif %}
+    ];
+
+    // --- Retry Logic (Generic) ---
+    async function retryRevision(btn) {
+        const section = btn.dataset.section;
+        const productId = btn.dataset.id;
+        const cardId = btn.closest('.animate-fade-in').id;
+        const originalText = btn.innerHTML;
+
+        btn.innerHTML = `
+            <svg class="animate-spin h-3 w-3 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+        `;
+        btn.disabled = true;
+
+        try {
+            const response = await fetch(`/retry_revision/${productId}/${section}`, { method: 'POST' });
+            const data = await response.json();
+            if (data.error) throw new Error(data.error);
+
+            const newSuggestion = data.ai_suggestion;
+            const editArea = document.querySelector(`#${cardId} textarea`);
+
+            // If we have individual fields, update them
+            const fieldContainer = document.querySelector(`#${cardId} [class*="ai-fields"]`);
+            if (fieldContainer && typeof newSuggestion === 'object') {
+                if (fieldContainer.classList.contains('ai-fields-specs')) {
+                    // Special handling for dynamic spec rows
+                    fieldContainer.innerHTML = '';
+                    Object.entries(newSuggestion).forEach(([k, v]) => {
+                        const row = document.createElement('div');
+                        row.className = 'flex gap-2 ai-spec-row';
+                        row.innerHTML = `
+                            <input type="text" data-spec-key value="${k}" class="w-1/3 p-2 rounded-lg border border-green-200 text-[10px] font-bold bg-white focus:ring-2 focus:ring-green-100">
+                            <input type="text" data-spec-val value="${v}" class="flex-1 p-2 rounded-lg border border-green-200 text-[10px] bg-white focus:ring-2 focus:ring-green-100">
+                        `;
+                        fieldContainer.appendChild(row);
+                    });
+                } else {
+                    Object.entries(newSuggestion).forEach(([k, v]) => {
+                        const input = fieldContainer.querySelector(`[data-key="${k}"]`);
+                        if (input) input.value = v;
+                    });
+                }
+            } else if (editArea) {
+                if (typeof newSuggestion === 'object' && !Array.isArray(newSuggestion)) {
+                    editArea.value = JSON.stringify(newSuggestion, null, 2);
+                } else if (Array.isArray(newSuggestion)) {
+                    editArea.value = newSuggestion.map(s => `• ${s}`).join('\n');
+                } else {
+                    editArea.value = newSuggestion;
+                }
+            }
+        } catch (e) {
+            console.error("Retry failed:", e);
+            alert("Retry failed. Please try again.");
+        } finally {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
+    }
+
+    // --- Accept Logic (Apply AI suggestion to main form) ---
+    function acceptRevision(btn) {
+        const section = btn.dataset.section;
+        const card = btn.closest('.animate-fade-in');
+
+        // Helper to get value from a multi-field set or a single textarea
+        const getVal = (key) => {
+            const field = card.querySelector(`[data-key="${key}"]`);
+            return field ? field.value : null;
+        };
+        const textarea = card.querySelector('textarea');
+        const rawValue = textarea ? textarea.value : '';
+
+        // 1. Header Information
+        if (section === 'header') {
+            const data = {
+                product_name: getVal('product_name'),
+                model_number: getVal('model_number'),
+                brand: getVal('brand'),
+                price_estimate: getVal('price_estimate')
+            };
+            if (data.product_name) document.getElementsByName('product_name')[0].value = data.product_name;
+            if (data.model_number) document.getElementsByName('model_number')[0].value = data.model_number;
+            if (data.brand) document.getElementsByName('brand')[0].value = data.brand;
+            if (data.price_estimate) document.getElementsByName('price_estimate')[0].value = data.price_estimate;
+        }
+
+        // 2. SEO / Customer Content
+        else if (section === 'seo') {
+            const metaTitle = getVal('meta_title');
+            if (metaTitle !== null) {
+                document.getElementsByName('seo_meta_title')[0].value = metaTitle;
+                document.getElementsByName('seo_meta_description')[0].value = getVal('meta_description');
+                document.getElementsByName('seo_keywords')[0].value = getVal('keywords');
+                document.getElementById('input-seo').value = getVal('refined_description');
+            } else {
+                // Fallback for sections that shifted but might still have the old textarea
+                try {
+                    const data = JSON.parse(rawValue);
+                    if (data.meta_title) document.getElementsByName('seo_meta_title')[0].value = data.meta_title;
+                } catch (e) {
+                    document.getElementById('input-seo').value = rawValue;
+                }
+            }
+        }
+
+        // 3. Features (Alpine.js)
+        else if (section === 'features') {
+            const list = rawValue.split('\n')
+                .map(v => v.replace(/^[•\-\*]\s*/, '').trim())
+                .filter(Boolean);
+            const container = document.querySelector('#features-container');
+            if (container && container._x_dataStack) {
+                container._x_dataStack[0].features = list;
+            }
+        }
+
+        // 4. Internal Keywords
+        else if (section === 'internal_keywords') {
+            try {
+                const data = JSON.parse(rawValue);
+                document.getElementsByName('internal_web_keywords')[0].value = Array.isArray(data) ? data.join(', ') : data;
+            } catch (e) {
+                document.getElementsByName('internal_web_keywords')[0].value = rawValue;
+            }
+        }
+
+        // 5. Classification
+        else if (section === 'classification') {
+            const c1 = getVal('category_1');
+            if (c1 !== null) {
+                document.getElementsByName('category_1')[0].value = c1;
+                document.getElementsByName('category_2')[0].value = getVal('category_2');
+                document.getElementsByName('category_3')[0].value = getVal('category_3');
+            } else {
+                try {
+                    const data = JSON.parse(rawValue);
+                    if (data.category_1) document.getElementsByName('category_1')[0].value = data.category_1;
+                } catch (e) { }
+            }
+        }
+
+        // 6. Tech Specs (Alpine.js)
+        else if (section === 'specs') {
+            const specRows = card.querySelectorAll('.ai-spec-row');
+            let data = {};
+            if (specRows.length > 0) {
+                specRows.forEach(row => {
+                    const k = row.querySelector('[data-spec-key]').value.trim();
+                    const v = row.querySelector('[data-spec-val]').value.trim();
+                    if (k) data[k] = v;
+                });
+            } else {
+                try { data = JSON.parse(rawValue); } catch (e) { }
+            }
+
+            const container = document.querySelector('#tech_specs [x-data]');
+            if (container && container._x_dataStack) {
+                container._x_dataStack[0].specs = Object.entries(data).map(([k, v]) => ({ key: k, value: v }));
+            }
+        }
+
+        // 7. Warranty
+        else if (section === 'warranty') {
+            const period = getVal('period');
+            if (period !== null) {
+                document.getElementsByName('warranty_period')[0].value = period;
+                document.getElementsByName('warranty_coverage')[0].value = getVal('coverage');
+            } else {
+                try {
+                    const data = JSON.parse(rawValue);
+                    if (data.period) document.getElementsByName('warranty_period')[0].value = data.period;
+                } catch (e) { }
+            }
+        }
+
+        card.remove();
+        if (typeof performAutoSave === 'function') performAutoSave();
+    }
+
+    // --- Image Management Functions ---
+    async function uploadImage(input) {
+        if (!input.files || !input.files[0]) return;
+        const formData = new FormData();
+        Array.from(input.files).forEach(file => formData.append('file', file));
+
+        try {
+            updateSaveStatus('saving');
+            const response = await fetch(`/api/product/{{ product.id }}/images/upload`, {
+                method: 'POST',
+                body: formData
+            });
+            const result = await response.json();
+            if (result.error) alert('Upload failed: ' + result.error);
+            else location.reload();
+        } catch (error) {
+            alert('Upload failed: ' + error.message);
+        } finally {
+            input.value = '';
+        }
+    }
+
+
+
+    let imagePathToDelete = null;
+
+    function closeDeleteModal() {
+        const modal = document.getElementById('deleteConfirmModal');
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+        imagePathToDelete = null;
+    }
+
+    async function deleteImage(path) {
+        imagePathToDelete = path;
+        const modal = document.getElementById('deleteConfirmModal');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+
+    async function confirmDeletion() {
+        if (!imagePathToDelete) return;
+        const path = imagePathToDelete;
+        closeDeleteModal();
+
+        try {
+            if (typeof updateSaveStatus === 'function') updateSaveStatus('saving');
+            const response = await fetch(`/api/product/{{ product.id }}/images/delete`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ path: path })
+            });
+            const result = await response.json();
+            if (result.error) alert('Delete failed: ' + result.error);
+            else location.reload();
+        } catch (error) {
+            alert('Delete failed: ' + error.message);
+        }
+    }
+
+    // --- Auto-Save Logic ---
+    const saveStatus = document.getElementById('saveStatus');
+    const statusText = saveStatus.querySelector('.status-text');
+    const statusDot = saveStatus.querySelector('.status-dot');
+
+    function updateSaveStatus(state) {
+        if (state === 'saving') {
+            bgProcess.show('saving', 'Auto-saving changes...');
+        } else if (state === 'Saved ') {
+            bgProcess.show('saving', 'Saving draft...');
+        } else if (state === 'saved') {
+            bgProcess.success('Changes saved ✓');
+        } else if (state === 'error') {
+            bgProcess.error('Save failed');
+        }
+    }
+
+    function debounce(func, delay) {
+        let timeout;
+        return function (...args) {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => func.apply(this, args), delay);
+        };
+    }
+
+    async function performAutoSave() {
+        updateSaveStatus('Saved ');
+
+        // 1. Collect basic form data
+        const form = document.querySelector('form');
+        const formData = new FormData(form);
+        const data = {};
+
+        // Convert FormData to JSON
+        formData.forEach((value, key) => {
+            if (key === 'key_features' || key === 'tech_spec_key' || key === 'tech_spec_value') {
+                // Handle lists/arrays separately or via Alpine state
+                return;
+            }
+            data[key] = value;
+        });
+
+        // 2. Collect Alpine.js Data (Features)
+        const featuresContainer = document.querySelector('#features-container');
+        if (featuresContainer && featuresContainer._x_dataStack) {
+            data['key_features'] = featuresContainer._x_dataStack[0].features;
+        }
+
+        // 3. Technical Specs (Already in hidden input via Alpine)
+        const techSpecsInput = document.querySelector('input[name="technical_specifications"]');
+        if (techSpecsInput) {
+            try {
+                data['technical_specifications'] = JSON.parse(techSpecsInput.value);
+            } catch (e) { console.error("Auto-save tech spec error:", e); }
+        }
+
+        try {
+            const response = await fetch(`/api/product/{{ product.id }}/save_draft`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            const result = await response.json();
+            if (result.status === 'success') {
+                updateSaveStatus('saved');
+            } else {
+                updateSaveStatus('error');
+            }
+        } catch (error) {
+            console.error('Auto-save error:', error);
+            updateSaveStatus('error');
+        }
+    }
+
+    const debouncedSave = debounce(performAutoSave, 1500);
+
+    // Attach listeners to all inputs in the form
+    document.querySelector('form').addEventListener('input', (e) => {
+        // Don't auto-save while typing in search/filter if we had any, 
+        // but here everything is an edit field.
+        debouncedSave();
+    });
+
+    // Handle Alpine-specific additions/removals (they don't trigger 'input' on the form always)
+    document.addEventListener('alpine:init', () => {
+        // This is just a backup if needed, but 'input' bubbles.
+    });
+
+    // For manual button clicks (add/remove) that might not trigger 'input'
+    document.querySelector('form').addEventListener('click', (e) => {
+        const btn = e.target.closest('button');
+        if (btn && !btn.closest('button[type="submit"]')) {
+            // Skip buttons inside the forbidden words widget — they manage their own API calls
+            if (btn.closest('[x-data*="forbiddenQuickAdd"]')) return;
+            // Give Alpine a moment to update DOM/data
+            setTimeout(debouncedSave, 100);
+        }
+    });
+
+    /* ---------- SCROLL PROGRESSION & SPY ---------- */
+    function updateScrollProgress() {
+        const progressBar = document.getElementById("scrollProgress");
+        const navLinks = document.querySelectorAll(".nav-link");
+        const sections = ["header", "content", "features", "seo", "categories", "tech_specs", "warranty"];
+        const mainContainer = document.querySelector('main');
+
+        if (!progressBar || !mainContainer) return;
+
+        const winScroll = mainContainer.scrollTop;
+        const totalHeight = mainContainer.scrollHeight - mainContainer.clientHeight;
+
+        if (totalHeight > 0) {
+            const scrolled = (winScroll / totalHeight) * 100;
+            progressBar.style.width = scrolled + "%";
+        }
+
+        // Scroll Spy
+        let current = "";
+
+        // If scrolled to bottom (or near bottom), force last section as active
+        const isAtBottom = (totalHeight > 0) && (winScroll >= totalHeight - 50);
+        if (isAtBottom) {
+            current = sections[sections.length - 1];
+        } else {
+            sections.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    const rect = el.getBoundingClientRect();
+                    if (rect.top <= 200) {
+                        current = id;
+                    }
+                }
+            });
+        }
+
+        navLinks.forEach(link => {
+            link.classList.remove("active");
+            if (link.getAttribute("href") === "#" + current) {
+                link.classList.add("active");
+            }
+        });
+    }
+
+    const container = document.querySelector('main');
+    if (container) {
+        container.addEventListener("scroll", () => {
+            window.requestAnimationFrame(updateScrollProgress);
+        }, { passive: true });
+    }
+
+    // Initial checks
+    document.addEventListener("DOMContentLoaded", updateScrollProgress);
+    window.addEventListener("load", updateScrollProgress);
+    window.addEventListener("resize", updateScrollProgress);
+</script>
+
+
+
+
+
+<script>
+    function openSubmitModal() {
+        const modal = document.getElementById('submitModal');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+
+    function closeSubmitModal() {
+        const modal = document.getElementById('submitModal');
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+
+    // Enable the "Need Review" button once the user makes any change
+    (function() {
+        const btn = document.getElementById('needReviewBtn');
+        if (!btn || !btn.disabled) return; // Already enabled or not present
+        const form = document.querySelector('form');
+        if (!form) return;
+
+        function enableNeedReview() {
+            btn.disabled = false;
+            btn.classList.remove('bg-gray-300', 'text-gray-500', 'cursor-not-allowed');
+            btn.classList.add('bg-indigo-600', 'hover:bg-indigo-700', 'text-white');
+            // Remove listeners after first activation
+            form.removeEventListener('input', enableNeedReview);
+        }
+
+        form.addEventListener('input', enableNeedReview);
+    })();
+
+    function confirmSubmit(event) {
+        const form = document.querySelector('form');
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'action';
+        input.value = 'submit_director';
+        form.appendChild(input);
+
+        // Change button state
+        const btn = event.currentTarget;
+        btn.disabled = true;
+        btn.classList.add('opacity-50', 'cursor-not-allowed');
+        btn.innerHTML = `
+        <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        Submitting...
+    `;
+
+        form.submit();
+    }
+
+    function forbiddenQuickAdd() {
+        return {
+            selectedCategory: '',
+            newWord: '',
+            words: {},
+            categories: [],
+            catDropOpen: false,
+            catSearch: '',
+            reworkConfirm: false,
+            reworking: false,
+            reworkProgress: 0,
+            reworkMessage: 'Preparing...',
+            
+            get totalWords() {
+                let count = 0;
+                for (const cat in this.words) count += this.words[cat].length;
+                return count;
+            },
+            
+            get filteredCategories() {
+                if (!this.catSearch.trim()) return this.categories;
+                const q = this.catSearch.trim().toLowerCase();
+                return this.categories.filter(c => c.toLowerCase().includes(q));
+            },
+            
+            async init() {
+                // 1. Load existing forbidden words
+                try {
+                    const res = await fetch('/api/forbidden_words');
+                    this.words = await res.json();
+                } catch (e) { this.words = {}; }
+                
+                // 2. Load all Cat C categories from the Magento category tree
+                try {
+                    const res = await fetch('/api/magento_categories');
+                    const tree = await res.json();
+                    const allCatC = new Set();
+                    
+                    // Extract all leaf (Cat C) categories from tree: CatA -> CatB -> [CatC, ...]
+                    for (const catA of Object.keys(tree)) {
+                        const catBMap = tree[catA];
+                        if (typeof catBMap === 'object' && !Array.isArray(catBMap)) {
+                            for (const catB of Object.keys(catBMap)) {
+                                const catCList = catBMap[catB];
+                                if (Array.isArray(catCList)) {
+                                    catCList.forEach(c => allCatC.add(c));
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Also include any categories that already have forbidden words (custom ones)
+                    Object.keys(this.words).forEach(c => allCatC.add(c));
+                    
+                    this.categories = [...allCatC].sort();
+                } catch (e) {
+                    // Fallback: just use categories from existing forbidden words
+                    this.categories = Object.keys(this.words).sort();
+                }
+                
+                // 3. Try to pre-select the product's own category_3
+                const cat3Input = document.querySelector('input[name="category_3"], select[name="category_3"]');
+                if (cat3Input && cat3Input.value && this.categories.includes(cat3Input.value)) {
+                    this.selectedCategory = cat3Input.value;
+                }
+            },
+            
+            async addWord() {
+                const word = this.newWord.trim().toLowerCase();
+                if (!word || !this.selectedCategory) return;
+                try {
+                    const res = await fetch('/api/forbidden_words', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ category: this.selectedCategory, word })
+                    });
+                    const data = await res.json();
+                    if (data.ok) {
+                        this.words[this.selectedCategory] = data.words;
+                        this.newWord = '';
+                    }
+                } catch (e) { console.error(e); }
+            },
+            
+            async removeWord(word) {
+                try {
+                    const res = await fetch('/api/forbidden_words', {
+                        method: 'DELETE',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ category: this.selectedCategory, word })
+                    });
+                    const data = await res.json();
+                    if (data.ok) this.words[this.selectedCategory] = data.words;
+                } catch (e) { console.error(e); }
+            },
+            
+            async startRework() {
+                this.reworkConfirm = false;
+                this.reworking = true;
+                this.reworkProgress = 5;
+                this.reworkMessage = 'Starting regeneration...';
+                
+                try {
+                    const productId = {{ product.id }};
+                    const res = await fetch(`/api/generate_specsheet/${productId}?rework=1`, {
+                        method: 'POST'
+                    });
+                    
+                    const reader = res.body.getReader();
+                    const decoder = new TextDecoder();
+                    let buffer = '';
+                    
+                    while (true) {
+                        const { done, value } = await reader.read();
+                        if (done) break;
+                        
+                        buffer += decoder.decode(value, { stream: true });
+                        const lines = buffer.split('\n');
+                        buffer = lines.pop(); // keep incomplete line
+                        
+                        for (const line of lines) {
+                            if (!line.trim()) continue;
+                            try {
+                                const msg = JSON.parse(line);
+                                if (msg.error) {
+                                    this.reworkMessage = msg.error;
+                                    this.reworking = false;
+                                    return;
+                                }
+                                if (msg.progress) this.reworkProgress = msg.progress;
+                                if (msg.message) this.reworkMessage = msg.message;
+                                if (msg.redirect) {
+                                    this.reworkMessage = 'Done! Reloading...';
+                                    this.reworkProgress = 100;
+                                    setTimeout(() => {
+                                        window.location.href = msg.redirect;
+                                    }, 800);
+                                }
+                            } catch (e) {}
+                        }
+                    }
+                } catch (e) {
+                    console.error(e);
+                    this.reworkMessage = 'Rework failed. Please try again.';
+                    setTimeout(() => { this.reworking = false; }, 2000);
+                }
+            }
+        };
+    }
+</script>
+
+{% include 'partials/version_history_panel.html' %}
+
+{% endblock %}
+
+{% block modals %}
+<!-- SUBMIT CONFIRMATION MODAL -->
+<div id="submitModal"
+    class="fixed inset-0 bg-slate-900/40 hidden items-center justify-center z-[100] backdrop-blur-sm transition-all duration-300">
+    <!-- ... existing submit modal ... -->
+    <div
+        class="bg-white rounded-3xl w-full max-w-md p-8 shadow-2xl transform scale-100 transition-all text-center mx-4">
+        <div
+            class="w-20 h-20 bg-indigo-50 text-indigo-600 rounded-3xl flex items-center justify-center mb-6 mx-auto shadow-sm ring-4 ring-indigo-50/50">
+            <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+        </div>
+
+        <h3 class="font-bold text-2xl text-slate-900 mb-3 tracking-tight">Ready for Review?</h3>
+        <p class="text-sm text-slate-500 mb-8 leading-relaxed px-4">
+            You are about to send <span class="font-bold text-slate-900">{{ product.model_name }}</span> to the
+            Director. They will be notified to review and approve this SpecSheet.
+        </p>
+
+        <div class="flex flex-col sm:flex-row gap-3">
+            <button type="button" onclick="closeSubmitModal()"
+                class="flex-1 px-6 py-3.5 bg-slate-100 text-slate-600 rounded-2xl font-bold hover:bg-slate-200 transition-all active:scale-95">
+                Go Back
+            </button>
+            <button type="button" onclick="confirmSubmit(event)"
+                class="flex-1 px-6 py-3.5 bg-indigo-600 text-white rounded-2xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200 active:scale-95 flex items-center justify-center gap-2">
+                <span>Submit Now</span>
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+                </svg>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- DELETE CONFIRMATION MODAL -->
+<div id="deleteConfirmModal"
+    class="fixed inset-0 bg-slate-900/60 hidden items-center justify-center z-[110] backdrop-blur-md animate-fade-in shadow-2xl">
+    <div
+        class="bg-white rounded-[3rem] w-full max-w-md p-10 shadow-2xl animate-scale-up border border-white/20 relative overflow-hidden text-center mx-4">
+        <div
+            class="w-20 h-20 bg-red-50 text-red-600 rounded-3xl flex items-center justify-center mb-6 mx-auto shadow-sm ring-8 ring-red-50/50">
+            <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-4v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+        </div>
+        <h3 class="font-extrabold text-2xl text-slate-900 mb-2 tracking-tight">Delete Image?</h3>
+        <p class="text-sm text-slate-500 mb-8 leading-relaxed px-4">
+            Are you sure you want to delete this image? This action cannot be undone.
+        </p>
+        <div class="flex gap-3">
+            <button type="button" onclick="closeDeleteModal()"
+                class="flex-1 px-6 py-4 bg-slate-100 text-slate-600 rounded-2xl font-bold hover:bg-slate-200 transition-all active:scale-95">
+                Cancel
+            </button>
+            <button type="button" onclick="confirmDeletion()"
+                class="flex-1 px-6 py-4 bg-red-600 text-white rounded-2xl font-bold hover:bg-red-700 transition-all shadow-lg active:scale-95">
+                Yes, Delete
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Auto-poll for background specsheet AI generation -->
+<script>
+(function() {
+    const isGenerating = {{ 'true' if spec_data.get('_spec_generating') else 'false' }};
+    if (!isGenerating) return;
+    
+    // Show generating banner
+    const banner = document.createElement('div');
+    banner.innerHTML = `
+        <div class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-indigo-600 text-white px-6 py-3 rounded-xl shadow-2xl flex items-center gap-3">
+            <svg class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <span class="text-sm font-bold">AI is generating specsheet content & categories...</span>
+            <span class="text-xs opacity-75">Page will refresh automatically</span>
+        </div>
+    `;
+    document.body.appendChild(banner);
+    
+    const pollInterval = setInterval(async () => {
+        try {
+            const res = await fetch('/api/spec_status/{{ product.id }}');
+            const data = await res.json();
+            if (data.ready) {
+                clearInterval(pollInterval);
+                window.location.reload();
+            }
+        } catch (e) {
+            console.error('Spec poll error:', e);
+        }
+    }, 3000);
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,778 @@
+{% extends "base.html" %}
+
+{% block content %}
+<script id="products-data" type="application/json">{{ products_json | safe }}</script>
+<script>
+    window.__productsData = JSON.parse(document.getElementById('products-data').textContent);
+
+    /* Register Alpine component to avoid HTML-attribute escaping issues with regex */
+    document.addEventListener('alpine:init', () => {
+        Alpine.data('historyPage', () => ({
+            modalOpen: false,
+            selectedProduct: null,
+            searchQuery: '',
+            activeFilter: 'ALL',
+            products: [],
+            filterOptions: ['ALL', 'DRAFT PIS', 'CHANGE REQUESTED', 'NEED REVIEW', 'IN PROCESS', 'PIS APPROVED'],
+
+            changesModalOpen: false,
+            changesLoading: false,
+            changesData: [],
+            changesEvent: null,
+
+            timelineSearch: '',
+            timelineTypeFilter: 'all',
+            timelineActorFilter: 'all',
+            timelineStatusFilter: 'all',
+            showFilters: false,
+
+            init() {
+                this.products = window.__productsData || [];
+            },
+            get filteredProducts() {
+                let list = this.products;
+                if (this.activeFilter !== 'ALL') {
+                    list = list.filter(p => p.filter_status === this.activeFilter);
+                }
+                if (this.searchQuery.trim()) {
+                    const q = this.searchQuery.trim().toLowerCase();
+                    list = list.filter(p =>
+                        p.model_name.toLowerCase().includes(q) ||
+                        (p.brand || '').toLowerCase().includes(q) ||
+                        (p.latest_actor || '').toLowerCase().includes(q) ||
+                        (p.latest_event || '').toLowerCase().includes(q)
+                    );
+                }
+                return list;
+            },
+            getFilterCount(filter) {
+                if (filter === 'ALL') return this.products.length;
+                return this.products.filter(p => p.filter_status === filter).length;
+            },
+            openTimeline(product) {
+                this.selectedProduct = product;
+                this.resetTimelineFilters();
+                this.modalOpen = true;
+                document.body.classList.add('overflow-hidden');
+            },
+            closeModal() {
+                this.modalOpen = false;
+                this.resetTimelineFilters();
+                document.body.classList.remove('overflow-hidden');
+                setTimeout(() => this.selectedProduct = null, 300);
+            },
+            resetTimelineFilters() {
+                this.timelineSearch = '';
+                this.timelineTypeFilter = 'all';
+                this.timelineActorFilter = 'all';
+                this.timelineStatusFilter = 'all';
+                this.showFilters = false;
+            },
+
+            get activeFilterCount() {
+                let c = 0;
+                if (this.timelineSearch.trim()) c++;
+                if (this.timelineTypeFilter !== 'all') c++;
+                if (this.timelineActorFilter !== 'all') c++;
+                if (this.timelineStatusFilter !== 'all') c++;
+                return c;
+            },
+
+            get timelineEventTypes() {
+                const types = [
+                    { value: 'all', label: 'All Events' },
+                    { value: 'draft', label: 'Draft Changes' },
+                    { value: 'review', label: 'Reviews & Submissions' },
+                    { value: 'approval', label: 'Approvals' },
+                    { value: 'revision', label: 'Revisions Requested' },
+                    { value: 'specsheet', label: 'SpecSheet Events' },
+                    { value: 'photo', label: 'Photo Changes' },
+                    { value: 'system', label: 'System Events' },
+                    { value: 'rollback', label: 'Rollbacks' }
+                ];
+                return types;
+            },
+
+            get timelineActors() {
+                if (!this.selectedProduct || !this.selectedProduct.timeline) return [];
+                const actors = [...new Set(this.selectedProduct.timeline.map(e => e.actor).filter(Boolean))];
+                return actors.sort();
+            },
+
+            _matchesType(event, type) {
+                const t = (event.title || '').toLowerCase();
+                switch (type) {
+                    case 'draft': return t.includes('draft') || t.includes('new product');
+                    case 'review': return t.includes('sent for') || t.includes('submitted');
+                    case 'approval': return t.includes('approved');
+                    case 'revision': return t.includes('revision') || t.includes('changes requested');
+                    case 'specsheet': return t.includes('specsheet');
+                    case 'photo': return t.includes('photo');
+                    case 'system': return t.includes('auto-generated') || t.includes('regenerated');
+                    case 'rollback': return t.includes('rolled back');
+                    default: return true;
+                }
+            },
+
+            get filteredTimeline() {
+                if (!this.selectedProduct || !this.selectedProduct.timeline) return [];
+                let list = this.selectedProduct.timeline;
+
+                // Text search
+                const q = this.timelineSearch.trim().toLowerCase();
+                if (q) {
+                    list = list.filter(e =>
+                        (e.title || '').toLowerCase().includes(q) ||
+                        (e.description || '').toLowerCase().includes(q) ||
+                        (e.actor || '').toLowerCase().includes(q) ||
+                        (e.date || '').toLowerCase().includes(q)
+                    );
+                }
+
+                // Event type
+                if (this.timelineTypeFilter !== 'all') {
+                    list = list.filter(e => this._matchesType(e, this.timelineTypeFilter));
+                }
+
+                // Actor
+                if (this.timelineActorFilter !== 'all') {
+                    list = list.filter(e => e.actor === this.timelineActorFilter);
+                }
+
+                // Status
+                if (this.timelineStatusFilter !== 'all') {
+                    list = list.filter(e => e.status === this.timelineStatusFilter);
+                }
+
+                return list;
+            },
+
+            isChangeEvent(event) {
+                const changeTitles = ['draft updated', 'draft saved', 'sent for director', 'specsheet sent', 'specsheet draft saved', 'rolled back', 'revisions requested', 'specsheet revisions', 'new product added', 'pis approved', 'specsheet approved', 'specsheet regenerated', 'specsheet auto-generated'];
+                return changeTitles.some(t => (event.title || '').toLowerCase().includes(t));
+            },
+
+            async openChanges(event) {
+                if (!this.selectedProduct || !this.isChangeEvent(event)) return;
+                this.changesEvent = event;
+                this.changesData = [];
+                this.changesLoading = true;
+                this.changesModalOpen = true;
+                try {
+                    const resp = await fetch('/api/product/' + this.selectedProduct.id + '/changes_at?date=' + encodeURIComponent(event.date) + '&time=' + encodeURIComponent(event.time));
+                    const data = await resp.json();
+                    this.changesData = data;
+                } catch (e) {
+                    console.error('Failed to load changes:', e);
+                    this.changesData = [];
+                } finally {
+                    this.changesLoading = false;
+                }
+            },
+            closeChangesModal() {
+                this.changesModalOpen = false;
+                setTimeout(() => { this.changesEvent = null; this.changesData = []; }, 200);
+            },
+
+            /* ===== Word-level diff engine ===== */
+            _tokenize(str) {
+                if (!str) return [];
+                return str.match(/\S+|\s+/g) || [];
+            },
+
+            _lcs(a, b) {
+                const m = a.length, n = b.length;
+                const dp = Array.from({length: m + 1}, () => new Uint16Array(n + 1));
+                for (let i = 1; i <= m; i++)
+                    for (let j = 1; j <= n; j++)
+                        dp[i][j] = a[i-1] === b[j-1] ? dp[i-1][j-1] + 1 : Math.max(dp[i-1][j], dp[i][j-1]);
+                const matchA = new Set(), matchB = new Set();
+                let i = m, j = n;
+                while (i > 0 && j > 0) {
+                    if (a[i-1] === b[j-1]) { matchA.add(i-1); matchB.add(j-1); i--; j--; }
+                    else if (dp[i-1][j] > dp[i][j-1]) i--;
+                    else j--;
+                }
+                return { matchA, matchB };
+            },
+
+            diffOld(oldVal, newVal) {
+                if (!oldVal) return '<span class="italic opacity-50">(empty)</span>';
+                if (!newVal) return this._esc(oldVal);
+                const a = this._tokenize(oldVal), b = this._tokenize(newVal);
+                const { matchA } = this._lcs(a, b);
+                return a.map((tok, idx) => {
+                    if (/^\s+$/.test(tok)) return tok;
+                    return matchA.has(idx) ? this._esc(tok)
+                        : '<span class="diff-del">' + this._esc(tok) + '</span>';
+                }).join('');
+            },
+
+            diffNew(oldVal, newVal) {
+                if (!newVal) return '<span class="italic opacity-50">(empty)</span>';
+                if (!oldVal) return this._esc(newVal);
+                const a = this._tokenize(oldVal), b = this._tokenize(newVal);
+                const { matchB } = this._lcs(a, b);
+                return b.map((tok, idx) => {
+                    if (/^\s+$/.test(tok)) return tok;
+                    return matchB.has(idx) ? this._esc(tok)
+                        : '<span class="diff-add">' + this._esc(tok) + '</span>';
+                }).join('');
+            },
+
+            _esc(s) {
+                const el = document.createElement('span');
+                el.textContent = s;
+                return el.innerHTML;
+            }
+        }));
+    });
+</script>
+<div class="max-w-7xl mx-auto" x-data="historyPage">
+
+    <!-- HEADER -->
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+        <div>
+            <h2 class="text-3xl font-extrabold text-gray-900 tracking-tight">PIS Journey History</h2>
+            <p class="text-gray-500 mt-1">Detailed audit log — see who did what at a glance.</p>
+        </div>
+        <div class="flex items-center gap-3">
+            <span class="text-xs font-bold text-gray-400 uppercase tracking-wider" x-text="filteredProducts.length + ' of ' + products.length + ' products'"></span>
+        </div>
+    </div>
+
+    <!-- SEARCH + FILTERS BAR -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-4 animate-fade-in">
+        <!-- Search -->
+        <div class="relative mb-3">
+            <svg class="w-4 h-4 absolute left-3.5 top-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+            </svg>
+            <input x-model="searchQuery" type="text" placeholder="Search by product, brand, or user..."
+                class="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-100 focus:border-gray-300 focus:bg-white rounded-xl text-sm font-medium transition-all outline-none placeholder-gray-400">
+        </div>
+        
+        <!-- Quick Filter Pills -->
+        <div class="flex flex-wrap gap-2">
+            <template x-for="filter in filterOptions" :key="filter">
+                <button @click="activeFilter = filter"
+                    class="px-3.5 py-1.5 rounded-full text-[11px] font-bold transition-all flex items-center gap-1.5 border"
+                    :class="activeFilter === filter 
+                        ? (filter === 'ALL' ? 'bg-slate-800 text-white border-slate-800 shadow-sm' :
+                           filter === 'DRAFT PIS' ? 'bg-gray-700 text-white border-gray-700 shadow-sm' :
+                           filter === 'CHANGE REQUESTED' ? 'bg-red-600 text-white border-red-600 shadow-sm' :
+                           filter === 'NEED REVIEW' ? 'bg-purple-600 text-white border-purple-600 shadow-sm' :
+                           filter === 'IN PROCESS' ? 'bg-blue-600 text-white border-blue-600 shadow-sm' :
+                           filter === 'PIS APPROVED' ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm' :
+                           'bg-slate-800 text-white border-slate-800 shadow-sm')
+                        : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50 hover:border-gray-300'">
+                    <span x-text="filter"></span>
+                    <span class="px-1.5 py-0.5 rounded text-[9px] font-black"
+                        :class="activeFilter === filter ? 'bg-white/20' : 'bg-gray-100'"
+                        x-text="getFilterCount(filter)"></span>
+                </button>
+            </template>
+        </div>
+    </div>
+
+    <!-- MAIN TABLE -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden animate-fade-in">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead class="bg-gray-50/50 border-b border-gray-100">
+                    <tr>
+                        <th class="px-5 py-3.5 text-xs font-bold text-gray-400 uppercase tracking-wider">Product</th>
+                        <th class="px-5 py-3.5 text-xs font-bold text-gray-400 uppercase tracking-wider">Last Action By</th>
+                        <th class="px-5 py-3.5 text-xs font-bold text-gray-400 uppercase tracking-wider">Latest Event</th>
+                        <th class="px-5 py-3.5 text-xs font-bold text-gray-400 uppercase tracking-wider">Status</th>
+                        <th class="px-5 py-3.5 text-xs font-bold text-gray-400 uppercase tracking-wider text-right">Details</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-50">
+                    <template x-for="p in filteredProducts" :key="p.id">
+                    <tr class="hover:bg-gray-50/80 transition-colors group cursor-pointer" @click="openTimeline(p)">
+                        <!-- Product Info -->
+                        <td class="px-5 py-3.5">
+                            <div class="flex items-center gap-3">
+                                <div class="w-9 h-9 rounded-lg bg-gray-100 border border-gray-200 overflow-hidden flex-shrink-0">
+                                    <template x-if="p.image_path">
+                                        <img :src="p.image_path" class="w-full h-full object-cover">
+                                    </template>
+                                    <template x-if="!p.image_path">
+                                        <div class="flex items-center justify-center h-full text-gray-400">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                                        </div>
+                                    </template>
+                                </div>
+                                <div>
+                                    <div class="font-bold text-gray-900 text-sm" x-text="p.model_name"></div>
+                                    <div class="text-[11px] text-gray-400 font-medium" x-text="p.brand"></div>
+                                </div>
+                            </div>
+                        </td>
+
+                        <!-- Last Action By (ACTOR) -->
+                        <td class="px-5 py-3.5">
+                            <div class="flex items-center gap-2">
+                                <div class="w-7 h-7 rounded-full bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center flex-shrink-0">
+                                    <span class="text-[10px] font-black text-slate-500 uppercase" x-text="(p.latest_actor || 'S').charAt(0)"></span>
+                                </div>
+                                <div>
+                                    <div class="text-sm font-bold text-gray-800" x-text="p.latest_actor"></div>
+                                    <div class="text-[10px] text-gray-400" x-text="p.latest_date + ' • ' + p.latest_time"></div>
+                                </div>
+                            </div>
+                        </td>
+
+                        <!-- Latest Event -->
+                        <td class="px-5 py-3.5">
+                            <div class="text-sm font-semibold text-gray-700" x-text="p.latest_event"></div>
+                        </td>
+
+                        <!-- Status Badge -->
+                        <td class="px-5 py-3.5">
+                            <span class="px-2.5 py-1 rounded-full text-[10px] font-bold inline-flex items-center gap-1"
+                                  :class="{
+                                      'bg-gray-100 text-gray-600': p.filter_status === 'DRAFT PIS',
+                                      'bg-red-50 text-red-700 ring-1 ring-red-100': p.filter_status === 'CHANGE REQUESTED',
+                                      'bg-purple-50 text-purple-600 ring-1 ring-purple-100': p.filter_status === 'NEED REVIEW',
+                                      'bg-blue-50 text-blue-600 ring-1 ring-blue-100': p.filter_status === 'IN PROCESS',
+                                      'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100': p.filter_status === 'PIS APPROVED'
+                                  }">
+                                <!-- Status icons -->
+                                <svg x-show="p.filter_status === 'DRAFT PIS'" class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                                <svg x-show="p.filter_status === 'CHANGE REQUESTED'" class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                                <svg x-show="p.filter_status === 'NEED REVIEW'" class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                                <svg x-show="p.filter_status === 'IN PROCESS'" class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                <svg x-show="p.filter_status === 'PIS APPROVED'" class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                <span x-text="p.filter_status"></span>
+                            </span>
+                        </td>
+
+                        <!-- View Details Arrow -->
+                        <td class="px-5 py-3.5 text-right">
+                            <div class="inline-flex items-center gap-1 text-gray-400 group-hover:text-blue-600 transition-colors text-xs font-bold">
+                                <span class="hidden sm:inline">View</span>
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                            </div>
+                        </td>
+                    </tr>
+                    </template>
+
+                    <!-- Empty state -->
+                    <template x-if="filteredProducts.length === 0">
+                        <tr>
+                            <td colspan="5" class="px-6 py-16 text-center text-gray-400">
+                                <div class="w-14 h-14 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                                    <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                                </div>
+                                <p class="text-sm font-bold">No products match your filters</p>
+                                <p class="text-xs mt-1">Try changing the filter or search term.</p>
+                            </td>
+                        </tr>
+                    </template>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+
+    <!-- ============ TIMELINE DETAIL MODAL ============ -->
+
+    <div x-show="modalOpen" 
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0"
+         class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm z-50"
+         @click.self="closeModal()"
+         style="display: none;"></div>
+
+    <div x-show="modalOpen" 
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0 translate-y-4 scale-95"
+         x-transition:enter-end="opacity-100 translate-y-0 scale-100"
+         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave-start="opacity-100 translate-y-0 scale-100"
+         x-transition:leave-end="opacity-0 translate-y-4 scale-95"
+         class="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none"
+         style="display: none;">
+         
+        <div @click.stop class="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] pointer-events-auto flex flex-col relative">
+            
+            <button @click="closeModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 bg-gray-100 hover:bg-gray-200 p-2 rounded-full transition-colors z-10">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+
+            <!-- Header -->
+            <div class="p-8 border-b border-gray-100 flex-shrink-0">
+                <template x-if="selectedProduct">
+                    <div class="flex items-center gap-6">
+                        <div class="w-20 h-20 bg-gray-100 rounded-xl border border-gray-200 overflow-hidden flex-shrink-0">
+                             <template x-if="selectedProduct.image_path">
+                                <img :src="selectedProduct.image_path" class="w-full h-full object-cover">
+                            </template>
+                            <template x-if="!selectedProduct.image_path">
+                                <div class="flex items-center justify-center h-full text-gray-400">
+                                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                                </div>
+                            </template>
+                        </div>
+                        <div>
+                            <h3 class="text-2xl font-extrabold text-gray-900" x-text="selectedProduct.model_name"></h3>
+                            <p class="text-gray-500" x-text="selectedProduct.brand"></p>
+                        </div>
+                    </div>
+                </template>
+
+                <!-- Tab header -->
+                <div class="flex items-center justify-between mt-5">
+                    <div class="flex items-center gap-2">
+                        <svg class="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        <span class="text-xs font-bold text-slate-800">Activity Timeline</span>
+                        <span class="bg-gray-100 px-1.5 py-0.5 rounded text-[10px] font-bold text-gray-500" x-text="filteredTimeline.length + ' of ' + (selectedProduct?.timeline?.length || 0)"></span>
+                    </div>
+
+                    <!-- Filter toggle button -->
+                    <button @click="showFilters = !showFilters" 
+                        class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all border"
+                        :class="showFilters || activeFilterCount > 0 ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : 'bg-gray-50 text-gray-500 border-gray-100 hover:bg-gray-100'">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/>
+                        </svg>
+                        Filters
+                        <template x-if="activeFilterCount > 0">
+                            <span class="w-4 h-4 rounded-full bg-indigo-600 text-white text-[9px] font-black flex items-center justify-center" x-text="activeFilterCount"></span>
+                        </template>
+                    </button>
+                </div>
+
+                <!-- Advanced filter panel -->
+                <div x-show="showFilters" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 -translate-y-2" x-transition:enter-end="opacity-100 translate-y-0"
+                     class="mt-3 bg-gray-50 border border-gray-100 rounded-xl p-3 space-y-2.5">
+
+                    <!-- Search row -->
+                    <div class="relative">
+                        <svg class="w-3.5 h-3.5 absolute left-3 top-2.5 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                        </svg>
+                        <input x-model="timelineSearch" type="text" placeholder="Search by keyword..."
+                            class="w-full pl-9 pr-8 py-2 bg-white border border-gray-200 focus:border-indigo-300 rounded-lg text-[11px] font-medium transition-all outline-none placeholder-gray-400">
+                        <button x-show="timelineSearch" @click="timelineSearch = ''" class="absolute right-2.5 top-2 text-gray-400 hover:text-gray-600 transition-colors">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                        </button>
+                    </div>
+
+                    <!-- Dropdowns row -->
+                    <div class="grid grid-cols-3 gap-2">
+                        <!-- Event Type -->
+                        <div>
+                            <label class="text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-1 block">Event Type</label>
+                            <select x-model="timelineTypeFilter"
+                                class="w-full px-2.5 py-1.5 bg-white border border-gray-200 rounded-lg text-[11px] font-semibold text-gray-700 outline-none focus:border-indigo-300 transition-colors appearance-none cursor-pointer"
+                                style="background-image: url('data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 fill=%27none%27 viewBox=%270 0 24 24%27 stroke=%27%239ca3af%27 stroke-width=%272%27%3E%3Cpath stroke-linecap=%27round%27 stroke-linejoin=%27round%27 d=%27M19 9l-7 7-7-7%27/%3E%3C/svg%3E'); background-position: right 6px center; background-size: 14px; background-repeat: no-repeat; padding-right: 24px;">
+                                <template x-for="t in timelineEventTypes" :key="t.value">
+                                    <option :value="t.value" x-text="t.label"></option>
+                                </template>
+                            </select>
+                        </div>
+
+                        <!-- Actor -->
+                        <div>
+                            <label class="text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-1 block">Changed By</label>
+                            <select x-model="timelineActorFilter"
+                                class="w-full px-2.5 py-1.5 bg-white border border-gray-200 rounded-lg text-[11px] font-semibold text-gray-700 outline-none focus:border-indigo-300 transition-colors appearance-none cursor-pointer"
+                                style="background-image: url('data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 fill=%27none%27 viewBox=%270 0 24 24%27 stroke=%27%239ca3af%27 stroke-width=%272%27%3E%3Cpath stroke-linecap=%27round%27 stroke-linejoin=%27round%27 d=%27M19 9l-7 7-7-7%27/%3E%3C/svg%3E'); background-position: right 6px center; background-size: 14px; background-repeat: no-repeat; padding-right: 24px;">
+                                <option value="all">All Users</option>
+                                <template x-for="actor in timelineActors" :key="actor">
+                                    <option :value="actor" x-text="actor"></option>
+                                </template>
+                            </select>
+                        </div>
+
+                        <!-- Status -->
+                        <div>
+                            <label class="text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-1 block">Status</label>
+                            <select x-model="timelineStatusFilter"
+                                class="w-full px-2.5 py-1.5 bg-white border border-gray-200 rounded-lg text-[11px] font-semibold text-gray-700 outline-none focus:border-indigo-300 transition-colors appearance-none cursor-pointer"
+                                style="background-image: url('data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 fill=%27none%27 viewBox=%270 0 24 24%27 stroke=%27%239ca3af%27 stroke-width=%272%27%3E%3Cpath stroke-linecap=%27round%27 stroke-linejoin=%27round%27 d=%27M19 9l-7 7-7-7%27/%3E%3C/svg%3E'); background-position: right 6px center; background-size: 14px; background-repeat: no-repeat; padding-right: 24px;">
+                                <option value="all">All Statuses</option>
+                                <option value="neutral">Updates</option>
+                                <option value="waiting">Pending Review</option>
+                                <option value="action">Needs Attention</option>
+                                <option value="success">Completed</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Clear all -->
+                    <div x-show="activeFilterCount > 0" class="flex justify-end">
+                        <button @click="resetTimelineFilters(); showFilters = true;" class="text-[10px] font-bold text-indigo-600 hover:text-indigo-800 transition-colors flex items-center gap-1">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                            Clear all filters
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Timeline content -->
+            <div class="p-8 overflow-y-auto flex-1 smooth-scroll-area bg-gray-50/50">
+                <template x-if="selectedProduct">
+                    <div class="ml-4 border-l-2 border-gray-200 space-y-8 pl-8 relative">
+                        
+                        <template x-for="(event, index) in filteredTimeline" :key="index">
+                        <div class="relative animate-fade-in-up">
+                            
+                            <div class="absolute -left-[41px] top-0 p-2 rounded-full border-2 bg-white z-10"
+                                 :class="{
+                                    'border-gray-200 text-gray-400': event.status === 'neutral',
+                                    'border-blue-200 text-blue-600 shadow-sm shadow-blue-100': event.status === 'waiting',
+                                    'border-red-200 text-red-600 shadow-sm shadow-red-100': event.status === 'action',
+                                    'border-green-200 text-green-600 shadow-sm shadow-green-100': event.status === 'success'
+                                 }">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" :d="event.icon"/>
+                                </svg>
+                            </div>
+
+                            <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm relative group transition-all"
+                                 :class="isChangeEvent(event) ? 'hover:border-indigo-300 hover:shadow-md cursor-pointer' : 'hover:border-gray-300'"
+                                 @click="isChangeEvent(event) && openChanges(event)">
+                                <div class="w-4 h-4 bg-white border-b border-l border-gray-100 absolute top-4 -left-2.5 transform rotate-45 transition-colors"
+                                     :class="isChangeEvent(event) ? 'group-hover:border-indigo-300' : 'group-hover:border-gray-300'"></div>
+                                
+                                <div class="flex justify-between items-start mb-2">
+                                    <h5 class="font-bold text-gray-900 text-lg" x-text="event.title"></h5>
+                                    <div class="text-right flex flex-col items-end">
+                                        <div class="font-bold text-gray-900 text-sm" x-text="event.date"></div>
+                                        <div class="text-xs text-gray-400" x-text="event.time"></div>
+                                    </div>
+                                </div>
+                                
+                                <p class="text-gray-600 mb-3 text-sm leading-relaxed" x-html="(event.description || '').replace(/\n/g, '<br>')"></p>
+                                
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center gap-2 text-xs font-medium text-gray-500 uppercase tracking-wide">
+                                        <div class="w-5 h-5 rounded-full bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center flex-shrink-0">
+                                            <span class="text-[8px] font-black text-slate-500 uppercase" x-text="(event.actor || 'S').charAt(0)"></span>
+                                        </div>
+                                        <span x-text="event.actor"></span>
+                                    </div>
+
+                                    <!-- "View Changes" hint for change events -->
+                                    <template x-if="isChangeEvent(event)">
+                                        <div class="flex items-center gap-1.5 text-[11px] font-bold text-indigo-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                            </svg>
+                                            View Changes
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+                        </div>
+                        </template>
+                        
+                        <!-- Empty state -->
+                        <template x-if="filteredTimeline.length === 0 && selectedProduct?.timeline?.length > 0">
+                            <div class="text-center py-10 text-gray-400">
+                                <p class="text-sm font-medium">No events match your search.</p>
+                                <p class="text-xs mt-1">Try a different keyword.</p>
+                            </div>
+                        </template>
+                        <template x-if="!selectedProduct?.timeline?.length">
+                            <div class="text-center py-10 text-gray-400">
+                                <p class="text-sm font-medium">No timeline events recorded yet.</p>
+                            </div>
+                        </template>
+                    </div>
+                </template>
+            </div>
+
+        </div>
+    </div>
+
+
+    <!-- ============ FIELD CHANGES SUB-MODAL ============ -->
+
+    <div x-show="changesModalOpen"
+         x-transition:enter="transition ease-out duration-200"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-150"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0"
+         class="fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-[60]"
+         @click.self="closeChangesModal()"
+         style="display: none;"></div>
+
+    <div x-show="changesModalOpen"
+         x-transition:enter="transition ease-out duration-200"
+         x-transition:enter-start="opacity-0 translate-y-6 scale-95"
+         x-transition:enter-end="opacity-100 translate-y-0 scale-100"
+         x-transition:leave="transition ease-in duration-150"
+         x-transition:leave-start="opacity-100 translate-y-0 scale-100"
+         x-transition:leave-end="opacity-0 translate-y-6 scale-95"
+         class="fixed inset-0 z-[60] flex items-center justify-center p-4 pointer-events-none"
+         style="display: none;">
+
+        <div @click.stop class="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[85vh] pointer-events-auto flex flex-col relative overflow-hidden">
+
+            <!-- Header -->
+            <div class="px-6 py-4 border-b border-gray-100 flex-shrink-0 bg-gradient-to-r from-slate-50 to-white">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-sm">
+                            <svg class="w-4.5 h-4.5 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <h4 class="text-base font-extrabold text-gray-900" x-text="changesEvent?.title || 'Field Changes'"></h4>
+                            <div class="flex items-center gap-2 mt-0.5" x-show="changesEvent">
+                                <span class="text-[11px] text-gray-400">
+                                    <span x-text="changesEvent?.date"></span> at <span x-text="changesEvent?.time"></span>
+                                </span>
+                                <span class="text-gray-200">•</span>
+                                <span class="text-[11px] text-gray-500 font-semibold" x-text="changesEvent?.actor"></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <!-- Badges -->
+                        <template x-if="!changesLoading && changesData.length > 0">
+                            <div class="flex items-center gap-1.5">
+                                <span class="px-2 py-1 bg-indigo-50 text-indigo-700 rounded-md text-[10px] font-bold">
+                                    <span x-text="changesData.length"></span> change<span x-show="changesData.length !== 1">s</span>
+                                </span>
+                                <template x-if="changesData[0]?.version_num">
+                                    <span class="px-2 py-1 bg-violet-50 text-violet-600 rounded-md text-[10px] font-bold">
+                                        v<span x-text="changesData[0].version_num"></span>
+                                    </span>
+                                </template>
+                            </div>
+                        </template>
+                        <button @click="closeChangesModal()" class="text-gray-400 hover:text-gray-600 bg-gray-100 hover:bg-gray-200 p-1.5 rounded-lg transition-colors ml-1">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Column headers -->
+            <template x-if="!changesLoading && changesData.length > 0">
+                <div class="px-6 py-2.5 bg-gray-50 border-b border-gray-100 flex-shrink-0">
+                    <div class="grid grid-cols-[180px_1fr_1fr] gap-3 items-center">
+                        <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Field</div>
+                        <div class="text-[10px] font-bold text-red-400 uppercase tracking-wider flex items-center gap-1">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M20 12H4"/></svg>
+                            Before
+                        </div>
+                        <div class="text-[10px] font-bold text-emerald-500 uppercase tracking-wider flex items-center gap-1">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
+                            After
+                        </div>
+                    </div>
+                </div>
+            </template>
+
+            <!-- Content -->
+            <div class="overflow-y-auto flex-1 smooth-scroll-area">
+
+                <!-- Loading -->
+                <template x-if="changesLoading">
+                    <div class="text-center py-16 text-gray-400">
+                        <div class="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center mx-auto mb-3">
+                            <svg class="w-6 h-6 animate-spin text-indigo-400" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                        </div>
+                        <p class="text-sm font-bold text-gray-500">Loading changes...</p>
+                    </div>
+                </template>
+
+                <!-- Changes rows -->
+                <template x-if="!changesLoading && changesData.length > 0">
+                    <div class="divide-y divide-gray-100">
+                        <template x-for="(change, ci) in changesData" :key="ci">
+                            <div class="px-6 py-4 hover:bg-gray-50/80 transition-colors group">
+                                <div class="grid grid-cols-[180px_1fr_1fr] gap-3 items-start">
+
+                                    <!-- Field name -->
+                                    <div class="pt-0.5">
+                                        <span class="text-[12px] font-bold text-gray-800 leading-tight block" x-text="change.field_name"></span>
+                                        <span class="text-[10px] text-gray-400 font-medium mt-0.5 block" x-text="change.section"></span>
+                                    </div>
+
+                                    <!-- Old (before) value -->
+                                    <div class="min-w-0">
+                                        <div class="bg-red-50 border border-red-100 rounded-lg px-3 py-2.5 text-[12px] text-red-700 break-words max-h-32 overflow-y-auto leading-relaxed relative"
+                                             :class="change.old_value ? '' : 'italic text-red-300'">
+                                            <span x-html="diffOld(change.old_value, change.new_value)"></span>
+                                        </div>
+                                    </div>
+
+                                    <!-- New (after) value -->
+                                    <div class="min-w-0">
+                                        <div class="bg-emerald-50 border border-emerald-100 rounded-lg px-3 py-2.5 text-[12px] text-emerald-800 break-words max-h-32 overflow-y-auto leading-relaxed"
+                                             :class="change.new_value ? '' : 'italic text-emerald-300'">
+                                            <span x-html="diffNew(change.old_value, change.new_value)"></span>
+                                        </div>
+                                    </div>
+
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </template>
+
+                <!-- Empty state -->
+                <template x-if="!changesLoading && changesData.length === 0">
+                    <div class="text-center py-16 text-gray-400">
+                        <div class="w-14 h-14 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                            <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                        </div>
+                        <p class="text-sm font-bold text-gray-500">No field-level changes</p>
+                        <p class="text-xs mt-1 text-gray-400">This event didn't modify any tracked fields.</p>
+                    </div>
+                </template>
+            </div>
+        </div>
+    </div>
+
+    </div>
+
+<style>
+    @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-fade-in-up {
+        animation: fadeInUp 0.4s ease-out forwards;
+    }
+    /* Word-level diff highlights */
+    .diff-del {
+        background: rgba(239, 68, 68, 0.15);
+        text-decoration: line-through;
+        text-decoration-color: rgba(239, 68, 68, 0.5);
+        border-radius: 2px;
+        padding: 0 2px;
+    }
+    .diff-add {
+        background: rgba(16, 185, 129, 0.18);
+        text-decoration: underline;
+        text-decoration-color: rgba(16, 185, 129, 0.6);
+        text-decoration-thickness: 2px;
+        text-underline-offset: 2px;
+        border-radius: 2px;
+        padding: 0 2px;
+        font-weight: 600;
+    }
+</style>
+{% endblock %}

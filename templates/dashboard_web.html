@@ -1,0 +1,595 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+{# --- Calculate Metrics Locally --- #}
+{% set total_tasks = tasks|length %}
+{% set new_specsheets = tasks|selectattr('workflow_stage', 'equalto', 'ready_for_web')|list|length %}
+{% set changes_requested = tasks|selectattr('workflow_stage', 'equalto', 'web_changes_requested')|list|length %}
+{% set need_review = tasks|selectattr('workflow_stage', 'equalto', 'pending_director_spec')|list|length %}
+{% set approved = tasks|selectattr('workflow_stage', 'equalto', 'finalized')|list|length %}
+{% set in_process = tasks|selectattr('workflow_stage', 'equalto', 'specsheet_draft')|list|length %}
+
+<div x-data="{ 
+    filter: 'new', 
+    view: 'card',
+    search: '',
+    showGenModal: false,
+    generating: false,
+    progress: 0,
+    progressMessage: 'Starting...',
+    targetProductId: null,
+    
+    startGeneration(id) {
+        this.targetProductId = id;
+        this.showGenModal = true;
+    },
+    
+    async confirmGeneration() {
+        this.generating = true;
+        this.progress = 5;
+        this.progressMessage = 'Connecting to AI...';
+        
+        try {
+            const response = await fetch(`/api/generate_specsheet/${this.targetProductId}`, {
+                method: 'POST'
+            });
+            
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                
+                const chunk = decoder.decode(value);
+                const lines = chunk.split('\n');
+                
+                for (const line of lines) {
+                    if (line.trim()) {
+                        try {
+                            const data = JSON.parse(line);
+                            if (data.progress) this.progress = data.progress;
+                            if (data.message) this.progressMessage = data.message;
+                            if (data.redirect) {
+                                setTimeout(() => window.location.href = data.redirect, 800);
+                            }
+                            if (data.error) {
+                                alert('Error: ' + data.error);
+                                this.generating = false;
+                                this.showGenModal = false;
+                            }
+                        } catch (e) { console.error('Parse error:', e); }
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('Fetch error:', error);
+            alert('Failed to connect to generation service.');
+            this.generating = false;
+            this.showGenModal = false;
+        }
+    },
+
+    products: [
+        {% for p in tasks %}
+        {
+            id: {{ p.id }},
+            model_name: `{{ p.model_name }}`,
+            model_id: `{{ p.pis_data.header_info.model_number if p.pis_data and p.pis_data.header_info and p.pis_data.header_info.model_number else p.model_name }}`,
+            brand: `{{ p.pis_data.header_info.brand if p.pis_data else 'Unknown' }}`,
+            image: `{{ url_for('static', filename=p.image_path) if p.image_path else '' }}`,
+            date: `{{ p.created_at.strftime('%d %b') }}`,
+            stage: `{{ p.workflow_stage }}`,
+            action_url: `{{ url_for('create_specsheet', product_id=p.id) }}`,
+            
+            {# --- UI Display Logic --- #}
+            {% if p.workflow_stage == 'ready_for_web' %}
+                status_bg: 'bg-green-100',
+                status_text: 'text-green-700',
+                stage_display: 'Draft SpecSheet',
+                action_label: 'Edit SpecSheet',
+                is_urgent: false,
+                is_modal_trigger: false,
+            {% elif p.workflow_stage == 'web_changes_requested' %}
+                status_bg: 'bg-red-100',
+                status_text: 'text-red-700',
+                stage_display: 'Change Requested',
+                action_label: 'Fix SpecSheet',
+                is_modal_trigger: false,
+            {% elif p.workflow_stage == 'specsheet_draft' %}
+                status_bg: 'bg-amber-100',
+                status_text: 'text-amber-700',
+                stage_display: 'In Process',
+                action_label: 'Continue Editing',
+                is_urgent: false,
+                is_modal_trigger: false,
+            {% elif p.workflow_stage == 'pending_director_spec' %}
+                status_bg: 'bg-blue-100',
+                status_text: 'text-blue-700',
+                stage_display: 'Need Review',
+                action_label: 'View',
+                is_urgent: false,
+                is_modal_trigger: false,
+            {% elif p.workflow_stage == 'finalized' %}
+                status_bg: 'bg-indigo-100',
+                status_text: 'text-indigo-700',
+                stage_display: 'SpecSheet Approved',
+                action_label: 'View',
+                is_urgent: false,
+                is_modal_trigger: false,
+            {% else %}
+                status_bg: 'bg-gray-100',
+                status_text: 'text-gray-600',
+                stage_display: 'Unknown',
+                action_label: 'View',
+                is_urgent: false,
+                is_modal_trigger: false,
+            {% endif %}
+        },
+        {% endfor %}
+    ],
+    
+    get filteredProducts() {
+        return this.products.filter(p => {
+            const matchesSearch = p.model_id.toLowerCase().includes(this.search.toLowerCase()) || 
+                                  p.model_name.toLowerCase().includes(this.search.toLowerCase()) || 
+                                  p.brand.toLowerCase().includes(this.search.toLowerCase());
+            
+            if (!matchesSearch) return false;
+            
+            if (this.filter === 'all') return true;
+            if (this.filter === 'new' && p.stage === 'ready_for_web') return true;
+            if (this.filter === 'changes' && p.stage === 'web_changes_requested') return true;
+            if (this.filter === 'review' && p.stage === 'pending_director_spec') return true;
+            if (this.filter === 'approved' && p.stage === 'finalized') return true;
+            if (this.filter === 'in_process' && p.stage === 'specsheet_draft') return true;
+            return false;
+        });
+    }
+}">
+
+    <!-- DEBUGGER (Only visible if you inspect or unhide) -->
+    <!-- Raw Task Count: {{ tasks|length }} -->
+    <!-- Task Stages: {% for t in tasks %}{{ t.workflow_stage }}, {% endfor %} -->
+
+    <!-- HERO SECTION -->
+    <div class="mb-8 relative rounded-2xl bg-white border border-gray-100 p-8 shadow-sm overflow-hidden">
+        <div
+            class="absolute inset-0 bg-[radial-gradient(#f1f5f9_1px,transparent_1px)] [background-size:16px_16px] opacity-50">
+        </div>
+        <div
+            class="absolute right-0 top-0 w-64 h-64 bg-indigo-50 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 opacity-50">
+        </div>
+
+        <div class="relative z-10 flex flex-col md:flex-row justify-between items-center gap-6">
+            <div>
+                <h2 class="text-3xl font-bold text-slate-800 mb-2">Web Team Workspace</h2>
+                <p class="text-slate-500 text-sm">You have <span class="font-bold text-indigo-600">{{ total_tasks }}
+                        active tasks</span> in your pipeline.</p>
+            </div>
+
+            <!-- Quick Stats -->
+            <div class="flex gap-3">
+                <button type="button" onclick="openGlobalPurgeModal()"
+                    class="px-4 py-2 bg-white border border-red-100 text-red-500 rounded-lg text-xs font-bold hover:bg-red-50 hover:border-red-200 transition-all flex items-center gap-2 shadow-sm">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-4v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                    Clear All
+                </button>
+                <div
+                    class="px-4 py-2 bg-white/80 border border-gray-200 rounded-lg text-xs font-bold text-slate-600 shadow-sm flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-green-500"></span>
+                    {{ new_specsheets }} New SpecSheets
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- METRICS CARDS -->
+    <div class="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+        <div
+            class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex items-center gap-4 hover:border-gray-200 transition-colors">
+            <div class="w-10 h-10 rounded-lg bg-gray-50 flex items-center justify-center text-slate-500 flex-shrink-0">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                </svg>
+            </div>
+            <div>
+                <p class="text-xs font-bold text-gray-400">TOTAL TASKS</p>
+                <p class="text-xl font-bold text-slate-800 leading-none mt-0.5">{{ total_tasks }}</p>
+            </div>
+        </div>
+
+        <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex items-center gap-4 hover:border-green-200 transition-colors group cursor-pointer"
+            @click="filter = 'new'">
+            <div
+                class="w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center text-green-600 flex-shrink-0 group-hover:bg-green-100 transition-colors">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+            </div>
+            <div>
+                <p class="text-xs font-bold text-gray-400 group-hover:text-green-500 transition-colors">
+                    DRAFT SPECSHEET</p>
+                <p class="text-xl font-bold text-slate-800 leading-none mt-0.5">{{ new_specsheets }}</p>
+            </div>
+        </div>
+
+        <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex items-center gap-4 hover:border-red-200 transition-colors group cursor-pointer"
+            @click="filter = 'changes'">
+            <div
+                class="w-10 h-10 rounded-lg bg-red-50 flex items-center justify-center text-red-600 flex-shrink-0 group-hover:bg-red-100 transition-colors">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+            </div>
+            <div>
+                <p class="text-xs font-bold text-gray-400 group-hover:text-red-500 transition-colors">
+                    CHANGE REQUESTED</p>
+                <p class="text-xl font-bold text-slate-800 leading-none mt-0.5">{{ changes_requested }}</p>
+            </div>
+        </div>
+
+        <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex items-center gap-4 hover:border-blue-200 transition-colors group cursor-pointer"
+            @click="filter = 'review'">
+            <div
+                class="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 flex-shrink-0 group-hover:bg-blue-100 transition-colors">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+            </div>
+            <div>
+                <p class="text-xs font-bold text-gray-400 group-hover:text-blue-500 transition-colors">
+                    NEED REVIEW</p>
+                <p class="text-xl font-bold text-slate-800 leading-none mt-0.5">{{ need_review }}</p>
+            </div>
+        </div>
+
+        <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex items-center gap-4 hover:border-amber-200 transition-colors group cursor-pointer"
+            @click="filter = 'in_process'">
+            <div
+                class="w-10 h-10 rounded-lg bg-amber-50 flex items-center justify-center text-amber-600 flex-shrink-0 group-hover:bg-amber-100 transition-colors">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+            </div>
+            <div>
+                <p class="text-xs font-bold text-gray-400 group-hover:text-amber-500 transition-colors">
+                    IN PROCESS</p>
+                <p class="text-xl font-bold text-slate-800 leading-none mt-0.5">{{ in_process }}</p>
+            </div>
+        </div>
+
+        <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex items-center gap-4 hover:border-indigo-200 transition-colors group cursor-pointer"
+            @click="filter = 'approved'">
+            <div
+                class="w-10 h-10 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600 flex-shrink-0 group-hover:bg-indigo-100 transition-colors">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+            </div>
+            <div>
+                <p class="text-xs font-bold text-gray-400 group-hover:text-indigo-500 transition-colors">
+                    SPECSHEET APPROVED</p>
+                <p class="text-xl font-bold text-slate-800 leading-none mt-0.5">{{ approved }}</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN DASHBOARD CONTENT -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden min-h-[500px]">
+
+        <!-- Toolbar -->
+        <div class="px-6 py-4 border-b border-gray-100 flex flex-col md:flex-row justify-between items-center gap-4">
+
+            <div class="flex items-center gap-4 flex-1">
+                <!-- View Toggle -->
+                <div class="flex items-center bg-gray-50 p-1 rounded-lg border border-gray-100">
+                    <button @click="view = 'card'"
+                        :class="view === 'card' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-400 hover:text-slate-600'"
+                        class="p-2 rounded-md transition-all">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                        </svg>
+                    </button>
+                    <button @click="view = 'list'"
+                        :class="view === 'list' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-400 hover:text-slate-600'"
+                        class="p-2 rounded-md transition-all">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M4 6h16M4 12h16M4 18h16" />
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Filters -->
+                <div class="flex items-center gap-1 bg-gray-50 p-1 rounded-lg border border-gray-100">
+                    <button @click="filter = 'all'"
+                        :class="filter === 'all' ? 'bg-white text-slate-800 shadow-sm font-semibold' : 'text-gray-500 hover:text-slate-600'"
+                        class="px-4 py-1.5 rounded-md text-[10px] transition-all uppercase tracking-wider">ALL</button>
+                    <button @click="filter = 'new'"
+                        :class="filter === 'new' ? 'bg-white text-green-600 shadow-sm font-semibold' : 'text-gray-500 hover:text-slate-600'"
+                        class="px-4 py-1.5 rounded-md text-[10px] transition-all uppercase tracking-wider whitespace-nowrap">DRAFT
+                        SPECSHEET</button>
+                    <button @click="filter = 'changes'"
+                        :class="filter === 'changes' ? 'bg-white text-red-600 shadow-sm font-semibold' : 'text-gray-500 hover:text-slate-600'"
+                        class="px-4 py-1.5 rounded-md text-[10px] transition-all uppercase tracking-wider whitespace-nowrap">CHANGE
+                        REQUESTED</button>
+                    <button @click="filter = 'review'"
+                        :class="filter === 'review' ? 'bg-white text-blue-600 shadow-sm font-semibold' : 'text-gray-500 hover:text-slate-600'"
+                        class="px-4 py-1.5 rounded-md text-[10px] transition-all uppercase tracking-wider whitespace-nowrap">NEED
+                        REVIEW</button>
+                    <button @click="filter = 'in_process'"
+                        :class="filter === 'in_process' ? 'bg-white text-amber-600 shadow-sm font-semibold' : 'text-gray-500 hover:text-slate-600'"
+                        class="px-4 py-1.5 rounded-md text-[10px] transition-all uppercase tracking-wider whitespace-nowrap">IN
+                        PROCESS</button>
+                    <button @click="filter = 'approved'"
+                        :class="filter === 'approved' ? 'bg-white text-indigo-600 shadow-sm font-semibold' : 'text-gray-500 hover:text-slate-600'"
+                        class="px-4 py-1.5 rounded-md text-[10px] transition-all uppercase tracking-wider whitespace-nowrap">SPECSHEET
+                        APPROVED</button>
+                </div>
+            </div>
+
+            <!-- Search -->
+            <div class="relative w-full md:w-64">
+                <svg class="w-4 h-4 absolute left-3 top-2.5 text-gray-400" fill="none" stroke="currentColor"
+                    viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                <input x-model="search" type="text" placeholder="Search tasks..."
+                    class="w-full pl-9 pr-4 py-2 bg-gray-50 border border-transparent focus:bg-white focus:border-indigo-100 focus:ring-4 focus:ring-indigo-50 rounded-lg text-sm font-medium transition-all outline-none placeholder-gray-400">
+            </div>
+        </div>
+
+        <!-- CONTENT AREA -->
+        <div class="bg-slate-50/50 min-h-[500px]">
+
+            <div x-show="filteredProducts.length > 0">
+
+                <!-- CARD VIEW -->
+                <div x-show="view === 'card'"
+                    class="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+                    <template x-for="p in filteredProducts" :key="'card-' + p.id">
+                        <div
+                            class="bg-white rounded-xl p-3 border border-gray-100 shadow-[0_2px_8px_rgba(0,0,0,0.02)] hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group flex flex-col h-full">
+
+                            <!-- Image Area -->
+                            <div
+                                class="aspect-[4/3] bg-gray-50 rounded-lg mb-3 relative overflow-hidden flex items-center justify-center border border-gray-100">
+                                <template x-if="p.image">
+                                    <img :src="p.image"
+                                        class="w-full h-full object-contain mix-blend-multiply p-4 transition-transform duration-500 group-hover:scale-105 gallery-clickable"
+                                        @click.stop="openLightbox(p.image)"
+                                        @error="$el.style.display='none'; $el.nextElementSibling && ($el.nextElementSibling.style.display='flex')">
+                                </template>
+                                <template x-if="!p.image">
+                                    <div class="text-gray-300 flex flex-col items-center">
+                                        <svg class="w-8 h-8 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                        </svg>
+                                        <span class="text-[10px] font-bold uppercase">No Image</span>
+                                    </div>
+                                </template>
+
+                                <!-- Status Badge Overlay -->
+                                <div class="absolute top-2 left-2 px-2 py-0.5 rounded text-[10px] font-bold backdrop-blur-md border border-white/50 shadow-sm"
+                                    :class="p.status_bg + ' ' + p.status_text" x-text="p.stage_display">
+                                </div>
+                            </div>
+
+                            <!-- Content -->
+                            <div class="flex-1 flex flex-col px-1">
+                                <div class="flex justify-between items-start">
+                                    <div class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1"
+                                        x-text="p.brand"></div>
+                                    <span class="text-[10px] text-gray-400" x-text="p.date"></span>
+                                </div>
+                                <h3 class="font-bold text-slate-800 text-sm leading-snug mb-2 line-clamp-2 h-10"
+                                    x-text="p.model_id"></h3>
+                            </div>
+
+                            <!-- Action -->
+                            <template x-if="p.is_modal_trigger">
+                                <button @click="startGeneration(p.id)"
+                                    class="mt-3 w-full py-2 bg-indigo-600 text-white border-indigo-600 hover:bg-indigo-700 hover:shadow-lg shadow-indigo-200 rounded-lg font-bold text-xs flex items-center justify-center gap-2 transition-colors border">
+                                    <span x-text="p.action_label"></span>
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                    </svg>
+                                </button>
+                            </template>
+
+                            <template x-if="!p.is_modal_trigger">
+                                <a :href="p.action_url"
+                                    class="mt-3 w-full py-2 bg-indigo-600 text-white border-indigo-600 hover:bg-indigo-700 hover:shadow-lg shadow-indigo-200 rounded-lg font-bold text-xs flex items-center justify-center gap-2 transition-colors border">
+                                    <span x-text="p.action_label"></span>
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                                    </svg>
+                                </a>
+                            </template>
+
+                        </div>
+                    </template>
+                </div>
+
+                <!-- LIST VIEW -->
+                <div x-show="view === 'list'" class="w-full overflow-x-auto">
+                    <table class="w-full text-left text-sm text-slate-600">
+                        <thead
+                            class="bg-gray-50/50 text-xs uppercase font-semibold text-slate-500 border-b border-gray-100">
+                            <tr>
+                                <th class="px-6 py-4 pl-8">Product Details</th>
+                                <th class="px-6 py-4">Brand</th>
+                                <th class="px-6 py-4">Date</th>
+                                <th class="px-6 py-4">Status</th>
+                                <th class="px-6 py-4 text-right pr-8">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100 bg-white">
+                            <template x-for="p in filteredProducts" :key="'list-' + p.id">
+                                <tr class="hover:bg-slate-50 transition-colors group">
+                                    <td class="px-6 py-3 pl-8">
+                                        <div class="flex items-center gap-3">
+                                            <div
+                                                class="w-10 h-10 rounded-lg bg-gray-50 flex items-center justify-center overflow-hidden border border-gray-100">
+                                                <template x-if="p.image">
+                                                    <img :src="p.image" class="w-full h-full object-cover"
+                                                        @error="$el.style.display='none'">
+                                                </template>
+                                                <template x-if="!p.image">
+                                                    <svg class="w-4 h-4 text-gray-300" fill="none" stroke="currentColor"
+                                                        viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                                            stroke-width="2"
+                                                            d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                                    </svg>
+                                                </template>
+                                            </div>
+                                            <span class="font-bold text-slate-800" x-text="p.model_id"></span>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-3" x-text="p.brand"></td>
+                                    <td class="px-6 py-3 text-xs text-slate-400" x-text="p.date"></td>
+                                    <td class="px-6 py-3">
+                                        <span class="px-2.5 py-1 rounded text-xs font-bold border border-transparent"
+                                            :class="p.status_bg + ' ' + p.status_text" x-text="p.stage_display"></span>
+                                    </td>
+                                    <td class="px-6 py-3 text-right pr-8">
+
+                                        <template x-if="p.is_modal_trigger">
+                                            <button @click="startGeneration(p.id)"
+                                                class="inline-flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-bold transition-colors"
+                                                :class="p.is_urgent 
+                                                   ? 'bg-red-50 text-red-700 border border-red-100 hover:bg-red-100' 
+                                                   : 'bg-indigo-50 text-indigo-700 border border-indigo-100 hover:bg-indigo-100'">
+                                                <span x-text="p.action_label"></span>
+                                                <svg class="w-3 h-3" fill="none" stroke="currentColor"
+                                                    viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                                </svg>
+                                            </button>
+                                        </template>
+
+                                        <template x-if="!p.is_modal_trigger">
+                                            <a :href="p.action_url"
+                                                class="inline-flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-bold transition-colors"
+                                                :class="p.is_urgent 
+                                                   ? 'bg-red-50 text-red-700 border border-red-100 hover:bg-red-100' 
+                                                   : 'bg-indigo-50 text-indigo-700 border border-indigo-100 hover:bg-indigo-100'">
+                                                <span x-text="p.action_label"></span>
+                                                <svg class="w-3 h-3" fill="none" stroke="currentColor"
+                                                    viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        stroke-width="2" d="M9 5l7 7-7 7" />
+                                                </svg>
+                                            </a>
+                                        </template>
+
+                                    </td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
+
+            </div>
+
+            <!-- Empty State -->
+            <div x-show="filteredProducts.length === 0" x-cloak>
+                <div class="flex flex-col items-center justify-center py-24 text-center">
+                    <div class="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4 text-gray-300">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </div>
+                    <h3 class="text-lg font-bold text-slate-800">No tasks found</h3>
+                    <p class="text-slate-500 text-sm max-w-xs mt-1">There are no products matching your current filters.
+                    </p>
+                    <button @click="filter = 'all'"
+                        class="mt-4 text-xs font-bold text-indigo-600 hover:text-indigo-700">Clear filters</button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- GENERATION MODAL -->
+    <div x-show="showGenModal" x-transition:enter="transition ease-out duration-300"
+        x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+        x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100"
+        x-transition:leave-end="opacity-0"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" x-cloak>
+
+        <div class="bg-white rounded-3xl w-full max-w-md p-8 shadow-2xl transform transition-all scale-100">
+            <!-- Idle State -->
+            <div x-show="!generating">
+                <div class="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mb-4">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M19.428 15.428a2 2 0 00-1.022-.547l-2.384-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+                    </svg>
+                </div>
+                <h3 class="font-bold text-xl text-gray-900 mb-2">Generate SpecSheet Data?</h3>
+                <p class="text-sm text-gray-500 mb-6 leading-relaxed">
+                    This will use AI to re-write the technical PIS into <strong>customer-friendly benefits</strong>,
+                    create a <strong>key features list</strong>, and generate <strong>SEO metadata</strong> (Title,
+                    Keywords, Description).
+                </p>
+                <div class="flex gap-3">
+                    <button @click="showGenModal = false"
+                        class="flex-1 bg-gray-100 text-gray-700 py-3 rounded-xl font-bold hover:bg-gray-200 transition-colors">
+                        Cancel
+                    </button>
+                    <button @click="confirmGeneration"
+                        class="flex-1 bg-indigo-600 text-white py-3 rounded-xl font-bold hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-200">
+                        Yes, Generate
+                    </button>
+                </div>
+            </div>
+
+            <!-- Loading State -->
+            <div x-show="generating" class="text-center py-4">
+                <div class="relative w-16 h-16 mx-auto mb-4">
+                    <div class="absolute inset-0 border-4 border-indigo-100 rounded-full"></div>
+                    <div
+                        class="absolute inset-0 border-4 border-indigo-500 rounded-full border-t-transparent animate-spin">
+                    </div>
+                </div>
+                <h3 class="font-bold text-lg text-gray-900 mb-1">Creating SpecSheet...</h3>
+                <p class="text-xs text-gray-400 mb-6" x-text="progressMessage">Initializing...</p>
+
+                <!-- Progress Bar -->
+                <div class="w-full bg-gray-100 rounded-full h-2 mb-2 overflow-hidden">
+                    <div class="bg-indigo-500 h-2 rounded-full transition-all duration-300"
+                        :style="`width: ${progress}%`"></div>
+                </div>
+                <div class="flex justify-between text-[10px] text-gray-400 font-bold uppercase tracking-wide">
+                    <span>AI Processing</span>
+                    <span x-text="progress + '%'">0%</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+</div>
+
+{% endblock %}
