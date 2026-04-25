@@ -117,3 +117,31 @@ class FieldChangeLog(db.Model):
     
     product = db.relationship('Product', backref=db.backref('field_changes', lazy=True, cascade="all, delete"))
     user = db.relationship('User', backref='field_changes')
+
+
+# ================= PROMPT MODEL =================
+
+class Prompt(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False, unique=True)  # e.g. "pis_extraction"
+    display_name = db.Column(db.String(200))
+    description = db.Column(db.Text)
+    category = db.Column(db.String(50))
+    prompt_text = db.Column(db.Text, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+# ================= JOB MODEL =================
+
+class Job(db.Model):
+    id = db.Column(db.String(8), primary_key=True)
+    model_name = db.Column(db.String(200))
+    status = db.Column(db.String(20), default='queued', index=True)
+    message = db.Column(db.String(500))
+    progress = db.Column(db.Integer, default=0)
+    redirect_url = db.Column(db.String(500), nullable=True)
+    dismissed = db.Column(db.Boolean, default=False)
+    payload = db.Column(JSONB, nullable=True)
+    result = db.Column(JSONB, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    completed_at = db.Column(db.DateTime, nullable=True)

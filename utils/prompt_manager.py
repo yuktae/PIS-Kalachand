@@ -1,20 +1,13 @@
 """
 Prompt Manager for PIS System
-Loads, saves, and retrieves all AI system prompts.
-Prompts are stored in data/system_prompts.json.
+Loads, saves, and retrieves AI system prompts from the database.
+Falls back to DEFAULT_PROMPTS when no DB context is available.
 """
 
-import os
-import json
 import copy
 
-# Path to the prompts JSON file
-PROMPTS_FILE = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data', 'system_prompts.json')
-
-
 # ==================== DEFAULT PROMPTS ====================
-# These are the factory defaults. If the JSON file is missing or a prompt
-# is deleted, these will be used as fallback.
+# Factory defaults — used as fallback and for seeding the DB on first run.
 
 DEFAULT_PROMPTS = [
     {
@@ -23,13 +16,13 @@ DEFAULT_PROMPTS = [
         "description": "Extracts product information (name, brand, specs, sales arguments, SEO data) from uploaded documents and/or website URLs. Used when creating a single new PIS.",
         "category": "Extraction",
         "prompt": """You are an expert Product Data Specialist and Technical Researcher.
-    
+
 Product to research: {model_name}
 
 TASK:
 1. EXTENSIVE RESEARCH: {source_instruction}
 2. FACTUAL INTEGRITY: Identify specific technical features, performance metrics, and unique selling points.
-3. **STRICT RULES**: 
+3. **STRICT RULES**:
    - DO NOT invent, assume, or hallucinate any details.
    - If a detail is not in the documents or website context, omit it or state it's unavailable.
    - **INDEPENDENT CONTENT**: This description must be standalone. NEVER refer to other products, model variations, or colors in your text. Each overview must be unique and fully populated.
@@ -69,17 +62,17 @@ Output strictly valid JSON:
         "name": "Bulk PIS Extraction",
         "description": "Extracts multiple product records from a single document (e.g. invoice/catalog). Each product gets its own independent description, specs, and hero image.",
         "category": "Extraction",
-        "prompt": """You are an expert Product Data Specialist and Technical Researcher. 
+        "prompt": """You are an expert Product Data Specialist and Technical Researcher.
 The uploaded document(s) contain a list of products (Invoice/Catalog).
 Analyze ALL uploaded documents together.
 
 Task:
 1. {filter_instruction}
 2. FACTUAL ENRICHMENT: Use the Website Context to identify deep specs and detailed descriptions.
-3. **STRICT ACCURACY**: Do NOT hallucinate or invent features. 
-4. **INDEPENDENT DESCRIPTIONS**: 
-   - Each product must have its own standalone, unique, and comprehensive description. 
-   - **CRITICAL**: NEVER refer to other products in the list (e.g., AVOID "See Model X for more info" or "Refer to the overview of the cream version"). 
+3. **STRICT ACCURACY**: Do NOT hallucinate or invent features.
+4. **INDEPENDENT DESCRIPTIONS**:
+   - Each product must have its own standalone, unique, and comprehensive description.
+   - **CRITICAL**: NEVER refer to other products in the list (e.g., AVOID "See Model X for more info" or "Refer to the overview of the cream version").
    - Every 'range_overview' must be fully populated with its own unique text, even for simple color variations.
 5. HERO IMAGE SELECTION:
    - For each product, review the 'IMAGE CANDIDATES' list below.
@@ -266,7 +259,7 @@ RULES:
 OUTPUT FORMAT (strict JSON):
 {{
     "category_1": "Main category (e.g., Electronics, Furniture, etc.)",
-    "category_2": "Sub category (e.g., Kitchen, Bathroom, etc.)", 
+    "category_2": "Sub category (e.g., Kitchen, Bathroom, etc.)",
     "category_3": "Specific category (e.g., Blenders & Mixers, Wash Basin, etc.)",
     "reasoning": "Brief 1-sentence explanation",
     "is_custom": true or false (true if you created new categories, false if using reference categories)
@@ -346,46 +339,66 @@ Output JSON:
 ]
 
 
-def _ensure_prompts_file():
-    """Create the prompts file with defaults if it doesn't exist."""
-    if not os.path.exists(PROMPTS_FILE):
-        os.makedirs(os.path.dirname(PROMPTS_FILE), exist_ok=True)
-        with open(PROMPTS_FILE, 'w', encoding='utf-8') as f:
-            json.dump(DEFAULT_PROMPTS, f, indent=2, ensure_ascii=False)
-        print("✅ Created default system_prompts.json")
+def _seed_db_if_empty():
+    """Auto-seed the Prompt table from DEFAULT_PROMPTS if it is empty."""
+    try:
+        from model import db, Prompt
+        if Prompt.query.count() == 0:
+            for p in DEFAULT_PROMPTS:
+                db.session.add(Prompt(
+                    name=p['id'],
+                    display_name=p.get('name', p['id']),
+                    description=p.get('description', ''),
+                    category=p.get('category', 'General'),
+                    prompt_text=p['prompt'],
+                ))
+            db.session.commit()
+    except Exception:
+        pass
+
+
+def _db_row_to_dict(row):
+    """Convert a Prompt DB row to the legacy dict format expected by the app."""
+    return {
+        'id': row.name,
+        'name': row.display_name or row.name,
+        'description': row.description or '',
+        'category': row.category or 'General',
+        'prompt': row.prompt_text,
+    }
 
 
 def load_all_prompts():
-    """Load all prompts from the JSON file. Returns list of prompt dicts."""
-    _ensure_prompts_file()
+    """Load all prompts from the database. Falls back to defaults if DB unavailable."""
     try:
-        with open(PROMPTS_FILE, 'r', encoding='utf-8') as f:
-            prompts = json.load(f)
-        
-        # Ensure all default prompts exist (in case new ones were added)
+        from model import Prompt
+        _seed_db_if_empty()
+        rows = Prompt.query.order_by(Prompt.id).all()
+        prompts = [_db_row_to_dict(r) for r in rows]
+
+        # Merge in any defaults that don't exist in DB yet
         existing_ids = {p['id'] for p in prompts}
         for default in DEFAULT_PROMPTS:
             if default['id'] not in existing_ids:
                 prompts.append(copy.deepcopy(default))
-        
         return prompts
-    except Exception as e:
-        print(f"⚠ Error loading prompts, using defaults: {e}")
+    except Exception:
         return copy.deepcopy(DEFAULT_PROMPTS)
 
 
 def get_prompt(prompt_id):
-    """Get a single prompt's text by its ID."""
-    prompts = load_all_prompts()
-    for p in prompts:
-        if p['id'] == prompt_id:
-            return p['prompt']
-    
-    # Fallback: find in defaults
+    """Get a single prompt's text by its string ID."""
+    try:
+        from model import Prompt
+        row = Prompt.query.filter_by(name=prompt_id).first()
+        if row:
+            return row.prompt_text
+    except Exception:
+        pass
+
     for d in DEFAULT_PROMPTS:
         if d['id'] == prompt_id:
             return d['prompt']
-    
     return None
 
 
@@ -399,23 +412,16 @@ def get_default_prompt(prompt_id):
 
 def save_prompt(prompt_id, new_prompt_text):
     """Save updated prompt text for a specific prompt ID."""
-    prompts = load_all_prompts()
-    
-    for p in prompts:
-        if p['id'] == prompt_id:
-            p['prompt'] = new_prompt_text
-            break
-    else:
-        # Not found — shouldn't happen, but handle gracefully
-        return False
-    
     try:
-        with open(PROMPTS_FILE, 'w', encoding='utf-8') as f:
-            json.dump(prompts, f, indent=2, ensure_ascii=False)
-        print(f"✅ Prompt '{prompt_id}' saved successfully")
+        from model import db, Prompt
+        row = Prompt.query.filter_by(name=prompt_id).first()
+        if not row:
+            return False
+        row.prompt_text = new_prompt_text
+        db.session.commit()
         return True
     except Exception as e:
-        print(f"❌ Error saving prompt '{prompt_id}': {e}")
+        print(f"Error saving prompt '{prompt_id}': {e}")
         return False
 
 
@@ -430,29 +436,28 @@ def reset_prompt(prompt_id):
 def reset_all_prompts():
     """Reset ALL prompts back to factory defaults."""
     try:
-        with open(PROMPTS_FILE, 'w', encoding='utf-8') as f:
-            json.dump(copy.deepcopy(DEFAULT_PROMPTS), f, indent=2, ensure_ascii=False)
-        print("✅ All prompts reset to defaults")
+        from model import db, Prompt
+        for d in DEFAULT_PROMPTS:
+            row = Prompt.query.filter_by(name=d['id']).first()
+            if row:
+                row.prompt_text = d['prompt']
+        db.session.commit()
         return True
     except Exception as e:
-        print(f"❌ Error resetting all prompts: {e}")
+        print(f"Error resetting all prompts: {e}")
         return False
 
 
 def get_prompts_by_category():
     """Get prompts grouped by category. Returns dict of {category: [prompts]}."""
     prompts = load_all_prompts()
-    grouped = {}
-    # Define category order
     category_order = ['Extraction', 'Content Creation', 'Image Processing', 'Classification']
-    
-    for cat in category_order:
-        grouped[cat] = []
-    
+    grouped = {cat: [] for cat in category_order}
+
     for p in prompts:
         cat = p.get('category', 'Other')
         if cat not in grouped:
             grouped[cat] = []
         grouped[cat].append(p)
-    
+
     return grouped

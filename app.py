@@ -1,4 +1,7 @@
 import os
+import sys
+if hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
 import secrets
 from flask_migrate import Migrate
 import json
@@ -8,8 +11,9 @@ import requests
 from bs4 import BeautifulSoup
 from flask import Flask, render_template, request, redirect, url_for, Response, stream_with_context, session, flash, jsonify, send_from_directory
 from werkzeug.utils import secure_filename
+from flask_wtf.csrf import CSRFProtect
 from dotenv import load_dotenv
-from model import db, Product, ProductHistory, User, ProductVersion, FieldChangeLog
+from model import db, Product, ProductHistory, User, ProductVersion, FieldChangeLog, Prompt, Job
 import copy
 from sqlalchemy.orm.attributes import flag_modified
 import csv
@@ -47,8 +51,10 @@ app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
     'max_overflow': 20,
 }
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 31536000  # 1 year cache for static files
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=8)
 db.init_app(app)
 migrate = Migrate(app, db)
+csrf = CSRFProtect(app)
 
 # ===== RESPONSE COMPRESSION =====
 # Compress all text responses (HTML, JSON, CSS, JS) to reduce payload size
@@ -146,26 +152,7 @@ from utils.history import log_event
 
 pis_executor = ThreadPoolExecutor(max_workers=5)
 
-# File-backed job store — shared across all Gunicorn worker processes
-_PIS_JOBS_FILE = os.path.join(basedir, 'data', 'pis_jobs.json')
-_pis_file_lock = threading.Lock()   # In-process thread safety
-
-def _load_jobs():
-    """Read jobs from shared JSON file.  Returns dict of {job_id: job_data}."""
-    try:
-        with open(_PIS_JOBS_FILE, 'r', encoding='utf-8') as f:
-            return json.load(f)
-    except (FileNotFoundError, json.JSONDecodeError):
-        return {}
-
-def _save_jobs(jobs_dict):
-    """Atomically write jobs dict to shared JSON file."""
-    os.makedirs(os.path.dirname(_PIS_JOBS_FILE), exist_ok=True)
-    tmp = _PIS_JOBS_FILE + '.tmp'
-    with open(tmp, 'w', encoding='utf-8') as f:
-        json.dump(jobs_dict, f, ensure_ascii=False)
-    # Atomic rename (works on Linux; on Windows it replaces too)
-    os.replace(tmp, _PIS_JOBS_FILE)
+# Job store is now backed by PostgreSQL via the Job model.
 
 
 # ================= HELPERS: VERSION & DIFF =================
@@ -559,10 +546,11 @@ def login_post():
         flash('Your account has been deactivated. Contact admin.', 'error')
         return redirect(url_for('login'))
     
+    session.permanent = True
     session['user_id'] = user.id
     session['username'] = user.display_name or user.username
     session['role'] = user.role
-    
+
     if user.role == 'admin': return redirect(url_for('admin_users'))
     if user.role == 'marketing': return redirect(url_for('dashboard_marketing'))
     if user.role == 'director': return redirect(url_for('dashboard_director'))
@@ -2467,12 +2455,18 @@ def api_generate_specsheet(product_id):
 # ================= ASYNC PIS GENERATION API =================
 
 def _update_job(job_id, **kwargs):
-    """Thread-safe update of a job's status (file-backed, cross-worker safe)."""
-    with _pis_file_lock:
-        jobs = _load_jobs()
-        if job_id in jobs:
-            jobs[job_id].update(kwargs)
-            _save_jobs(jobs)
+    """Update a job's fields in the database. Safe to call from background threads."""
+    try:
+        job = db.session.get(Job, job_id)
+        if job:
+            if 'completed_at' in kwargs and isinstance(kwargs['completed_at'], str):
+                kwargs['completed_at'] = datetime.fromisoformat(kwargs['completed_at'])
+            for key, value in kwargs.items():
+                setattr(job, key, value)
+            db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        print(f'Job update error ({job_id}): {e}')
 
 
 def _pis_worker(job_id, model_name, supplier_url, ai_filepaths, contains_images, user_name):
@@ -2608,12 +2602,10 @@ def api_pis_generate_async():
         return jsonify({"error": "Please provide a model name, document, or URL."}), 400
     
     # Check active job count
-    with _pis_file_lock:
-        jobs = _load_jobs()
-        active_count = sum(1 for j in jobs.values() if j['status'] in ('queued', 'processing'))
-        if active_count >= 5:
-            return jsonify({"error": "Maximum 5 concurrent generations allowed. Please wait for a slot to free up."}), 429
-    
+    active_count = Job.query.filter(Job.status.in_(('queued', 'processing'))).count()
+    if active_count >= 5:
+        return jsonify({"error": "Maximum 5 concurrent generations allowed. Please wait for a slot to free up."}), 429
+
     # Save uploaded files
     ai_filepaths = []
     for ai_file in ai_files:
@@ -2622,27 +2614,21 @@ def api_pis_generate_async():
             filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
             ai_file.save(filepath)
             ai_filepaths.append(filepath)
-    
+
     # Create job
     job_id = str(uuid.uuid4())[:8]
     user_name = get_current_username()
-    
-    with _pis_file_lock:
-        jobs = _load_jobs()
-        jobs[job_id] = {
-            'id': job_id,
-            'model_name': model_name or 'Unknown Product',
-            'status': 'queued',
-            'progress': 0,
-            'message': 'Queued — waiting for slot...',
-            'product_id': None,
-            'redirect_url': None,
-            'error': None,
-            'created_at': datetime.utcnow().isoformat(),
-            'completed_at': None
-        }
-        _save_jobs(jobs)
-    
+
+    db.session.add(Job(
+        id=job_id,
+        model_name=model_name or 'Unknown Product',
+        status='queued',
+        progress=0,
+        message='Queued — waiting for slot...',
+        created_at=datetime.utcnow(),
+    ))
+    db.session.commit()
+
     # Submit to thread pool
     pis_executor.submit(
         _pis_worker, job_id, model_name, supplier_url, ai_filepaths, contains_images, user_name
@@ -2654,18 +2640,16 @@ def api_pis_generate_async():
 @app.route('/api/pis/jobs', methods=['GET'])
 def api_pis_jobs():
     """Return all active and recently completed jobs."""
-    with _pis_file_lock:
-        jobs = _load_jobs()
-        # Return all jobs, but exclude dismissed ones
-        result = []
-        for job in jobs.values():
-            if not job.get('dismissed'):
-                result.append(job)
-        # Sort: active first, then newest completed
-        result.sort(key=lambda j: (
-            0 if j['status'] in ('queued', 'processing') else 1,
-            j.get('created_at', '')
-        ))
+    jobs = Job.query.filter_by(dismissed=False).order_by(Job.created_at.asc()).all()
+    result = sorted([{
+        'id': j.id,
+        'model_name': j.model_name or '',
+        'status': j.status,
+        'message': j.message or '',
+        'progress': j.progress or 0,
+        'redirect_url': j.redirect_url,
+        'dismissed': j.dismissed,
+    } for j in jobs], key=lambda j: (0 if j['status'] in ('queued', 'processing') else 1))
     resp = jsonify(result)
     resp.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
     resp.headers['Pragma'] = 'no-cache'
@@ -2675,14 +2659,13 @@ def api_pis_jobs():
 @app.route('/api/pis/jobs/<job_id>', methods=['DELETE'])
 def api_pis_dismiss_job(job_id):
     """Dismiss a completed/failed job from the tracker."""
-    with _pis_file_lock:
-        jobs = _load_jobs()
-        if job_id in jobs:
-            if jobs[job_id]['status'] in ('completed', 'failed'):
-                jobs[job_id]['dismissed'] = True
-                _save_jobs(jobs)
-            else:
-                return jsonify({"error": "Cannot dismiss an active job"}), 400
+    job = db.session.get(Job, job_id)
+    if not job:
+        return jsonify({"ok": True})
+    if job.status not in ('completed', 'failed'):
+        return jsonify({"error": "Cannot dismiss an active job"}), 400
+    job.dismissed = True
+    db.session.commit()
     return jsonify({"ok": True})
 
 
@@ -2861,32 +2844,24 @@ def api_bulk_generate_async():
         return jsonify({"error": "Please provide at least a document or a supplier URL."}), 400
 
     # Check active job count
-    with _pis_file_lock:
-        jobs = _load_jobs()
-        active_count = sum(1 for j in jobs.values() if j['status'] in ('queued', 'processing'))
-        if active_count >= 5:
-            return jsonify({"error": "Maximum 5 concurrent jobs allowed. Please wait for a slot to free up."}), 429
+    active_count = Job.query.filter(Job.status.in_(('queued', 'processing'))).count()
+    if active_count >= 5:
+        return jsonify({"error": "Maximum 5 concurrent jobs allowed. Please wait for a slot to free up."}), 429
 
     job_id = str(uuid.uuid4())[:8]
     user_name = get_current_username()
     doc_names = ', '.join(os.path.basename(f) for f in ai_filepaths[:2])
     job_label = f"Bulk: {doc_names}" if doc_names else "Bulk Import"
 
-    with _pis_file_lock:
-        jobs = _load_jobs()
-        jobs[job_id] = {
-            'id': job_id,
-            'model_name': job_label,
-            'status': 'queued',
-            'progress': 0,
-            'message': 'Queued — waiting for slot...',
-            'product_id': None,
-            'redirect_url': None,
-            'error': None,
-            'created_at': datetime.utcnow().isoformat(),
-            'completed_at': None
-        }
-        _save_jobs(jobs)
+    db.session.add(Job(
+        id=job_id,
+        model_name=job_label,
+        status='queued',
+        progress=0,
+        message='Queued — waiting for slot...',
+        created_at=datetime.utcnow(),
+    ))
+    db.session.commit()
 
     pis_executor.submit(
         _bulk_pis_worker, job_id, supplier_url, ai_filepaths, contains_images, product_filter, user_name
@@ -3335,8 +3310,7 @@ def purge_all_data():
         db.session.commit()
         
         # Clear background job tracker
-        with _pis_file_lock:
-            _save_jobs({})
+        Job.query.delete()
         
         flash("All system data has been successfully cleared.", "success")
         

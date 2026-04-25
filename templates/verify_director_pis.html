@@ -3,6 +3,7 @@
 {% block content %}
 <div class="max-w-7xl mx-auto pb-32 bg-gray-50 min-h-screen">
     <form id="verifyForm" method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
         {# --- HIDDEN INPUTS FOR FORM SUBMISSION --- #}
         <input type="hidden" name="director_action" id="director_action_input">
