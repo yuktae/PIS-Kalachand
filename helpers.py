@@ -10,6 +10,7 @@ from flask import session, current_app
 from sqlalchemy.orm.attributes import flag_modified
 
 from model import db, User, Product, ProductVersion, FieldChangeLog
+from utils.validation import validate_pis_data, validate_spec_data
 
 
 # ================= SESSION HELPERS =================
@@ -38,6 +39,16 @@ def save_version_snapshot(product, label='Auto-save', is_major=False):
     Minor snapshots store a compact diff against the previous version.
     """
     try:
+        # Validate JSONB structure and log any schema warnings (non-blocking)
+        if product.pis_data:
+            ok, warnings = validate_pis_data(product.pis_data)
+            if not ok or warnings:
+                print(f"⚠️  pis_data schema warnings for product {product.id}: {warnings}")
+        if product.spec_data:
+            ok, warnings = validate_spec_data(product.spec_data)
+            if not ok or warnings:
+                print(f"⚠️  spec_data schema warnings for product {product.id}: {warnings}")
+
         last_version = ProductVersion.query.filter_by(
             product_id=product.id
         ).order_by(ProductVersion.version_num.desc()).first()

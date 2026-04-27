@@ -41,6 +41,9 @@ data/pis_jobs.json
 # Internal planning docs
 YUK/
 
+# Sample business PDFs (real documents, not for version control)
+samples/
+
 # IDEs
 .vscode/
 .idea/

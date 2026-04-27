@@ -9,15 +9,14 @@ import sys
 if hasattr(sys.stdout, 'reconfigure'):
     sys.stdout.reconfigure(encoding='utf-8', errors='replace')
 
-import secrets
-from datetime import timedelta
+from datetime import timedelta, datetime
 
 from flask import Flask
 from flask_migrate import Migrate
 from flask_wtf.csrf import CSRFProtect
 from dotenv import load_dotenv
 
-from model import db, User
+from model import db, User, Job
 
 load_dotenv()
 
@@ -29,7 +28,16 @@ def create_app() -> Flask:
     basedir = os.path.abspath(os.path.dirname(__file__))
     application.config['BASE_DIR'] = basedir
 
-    application.config['SECRET_KEY'] = secrets.token_hex(32)
+    _secret = os.environ.get('SECRET_KEY') or os.environ.get('FLASK_SECRET_KEY')
+    if not _secret:
+        if os.environ.get('FLASK_ENV') == 'production':
+            raise RuntimeError(
+                "SECRET_KEY environment variable must be set in production. "
+                "Generate one with: python -c \"import secrets; print(secrets.token_hex(32))\""
+            )
+        _secret = 'dev-insecure-key-set-SECRET_KEY-before-deploying'
+        print('⚠️  SECRET_KEY not set — using insecure dev default. Set SECRET_KEY in .env before deploying.')
+    application.config['SECRET_KEY'] = _secret
 
     database_url = os.environ.get('DATABASE_URL', 'postgresql://postgres:postgres@localhost:5432/pis_system')
     if database_url.startswith('postgres://') and not database_url.startswith('postgresql://'):
@@ -63,6 +71,10 @@ def create_app() -> Flask:
             response.headers['Cache-Control'] = 'no-cache, must-revalidate'
         response.headers['X-Content-Type-Options'] = 'nosniff'
         return response
+
+    # ── TEMPLATE GLOBALS ────────────────────────────────────────────────────
+    from utils.storage import get_image_url
+    application.jinja_env.globals['get_image_url'] = get_image_url
 
     # ── BLUEPRINTS ───────────────────────────────────────────────────────────
     from blueprints.auth      import auth_bp
@@ -110,6 +122,19 @@ def create_app() -> Flask:
 
         if not os.path.exists(application.config['UPLOAD_FOLDER']):
             os.makedirs(application.config['UPLOAD_FOLDER'])
+
+        # Reset any jobs stuck in 'processing' from a previous crashed/restarted run
+        try:
+            stuck_jobs = Job.query.filter_by(status='processing').all()
+            if stuck_jobs:
+                for j in stuck_jobs:
+                    j.status = 'failed'
+                    j.message = 'App restarted — job was interrupted. Please re-submit.'
+                    j.completed_at = datetime.utcnow()
+                db.session.commit()
+                print(f'⚠️  Reset {len(stuck_jobs)} interrupted job(s) to failed state')
+        except Exception:
+            db.session.rollback()
 
         # Seed default admin account on first run
         try:

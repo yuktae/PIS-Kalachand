@@ -137,6 +137,15 @@ def api_reset_all_prompts():
 def purge_all_data():
     import os, shutil
     from flask import current_app
+
+    if session.get('role') != 'admin':
+        return redirect(url_for('auth.login'))
+
+    confirm_text = request.form.get('confirm_text', '').strip()
+    if confirm_text != 'DELETE':
+        flash("Purge cancelled — you must type DELETE exactly to confirm.", "error")
+        return redirect(request.referrer or url_for('admin.admin_users'))
+
     try:
         FieldChangeLog.query.delete()
         ProductVersion.query.delete()

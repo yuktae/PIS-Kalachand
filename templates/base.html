@@ -413,25 +413,35 @@
             </div>
 
             <h3 class="font-bold text-2xl text-gray-900 mb-3">Clear All Data?</h3>
-            <p class="text-sm text-gray-500 mb-8 leading-relaxed px-4">
+            <p class="text-sm text-gray-500 mb-4 leading-relaxed px-4">
                 This is a <span class="font-bold text-red-600 uppercase tracking-tighter">permanent action</span>.
                 All products, history logs, and uploaded images will be <span
                     class="font-medium text-slate-800">permanently deleted</span> from the system.
             </p>
 
-            <div class="flex gap-3">
-                <button type="button" onclick="closeGlobalPurgeModal()"
-                    class="flex-1 bg-gray-100 text-gray-700 py-3.5 rounded-2xl font-bold hover:bg-gray-200 transition-colors">
-                    Keep Everything
-                </button>
-                <form id="globalPurgeForm" action="{{ url_for('admin.purge_all_data') }}" method="POST" class="flex-1">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <button type="submit" onclick="this.innerHTML='Purging...'; this.disabled=true; this.form.submit();"
-                        class="w-full bg-red-600 text-white py-3.5 rounded-2xl font-bold hover:bg-red-700 transition-colors shadow-lg shadow-red-100">
+            <form id="globalPurgeForm" action="{{ url_for('admin.purge_all_data') }}" method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="mb-6 px-2">
+                    <label class="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1.5">
+                        Type <span class="text-red-600 font-mono">DELETE</span> to confirm
+                    </label>
+                    <input id="purgeConfirmInput" type="text" name="confirm_text" autocomplete="off"
+                        placeholder="Type DELETE here"
+                        class="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl text-sm font-mono outline-none focus:border-red-400 transition-colors"
+                        oninput="document.getElementById('purgeSubmitBtn').disabled = this.value !== 'DELETE';">
+                </div>
+                <div class="flex gap-3">
+                    <button type="button" onclick="closeGlobalPurgeModal()"
+                        class="flex-1 bg-gray-100 text-gray-700 py-3.5 rounded-2xl font-bold hover:bg-gray-200 transition-colors">
+                        Keep Everything
+                    </button>
+                    <button id="purgeSubmitBtn" type="submit" disabled
+                        onclick="if(this.value!=='DELETE' && document.getElementById('purgeConfirmInput').value!=='DELETE'){return false;} this.innerHTML='Purging...'; this.disabled=true;"
+                        class="flex-1 bg-red-600 text-white py-3.5 rounded-2xl font-bold hover:bg-red-700 transition-colors shadow-lg shadow-red-100 disabled:opacity-40 disabled:cursor-not-allowed">
                         Yes, Clear All
                     </button>
-                </form>
-            </div>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -445,6 +455,10 @@
             const modal = document.getElementById('globalPurgeModal');
             modal.classList.add('hidden');
             modal.classList.remove('flex');
+            const inp = document.getElementById('purgeConfirmInput');
+            if (inp) { inp.value = ''; }
+            const btn = document.getElementById('purgeSubmitBtn');
+            if (btn) { btn.disabled = true; }
         }
     </script>
     {% block modals %}{% endblock %}
