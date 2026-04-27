@@ -33,24 +33,27 @@ class User(db.Model):
 class Product(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     model_name = db.Column(db.String(100), nullable=False)
-    
-    # Workflow Stage: 
+
+    # Workflow Stage:
     # 'marketing_draft', 'pending_director_pis', 'marketing_changes_requested',
     # 'ready_for_web', 'specsheet_draft', 'pending_director_spec', 'web_changes_requested', 'finalized'
     workflow_stage = db.Column(db.String(50), default='marketing_draft', index=True)
-    
+
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
+    # Soft-delete: set to a timestamp when "deleted", NULL means active
+    deleted_at = db.Column(db.DateTime, nullable=True, index=True)
+
     # Data Fields — JSONB for native PostgreSQL indexing & audit queries
     pis_data = db.Column(JSONB)       # Stores the PIS structure
     spec_data = db.Column(JSONB)      # Stores specific SpecSheet styling/SEO data
-    
+
     # Stores pending AI revisions & Director section comments
     revision_data = db.Column(JSONB)
-    
-    image_path = db.Column(db.String(200))
+
+    # image_path stores either a relative static path OR a full Azure Blob URL
+    image_path = db.Column(db.String(500))
     seo_keywords = db.Column(db.String(255))
-    
+
     # Approval & Feedback
     director_pis_comments = db.Column(db.Text)
     director_spec_comments = db.Column(db.Text)
@@ -85,18 +88,21 @@ class ProductVersion(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     product_id = db.Column(db.Integer, db.ForeignKey('product.id'), nullable=False, index=True)
     version_num = db.Column(db.Integer, nullable=False)
-    
-    # Full data snapshots — JSONB for efficient storage & queryability
+
+    # Major snapshots store full JSON; minor (draft) snapshots store only changed keys (diff)
+    is_major = db.Column(db.Boolean, default=True, nullable=False)
+
+    # pis_data/spec_data hold full data for major saves, or a diff dict for minor saves
     pis_data = db.Column(JSONB)
     spec_data = db.Column(JSONB)
     revision_data = db.Column(JSONB)
     workflow_stage = db.Column(db.String(50))
-    
+
     # Metadata
     created_by_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     label = db.Column(db.String(100))  # e.g. "Before Director Review"
-    
+
     product = db.relationship('Product', backref=db.backref('versions', lazy=True, cascade="all, delete"))
     created_by = db.relationship('User', backref='versions')
 

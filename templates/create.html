@@ -327,7 +327,7 @@
         managedFiles.forEach(f => formData.append('ai_document', f));
 
         try {
-            const response = await fetch("{{ url_for('api_pis_generate_async') }}", {
+            const response = await fetch("{{ url_for('api.api_pis_generate_async') }}", {
                 method: 'POST',
                 body: formData
             });
@@ -343,7 +343,7 @@
                 document.getElementById('progressText').textContent = '100%';
                 
                 setTimeout(() => {
-                    window.location.href = "{{ url_for('dashboard_marketing') }}";
+                    window.location.href = "{{ url_for('marketing.dashboard_marketing') }}";
                 }, 1200);
             } else {
                 alpineData.statusMessage = data.error || "Something went wrong";

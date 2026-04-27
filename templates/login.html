@@ -48,7 +48,7 @@
                 <p class="text-slate-500 text-sm">Sign in with your credentials to continue.</p>
             </div>
 
-            <form method="POST" action="{{ url_for('login_post') }}" class="space-y-4">
+            <form method="POST" action="{{ url_for('auth.login_post') }}" class="space-y-4">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <div>
                     <label class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5 block">Email</label>

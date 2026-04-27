@@ -23,7 +23,7 @@
                 if (['ready_for_web', 'specsheet_draft', 'pending_director_spec', 'web_changes_requested', 'finalized'].includes(s)) return 'PIS Approved';
                 return s.replace(/_/g, ' ').split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
             })(`{{ p.workflow_stage }}`),
-            edit_url: `{{ url_for('review_pis_marketing', product_id=p.id) }}`,
+            edit_url: `{{ url_for('marketing.review_pis_marketing', product_id=p.id) }}`,
             
             {# --- Logic for UI Display --- #}
             {% if 'finalized' in p.workflow_stage or 'ready_for_web' in p.workflow_stage or 'spec' in p.workflow_stage or 'web_changes' in p.workflow_stage %}
@@ -92,7 +92,7 @@
                     </svg>
                     Clear All
                 </button>
-                <a href="{{ url_for('create_bulk') }}"
+                <a href="{{ url_for('marketing.create_bulk') }}"
                     class="px-5 py-2.5 bg-white border border-gray-200 text-slate-600 rounded-lg text-sm font-semibold hover:bg-gray-50 hover:border-gray-300 transition-all flex items-center gap-2 shadow-sm">
                     <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -100,7 +100,7 @@
                     </svg>
                     Import Bulk
                 </a>
-                <a href="{{ url_for('create_pis') }}"
+                <a href="{{ url_for('marketing.create_pis') }}"
                     class="px-5 py-2.5 bg-red-600 text-white rounded-lg text-sm font-semibold hover:bg-red-700 hover:shadow-lg hover:shadow-red-500/20 transition-all flex items-center gap-2 shadow-sm">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />

@@ -38,7 +38,7 @@
                 </div>
 
                 <div class="flex gap-3 flex-wrap">
-                    <a href="{{ url_for('dashboard_director') }}"
+                    <a href="{{ url_for('director.dashboard_director') }}"
                         class="px-5 py-2.5 bg-white border border-gray-300 text-gray-600 font-bold rounded-2xl hover:bg-gray-50 transition-colors">
                         Cancel
                     </a>
@@ -49,7 +49,7 @@
                         <span class="status-text">Saved </span>
                     </div>
 
-                    <a href="{{ url_for('download_pis_pdf', product_id=product.id) }}" target="_blank"
+                    <a href="{{ url_for('marketing.download_pis_pdf', product_id=product.id) }}" target="_blank"
                         class="px-5 py-2.5 bg-white border border-gray-300 text-gray-700 font-bold rounded-2xl hover:bg-gray-50 transition-colors flex items-center gap-2">
                         <svg class="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"

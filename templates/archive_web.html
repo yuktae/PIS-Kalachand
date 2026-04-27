@@ -10,8 +10,8 @@
             model_name: `{{ p.model_name }}`,
             brand: `{{ p.pis_data.header_info.brand if p.pis_data and p.pis_data.header_info else 'Unknown' }}`,
             date: `{{ p.created_at.strftime('%d %b %Y') }}`,
-            spec_pdf_url: `{{ url_for('download_specsheet', product_id=p.id) }}`,
-            pis_pdf_url: `{{ url_for('download_pis_pdf', product_id=p.id) }}`
+            spec_pdf_url: `{{ url_for('web.download_specsheet', product_id=p.id) }}`,
+            pis_pdf_url: `{{ url_for('marketing.download_pis_pdf', product_id=p.id) }}`
         },
         {% endfor %}
     ],

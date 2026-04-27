@@ -81,7 +81,7 @@
             image: `{{ url_for('static', filename=p.image_path) if p.image_path else '' }}`,
             date: `{{ p.created_at.strftime('%d %b') }}`,
             stage: `{{ p.workflow_stage }}`,
-            action_url: `{{ url_for('create_specsheet', product_id=p.id) }}`,
+            action_url: `{{ url_for('web.create_specsheet', product_id=p.id) }}`,
             
             {# --- UI Display Logic --- #}
             {% if p.workflow_stage == 'ready_for_web' %}

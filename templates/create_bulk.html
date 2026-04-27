@@ -387,7 +387,7 @@
         alpineData.statusMessage = "Uploading to queue...";
 
         try {
-            const response = await fetch("{{ url_for('api_bulk_generate_async') }}", {
+            const response = await fetch("{{ url_for('api.api_bulk_generate_async') }}", {
                 method: 'POST',
                 body: formData
             });
@@ -399,7 +399,7 @@
                 alpineData.progress = 100;
 
                 setTimeout(() => {
-                    window.location.href = "{{ url_for('dashboard_marketing') }}";
+                    window.location.href = "{{ url_for('marketing.dashboard_marketing') }}";
                 }, 1200);
             } else {
                 alpineData.statusMessage = data.error || "Something went wrong";
@@ -412,4 +412,4 @@
         }
     }
 </script>
-{% endblock %}
+{% endblock %}
