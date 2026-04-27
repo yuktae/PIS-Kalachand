@@ -13,7 +13,7 @@ from .category_classifier import classify_product_category
 from .json_utils import safe_json_loads
 from .prompt_manager import get_prompt
 
-_MODEL = 'gemini-2.0-flash'
+_MODEL = 'gemini-2.5-flash'
 _client = None
 
 def _get_client():

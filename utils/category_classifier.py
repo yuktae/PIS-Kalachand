@@ -9,7 +9,7 @@ from google import genai
 from google.genai import types
 from .prompt_manager import get_prompt
 
-_MODEL = 'gemini-2.0-flash'
+_MODEL = 'gemini-2.5-flash'
 _client = None
 
 def _get_client():

@@ -16,7 +16,7 @@ from google import genai
 from google.genai import types
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-_MODEL = 'gemini-2.0-flash'
+_MODEL = 'gemini-2.5-flash'
 _client = None
 
 def _get_client():
