@@ -11,7 +11,7 @@ if hasattr(sys.stdout, 'reconfigure'):
 
 from datetime import timedelta, datetime
 
-from flask import Flask
+from flask import Flask, session, redirect, url_for, request
 from flask_migrate import Migrate
 from flask_wtf.csrf import CSRFProtect
 from dotenv import load_dotenv
@@ -35,8 +35,9 @@ def create_app() -> Flask:
                 "SECRET_KEY environment variable must be set in production. "
                 "Generate one with: python -c \"import secrets; print(secrets.token_hex(32))\""
             )
-        _secret = 'dev-insecure-key-set-SECRET_KEY-before-deploying'
-        print('⚠️  SECRET_KEY not set — using insecure dev default. Set SECRET_KEY in .env before deploying.')
+        import secrets as _secrets
+        _secret = _secrets.token_hex(32)   # new key every restart → old sessions always invalid
+        print('⚠️  SECRET_KEY not set — generated a random key for this session. Set SECRET_KEY in .env to persist logins across restarts.')
     application.config['SECRET_KEY'] = _secret
 
     database_url = os.environ.get('DATABASE_URL', 'postgresql://postgres:postgres@localhost:5432/pis_system')
@@ -59,8 +60,22 @@ def create_app() -> Flask:
     Migrate(application, db)
     CSRFProtect(application)
 
-    from extensions import limiter
+    from extensions import limiter, BOOT_TOKEN
     limiter.init_app(application)
+
+    # ── SESSION GUARD ────────────────────────────────────────────────────────
+    # BOOT_TOKEN is regenerated every process start. Any session missing it
+    # (or carrying a stale value from a previous run) is cleared and the user
+    # is sent back to login — this is what forces re-login on server restart.
+    _public_endpoints = {'auth.login', 'auth.login_post', 'static'}
+
+    @application.before_request
+    def validate_session():
+        if request.endpoint in _public_endpoints:
+            return
+        if session.get('_boot') != BOOT_TOKEN:
+            session.clear()
+            return redirect(url_for('auth.login'))
 
     # ── PERFORMANCE HEADERS ─────────────────────────────────────────────────
     @application.after_request
