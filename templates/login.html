@@ -1,76 +1,362 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login | J. Kalachand PIS</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap"
-        rel="stylesheet">
+    <title>Login | JKalachand PIS Hub</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Plus Jakarta Sans', sans-serif; }
-        .glass { background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.2); }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body { height: 100%; }
+
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 24px;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background:
+                radial-gradient(ellipse 70% 80% at 15% 40%, rgba(100, 16, 28, 0.95) 0%, transparent 55%),
+                radial-gradient(ellipse 50% 60% at 85% 70%, rgba(40, 6, 12, 0.8)  0%, transparent 50%),
+                #080104;
+        }
+
+        /* ── Outer floating card ── */
+        .login-card {
+            position: relative;
+            display: flex;
+            width:  min(1120px, 100%);
+            height: min(640px, 90vh);
+            border-radius: 28px;
+            overflow: hidden;
+            box-shadow:
+                0 48px 120px rgba(0, 0, 0, 0.65),
+                0 0 0 1px rgba(255, 255, 255, 0.06);
+            animation: card-rise 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+        }
+
+        @keyframes card-rise {
+            from { opacity: 0; transform: translateY(28px) scale(0.97); }
+            to   { opacity: 1; transform: translateY(0)    scale(1); }
+        }
+
+        /* ── Left panel — crimson backdrop ── */
+        .left-panel {
+            width: 44%;
+            flex-shrink: 0;
+            background: #7D1A2A;
+            background-image:
+                radial-gradient(ellipse 90% 80% at 65% 50%, rgba(190, 48, 68, 0.50) 0%, transparent 65%),
+                linear-gradient(170deg, rgba(110, 20, 36, 0.45) 0%, transparent 55%);
+            position: relative;
+            z-index: 0;
+        }
+
+        /* dot-grid texture */
+        .left-panel::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image: radial-gradient(rgba(255,255,255,0.06) 1px, transparent 1px);
+            background-size: 24px 24px;
+            pointer-events: none;
+        }
+
+        /* ── Logo — centred on the split, lives BEHIND right panel ── */
+        .logo-scene {
+            position: absolute;
+            left: 33%;
+            top: 50%;
+            transform: translate(-50%, -35%);
+            z-index: 20;                       /* in front of both panels */
+            width: clamp(240px, 26vw, 340px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            pointer-events: none;
+        }
+
+        .logo-img {
+            width: 100%;
+            height: auto;
+            display: block;
+            animation: logo-float 3.8s ease-in-out infinite;
+            filter:
+                drop-shadow(0 28px 38px rgba(0, 0, 0, 0.55))
+                drop-shadow(0 8px 14px  rgba(0, 0, 0, 0.30));
+            will-change: transform;
+        }
+
+        .logo-shadow {
+            width: 50%;
+            height: 16px;
+            background: radial-gradient(ellipse, rgba(0,0,0,0.42) 0%, transparent 70%);
+            border-radius: 50%;
+            margin-top: -22px;
+            animation: shadow-pulse 3.8s ease-in-out infinite;
+            will-change: transform, opacity;
+        }
+
+        @keyframes logo-float {
+            0%, 100% { transform: translateY(0px);  }
+            50%       { transform: translateY(-20px); }
+        }
+        @keyframes shadow-pulse {
+            0%, 100% { transform: scaleX(1);    opacity: 0.44; }
+            50%       { transform: scaleX(0.56); opacity: 0.14; }
+        }
+
+        /* ── Right panel — overlaps the red panel via negative margin ── */
+        .right-panel {
+            flex: 1;
+            background: #EBEBEB;
+            border-radius: 60px 0 0 60px;
+            margin-left: -130px;              /* extend white panel further left */
+            position: relative;
+            z-index: 5;                       /* above left panel for overlap, logo floats on top */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 48px 64px;
+            box-shadow: -20px 0 60px rgba(0, 0, 0, 0.22);
+            animation: panel-in 0.55s 0.08s cubic-bezier(0.22, 1, 0.36, 1) both;
+        }
+
+        @keyframes panel-in {
+            from { opacity: 0; transform: translateX(26px); }
+            to   { opacity: 1; transform: translateX(0); }
+        }
+
+        /* ── Form content — centred naturally in the grey panel ── */
+        .form-content {
+            width: 100%;
+            max-width: 400px;
+            margin-left: 80px;
+            animation: form-in 0.65s 0.16s cubic-bezier(0.22, 1, 0.36, 1) both;
+        }
+
+        @keyframes form-in {
+            from { opacity: 0; transform: translateY(18px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .form-content h1 {
+            font-size: clamp(1.65rem, 2.4vw, 2.05rem);
+            font-weight: 800;
+            color: #0d0d0d;
+            line-height: 1.15;
+            margin-bottom: 8px;
+            letter-spacing: -0.8px;
+            white-space: nowrap;
+            text-align: center;
+        }
+
+        .subtitle {
+            font-size: 0.97rem;
+            font-weight: 400;
+            color: #555;
+            margin-bottom: 32px;
+            text-align: center;
+        }
+
+        /* Flash messages */
+        .flash-list { margin-bottom: 18px; display: flex; flex-direction: column; gap: 8px; }
+        .flash { padding: 10px 16px; border-radius: 12px; font-size: 0.875rem; font-weight: 500; }
+        .flash-error   { background: #fee2e2; color: #b91c1c; }
+        .flash-success { background: #d1fae5; color: #065f46; }
+
+        /* Fields */
+        .field { margin-bottom: 20px; }
+
+        .field label {
+            display: block;
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: #2a2a2a;
+            margin-bottom: 9px;
+        }
+
+        .field input {
+            width: 100%;
+            padding: 14px 22px;
+            background: #ffffff;
+            border: 2px solid transparent;
+            border-radius: 50px;
+            font-size: 0.95rem;
+            font-family: inherit;
+            color: #1a1a1a;
+            outline: none;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.07);
+            transition: border-color 0.22s, box-shadow 0.22s, transform 0.15s;
+        }
+
+        .field input:hover {
+            box-shadow: 0 4px 16px rgba(0,0,0,0.11);
+        }
+
+        .field input:focus {
+            border-color: #7D1A2A;
+            box-shadow:
+                0 0 0 4px rgba(125,26,42,0.10),
+                0 4px 14px rgba(125,26,42,0.12);
+            transform: translateY(-1px);
+        }
+
+        /* Button */
+        .btn-signin {
+            display: block;
+            margin: 28px auto 0;
+            padding: 14px 56px;
+            background: #7D1A2A;
+            color: #fff;
+            border: none;
+            border-radius: 50px;
+            font-size: 0.97rem;
+            font-weight: 700;
+            font-family: inherit;
+            letter-spacing: 0.04em;
+            cursor: pointer;
+            box-shadow: 0 8px 28px rgba(125,26,42,0.38);
+            transition: background 0.18s, box-shadow 0.18s, transform 0.12s;
+        }
+
+        .btn-signin:hover {
+            background: #6a1523;
+            box-shadow: 0 12px 36px rgba(125,26,42,0.50);
+            transform: translateY(-2px);
+        }
+
+        .btn-signin:active {
+            transform: translateY(0) scale(0.97);
+            box-shadow: 0 4px 14px rgba(125,26,42,0.28);
+        }
+
+        /* Footer — pinned to bottom of right panel */
+        .panel-footer {
+            position: absolute;
+            bottom: 22px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            font-size: 0.65rem;
+            font-weight: 500;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: #b8b8b8;
+        }
+
+        /* ── Responsive ── */
+        @media (max-width: 760px) {
+            body { padding: 0; align-items: stretch; }
+
+            .login-card {
+                flex-direction: column;
+                height: auto;
+                min-height: 100vh;
+                border-radius: 0;
+                box-shadow: none;
+                animation: none;
+            }
+
+            .left-panel {
+                width: 100%;
+                height: 38vh;
+                min-height: 210px;
+                flex-shrink: 0;
+            }
+
+            .logo-scene {
+                left: 50%;
+                top: 50%;
+                transform: translate(-50%, -50%);
+                width: clamp(190px, 52vw, 260px);
+            }
+
+            .right-panel {
+                flex: 1;
+                border-radius: 0;
+                margin-left: 0;
+                box-shadow: none;
+                padding: 48px 28px 80px;
+                animation: none;
+                z-index: 5;
+            }
+
+            .form-content {
+                max-width: 100%;
+                margin-left: 0;
+                animation: none;
+            }
+
+            .form-content h1 {
+                font-size: 1.65rem;
+                white-space: normal;
+            }
+        }
     </style>
 </head>
+<body>
 
-<body class="bg-[#F8F9FC] text-slate-700 h-screen flex items-center justify-center p-6 relative overflow-hidden">
+    <div class="login-card">
 
-    <!-- Background Accents -->
-    <div class="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-red-500/5 rounded-full blur-[100px]"></div>
-    <div class="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-indigo-500/5 rounded-full blur-[100px]"></div>
+        <!-- Left: crimson backdrop -->
+        <div class="left-panel"></div>
 
-    <div class="w-full max-w-md relative z-10">
-        <div class="glass p-8 md:p-10 rounded-[32px] shadow-[0_24px_48px_-12px_rgba(0,0,0,0.08)]">
-
-            <!-- Logo -->
-            <div class="flex flex-col items-center mb-8">
-                <img src="{{ url_for('static', filename='logo.png') }}" alt="J. Kalachand" class="h-16 w-auto object-contain mb-4">
-                <h1 class="font-extrabold text-slate-900 text-2xl tracking-tight">PIS Hub</h1>
-                <p class="text-[10px] text-gray-400 font-bold tracking-widest uppercase">Internal System</p>
-            </div>
-
-            <!-- Flash Messages -->
-            {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-            {% for category, message in messages %}
-            <div class="mb-4 p-3 rounded-xl text-sm font-medium
-                {% if 'error' in category %} bg-red-50 text-red-700 border border-red-100
-                {% else %} bg-emerald-50 text-emerald-700 border border-emerald-100 {% endif %}">
-                {{ message }}
-            </div>
-            {% endfor %}
-            {% endif %}
-            {% endwith %}
-
-            <div class="text-center mb-6">
-                <h3 class="text-xl font-bold text-slate-900 mb-1">Welcome Back</h3>
-                <p class="text-slate-500 text-sm">Sign in with your credentials to continue.</p>
-            </div>
-
-            <form method="POST" action="{{ url_for('auth.login_post') }}" class="space-y-4">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <div>
-                    <label class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5 block">Email</label>
-                    <input type="email" name="email" required placeholder="you@jkalachand.com"
-                        class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium outline-none focus:border-red-300 focus:ring-4 focus:ring-red-50 transition-all placeholder-gray-400">
-                </div>
-                <div>
-                    <label class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5 block">Password</label>
-                    <input type="password" name="password" required placeholder="••••••••"
-                        class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium outline-none focus:border-red-300 focus:ring-4 focus:ring-red-50 transition-all placeholder-gray-400">
-                </div>
-                <button type="submit"
-                    class="w-full py-3.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl transition-colors shadow-lg shadow-red-200 text-sm">
-                    Sign In
-                </button>
-            </form>
-
-            <div class="pt-6 text-center">
-                <p class="text-[10px] text-gray-300 font-bold uppercase tracking-[0.2em]">&copy; 2026 J. Kalachand & CO LTD</p>
-            </div>
+        <!-- Logo: centred at the split, lives behind the right panel -->
+        <div class="logo-scene" aria-hidden="true">
+            <img class="logo-img"
+                 src="{{ url_for('static', filename='logo3d+platform.png') }}"
+                 alt="JKalachand 3D Logo">
+            <div class="logo-shadow"></div>
         </div>
-    </div>
-</body>
 
+        <!-- Right: grey form panel — overlaps red panel -->
+        <div class="right-panel">
+
+            <div class="form-content">
+
+                <h1>JKalachand PIS Hub</h1>
+                <p class="subtitle">Sign in to your internal account</p>
+
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                <div class="flash-list">
+                    {% for category, message in messages %}
+                    <div class="flash {% if 'error' in category %}flash-error{% else %}flash-success{% endif %}">
+                        {{ message }}
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                {% endwith %}
+
+                <form method="POST" action="{{ url_for('auth.login_post') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                    <div class="field">
+                        <label for="email">Email</label>
+                        <input type="email" id="email" name="email" required autocomplete="email">
+                    </div>
+
+                    <div class="field">
+                        <label for="password">Password</label>
+                        <input type="password" id="password" name="password" required autocomplete="current-password">
+                    </div>
+
+                    <button type="submit" class="btn-signin">Sign In &rsaquo;</button>
+                </form>
+
+            </div>
+
+            <p class="panel-footer">&copy; 2026 J.KALACHAND &amp; CO LTD</p>
+
+        </div>
+
+    </div>
+
+</body>
 </html>
