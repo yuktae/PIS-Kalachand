@@ -789,6 +789,53 @@ AVOID:
 
 Output JSON:
 {{ "best_index": 1 }} or {{ "best_index": "none" }}"""
+    },
+    {
+        "id": "unified_image_extraction",
+        "name": "Unified Product Image Detection",
+        "description": "Scans a rendered document page for ALL product photos and returns their bounding boxes with the nearest printed SKU/label text. Used by unified_extract — no shopping list; matching is done in Python after the call.",
+        "category": "Image Processing",
+        "prompt": """You are scanning a document page to find ALL product photos present on it.
+
+For EVERY distinct product photo you see, return:
+  1. A tight bounding box around just that photo
+  2. The printed text label NEAREST to that photo — typically a model number, SKU code, or product name printed directly adjacent to the image, in the same table cell, or in the header/footer of that image's column/row
+  3. Your confidence that this is an actual product photo
+
+WHAT COUNTS AS A PRODUCT PHOTO:
+- Photographs or renderings of physical products (appliances, furniture, electronics, etc.)
+- Studio shots, lifestyle images, or product-in-packaging photos
+- Multiple views of the same product (e.g. open + closed wardrobe) → return as SEPARATE entries, each with its own bounding box
+
+WHAT TO SKIP:
+- Brand logos, company names, certification marks, watermarks
+- Charts, graphs, tables (the data part — numbers in cells, not photos)
+- QR codes, barcodes, icons, bullet-point graphics
+- Page headers, footers, or decorative backgrounds
+- Technical line drawings or schematics (not photographs)
+
+FOR EACH PRODUCT PHOTO read the NEAREST LABEL:
+- Look for printed text directly adjacent to the photo, within the same table cell, or in the column/row header
+- Prefer model numbers and SKU codes (alphanumeric strings like "XDY60.120060-OAK-W", "ZX-100")
+- If multiple labels are near the photo, prefer the more specific one (model number > product name > brand name)
+- If truly no label is near this photo, return an empty string for sku_text
+
+BOUNDING BOX FORMAT:
+Return [ymin, xmin, ymax, xmax] as integers on a 0-1000 scale (0=top/left, 1000=bottom/right).
+Boxes must be TIGHT around just the product photo — do not include surrounding text, table borders, or whitespace margins.
+
+Output strict JSON only (no prose, no markdown fences):
+{{
+  "regions": [
+    {{
+      "box_2d": [ymin, xmin, ymax, xmax],
+      "sku_text": "the printed label nearest to this image, or empty string",
+      "confidence": "high|medium|low"
+    }}
+  ]
+}}
+
+Return {{ "regions": [] }} if no product photos are found on this page."""
     }
 ]
 

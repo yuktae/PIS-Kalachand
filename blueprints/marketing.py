@@ -1090,9 +1090,15 @@ def import_proforma_bulk_extract_images(batch_id: str):
             log_buffer.append({"log": {"type": level, "text": msg}})
 
         try:
-            results = ip.run_image_pipeline(
-                drafts_meta, file_paths, upload_folder, log_cb=_capture,
-            )
+            import os as _os
+            if _os.getenv("USE_UNIFIED_EXTRACT", "1") == "1":
+                results = ip.unified_extract(
+                    drafts_meta, file_paths, upload_folder, log_cb=_capture,
+                )
+            else:
+                results = ip.run_image_pipeline(
+                    drafts_meta, file_paths, upload_folder, log_cb=_capture,
+                )
         except Exception as e:
             yield json.dumps({"step": "error", "error": f"pipeline failed: {e}"}) + "\n"
             return

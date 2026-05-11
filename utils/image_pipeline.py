@@ -48,7 +48,8 @@ import os
 import time
 import tempfile
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Callable
+from difflib import SequenceMatcher
+from typing import Any, Callable
 
 import io
 import re
@@ -1054,3 +1055,546 @@ def save_images_to_variant_gallery(product, bucket: dict) -> None:
 
     product.pis_data = pis
     flag_modified(product, "pis_data")
+
+
+# ── Phase 1: Unified default extractor ─────────────────────────────────────
+#
+# Design: one Gemini call per page detects ALL product-photo regions and reads
+# the SKU text printed near each one. Python does the fuzzy-matching post-hoc,
+# which means the pipeline works identically for PDFs (rendered), scanned PDFs
+# (rendered), and raw image uploads — all inputs look the same after step 1.
+#
+# Public entry point:  unified_extract(drafts, file_paths, upload_folder, log_cb)
+# Returns the same shape as run_image_pipeline so save_images_to_variant_gallery
+# works without changes.  An extra "_unassigned" key carries orphan candidates
+# that couldn't be matched to any draft.
+
+# Score thresholds for the assignment decision.
+_UNAMBIGUOUS_SCORE = 0.60   # min score to consider a match at all
+_UNAMBIGUOUS_GAP   = 0.20   # gap between 1st and 2nd must be this large for unambiguity
+_TIE_SCORE         = 0.55   # second match must be ≥ this to count as a tie
+_WEAK_SCORE        = 0.40   # ≥ this but below unambiguous → low-confidence assignment
+
+_UNIFIED_RENDER_MATRIX = fitz.Matrix(2, 2)   # 2× DPI — same as bulk_image_routing
+
+
+# ── SKU normaliser ──────────────────────────────────────────────────────────
+
+def _normalise_sku(text: str) -> str:
+    """Lowercase + strip everything that isn't a-z or 0-9.
+
+    Handles the common proforma variations:
+      "XDY60.120060-OAK-W"  →  "xdy60120060oakw"
+      "XDY60/120060 OAK W"  →  "xdy60120060oakw"
+    """
+    return re.sub(r'[^a-z0-9]', '', (text or '').lower())
+
+
+def _score_sku_match(norm_a: str, norm_b: str) -> float:
+    """Return a [0, 1] similarity score between two already-normalised SKU strings.
+
+    Scoring tiers:
+      1.0   exact match
+      0.85  one string is a full substring of the other (scaled by length ratio)
+      0.75× difflib ratio when ratio ≥ 0.70
+      0.0   ratio < 0.70
+    """
+    if not norm_a or not norm_b or len(norm_a) < 3 or len(norm_b) < 3:
+        return 0.0
+    if norm_a == norm_b:
+        return 1.0
+    shorter, longer = (norm_a, norm_b) if len(norm_a) <= len(norm_b) else (norm_b, norm_a)
+    if shorter in longer:
+        return 0.85 * (len(shorter) / len(longer))
+    ratio = SequenceMatcher(None, norm_a, norm_b).ratio()
+    return ratio * 0.75 if ratio >= 0.70 else 0.0
+
+
+# ── Match-target builder ────────────────────────────────────────────────────
+
+def _build_match_targets(drafts: list[dict]) -> list[dict]:
+    """Flatten every draft + variant into a flat list of searchable targets.
+
+    Each entry: {draft_id, variant_sku, search_strings: [str, ...]}
+    search_strings holds every printable identifier for that slot (SKU + label).
+    """
+    targets: list[dict] = []
+    for d in drafts:
+        did = d.get('id')
+        if did is None:
+            continue
+        kind = (d.get('kind') or 'singleton').lower()
+        if kind == 'variants':
+            for v in (d.get('variants') or []):
+                sku   = (v.get('model_number') or '').strip()
+                label = (v.get('label') or '').strip()
+                strs  = list({s for s in [sku, label] if s})
+                if strs:
+                    targets.append({'draft_id': did, 'variant_sku': sku,
+                                    'search_strings': strs})
+        else:
+            sku  = (d.get('model_number') or '').strip()
+            name = (d.get('name') or '').strip()
+            strs = list({s for s in [sku, name] if s})
+            if strs:
+                targets.append({'draft_id': did, 'variant_sku': '',
+                                'search_strings': strs})
+    return targets
+
+
+# ── Region → draft fuzzy matcher ───────────────────────────────────────────
+
+def _fuzzy_match_region(sku_text: str,
+                         targets: list[dict]) -> list[tuple[int, str, float]]:
+    """Return [(draft_id, variant_sku, score), ...] sorted by score descending.
+
+    Each target contributes its best-scoring search_string to its slot.
+    Slots with score 0 are excluded.
+    """
+    norm_det = _normalise_sku(sku_text)
+    if not norm_det or len(norm_det) < 3:
+        return []
+
+    scored: dict[tuple[int, str], float] = {}
+    for t in targets:
+        best = 0.0
+        for ss in t['search_strings']:
+            s = _score_sku_match(norm_det, _normalise_sku(ss))
+            if s > best:
+                best = s
+        key = (t['draft_id'], t['variant_sku'])
+        if best > scored.get(key, 0.0):
+            scored[key] = best
+
+    results = [(did, vsku, sc) for (did, vsku), sc in scored.items() if sc > 0]
+    results.sort(key=lambda x: (-x[2], x[1]))
+    return results
+
+
+def _classify_assignment(
+        matches: list[tuple[int, str, float]],
+) -> tuple[str, list[tuple[int, str, float]]]:
+    """Return (tier, assign_list).
+
+    Tiers:
+      'unambiguous' — one clear winner; assign_list has one entry
+      'tie'         — two matches within gap threshold; assign_list has two entries
+                      (both get the image as candidates, neither auto-promoted)
+      'weak'        — single weak match below unambiguous threshold
+      'orphan'      — nothing useful found
+    """
+    if not matches or matches[0][2] < _WEAK_SCORE:
+        return 'orphan', []
+    top   = matches[0][2]
+    second = matches[1][2] if len(matches) >= 2 else 0.0
+    if top >= _UNAMBIGUOUS_SCORE:
+        if (top - second) >= _UNAMBIGUOUS_GAP or second < _TIE_SCORE:
+            return 'unambiguous', [matches[0]]
+        return 'tie', matches[:2]
+    return 'weak', [matches[0]]
+
+
+# ── Region detector (one Gemini call per page) ──────────────────────────────
+
+def _detect_regions_on_page(pil_page: Image.Image, page_num: int,
+                              log_cb: Callable[[str, str], None] | None = None,
+                              ) -> list[dict]:
+    """Send one rendered page to Gemini; return all detected product-photo regions.
+
+    Each region: {box_2d: [ymin, xmin, ymax, xmax], sku_text: str, confidence: str}
+    """
+    from google import genai
+    from google.genai import types
+    from utils.json_utils import safe_json_loads
+
+    prompt_text = get_prompt("unified_image_extraction") or ""
+    if not prompt_text:
+        _emit(log_cb, "warn",
+              f"Page {page_num}: prompt 'unified_image_extraction' not found — skipping")
+        return []
+
+    buf = io.BytesIO()
+    pil_page.save(buf, "PNG")
+
+    try:
+        client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY"))
+        resp = client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=[prompt_text,
+                      types.Part.from_bytes(data=buf.getvalue(),
+                                             mime_type="image/png")],
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json"),
+        )
+        parsed = safe_json_loads(resp.text or "", fallback={})
+        if not isinstance(parsed, dict):
+            return []
+        regions = [r for r in (parsed.get("regions") or [])
+                   if isinstance(r, dict)
+                   and isinstance(r.get("box_2d"), list)
+                   and len(r["box_2d"]) == 4]
+        _emit(log_cb, "info",
+              f"Page {page_num}: {len(regions)} region(s) detected")
+        return regions
+    except Exception as e:
+        _emit(log_cb, "warn", f"Page {page_num}: detection failed ({e})")
+        return []
+
+
+# ── Pixel extractor (embedded → crop fallback) ──────────────────────────────
+
+def _extract_region_pixels(
+        source_path: str,
+        page_index: int,
+        pil_page: Image.Image,
+        box_2d: list,
+        fitz_doc: Any,
+) -> tuple[bytes | None, str]:
+    """Return (image_bytes, source) for one detected region.
+
+    source is 'embedded' when we pulled original bytes from the PDF's
+    embedded raster stream; 'crop' when we rendered and cropped.
+
+    Quality gates:
+      • Minimum rendered bbox: 80×80 px
+      • Embedded images must be ≥ 100×100 px and ≥ 5 kB
+      • Crops must not be mostly-solid (uniform colour)
+    """
+    from .pdf_processing import (_snap_to_cell_border, _clean_product_image,
+                                  _is_mostly_solid)
+
+    pil_w, pil_h = pil_page.size
+    # box_2d = [ymin, xmin, ymax, xmax] on 0-1000
+    px_x0 = int(box_2d[1] / 1000 * pil_w)
+    px_y0 = int(box_2d[0] / 1000 * pil_h)
+    px_x1 = int(box_2d[3] / 1000 * pil_w)
+    px_y1 = int(box_2d[2] / 1000 * pil_h)
+
+    px_x0 = max(0, min(px_x0, pil_w - 2))
+    px_y0 = max(0, min(px_y0, pil_h - 2))
+    px_x1 = max(px_x0 + 2, min(px_x1, pil_w))
+    px_y1 = max(px_y0 + 2, min(px_y1, pil_h))
+
+    if (px_x1 - px_x0) < 80 or (px_y1 - px_y0) < 80:
+        return None, 'crop'
+
+    # ── Embedded raster path (PDF only) ─────────────────────────────────
+    if fitz_doc is not None and source_path.lower().endswith('.pdf'):
+        try:
+            page      = fitz_doc[page_index]
+            page_rect = page.rect
+            # Render scale: derived from actual rendered image width vs page pts.
+            scale_x = pil_w / max(page_rect.width,  1)
+            scale_y = pil_h / max(page_rect.height, 1)
+            region_rect = fitz.Rect(
+                px_x0 / scale_x, px_y0 / scale_y,
+                px_x1 / scale_x, px_y1 / scale_y,
+            )
+            best_xref    = 0
+            best_overlap = 0.30          # must cover ≥30 % of embedded image
+            for img_info in page.get_image_info(xrefs=True):
+                xref = img_info.get('xref', 0)
+                if xref <= 0:
+                    continue
+                img_bbox = fitz.Rect(img_info.get('bbox', (0, 0, 0, 0)))
+                if img_bbox.is_empty:
+                    continue
+                inter = img_bbox & region_rect
+                if inter.is_empty:
+                    continue
+                area = img_bbox.width * img_bbox.height
+                if area <= 0:
+                    continue
+                overlap = (inter.width * inter.height) / area
+                if overlap > best_overlap:
+                    best_overlap = overlap
+                    best_xref = xref
+            if best_xref > 0:
+                base   = fitz_doc.extract_image(best_xref)
+                raw    = base.get('image')
+                if raw and len(raw) > 5_000:
+                    try:
+                        with Image.open(io.BytesIO(raw)) as chk:
+                            tw, th = chk.size
+                        if tw >= 100 and th >= 100:
+                            return raw, 'embedded'
+                    except Exception:
+                        pass
+        except Exception as e:
+            print(f"  ⚠ embedded extraction failed (page {page_index}): {e}")
+
+    # ── Rendered crop fallback ───────────────────────────────────────────
+    try:
+        px_x0, px_y0, px_x1, px_y1 = _snap_to_cell_border(
+            pil_page, (px_x0, px_y0, px_x1, px_y1))
+        crop = pil_page.crop((px_x0, px_y0, px_x1, px_y1))
+        if _is_mostly_solid(crop):
+            return None, 'crop'
+        crop = _clean_product_image(crop)
+        buf  = io.BytesIO()
+        crop.save(buf, 'JPEG', quality=92)
+        return buf.getvalue(), 'crop'
+    except Exception as e:
+        print(f"  ⚠ crop extraction failed: {e}")
+        return None, 'crop'
+
+
+# ── Raw-bytes → disk saver ──────────────────────────────────────────────────
+
+def _save_raw_image(img_bytes: bytes, upload_folder: str,
+                    label: str = '') -> str | None:
+    """Decode img_bytes (any PIL-supported format), resize to ≤1600 px on the
+    long edge, save as JPEG, and return the relative 'uploads/...' path."""
+    try:
+        stamp      = int(time.time() * 1000)
+        safe_label = re.sub(r'[^a-z0-9]', '', label.lower())[:20]
+        fname      = f"unified_{stamp}_{safe_label or 'img'}.jpg"
+        abs_path   = os.path.join(upload_folder, fname)
+        with Image.open(io.BytesIO(img_bytes)) as img:
+            rgb = img.convert('RGB')
+            w, h = rgb.size
+            if max(w, h) > 1600:
+                scale = 1600 / max(w, h)
+                rgb   = rgb.resize((int(w * scale), int(h * scale)),
+                                    Image.LANCZOS)  # type: ignore[attr-defined]
+            rgb.save(abs_path, 'JPEG', quality=92)
+        return f"uploads/{fname}"
+    except Exception as e:
+        print(f"  ⚠ _save_raw_image failed: {e}")
+        return None
+
+
+# ── Per-region processor (used inside unified_extract loop) ─────────────────
+
+def _process_unified_region(
+        region:       dict,
+        src_path:     str,
+        page_index:   int,
+        pil_page:     Image.Image,
+        fitz_doc:     Any,
+        targets:      list[dict],
+        out:          dict,
+        upload_folder: str,
+) -> None:
+    """Evaluate one detected region, extract pixels, match to drafts, and
+    append the result to the appropriate output bucket(s)."""
+    box_2d   = region.get('box_2d') or []
+    sku_text = (region.get('sku_text') or '').strip()
+    if len(box_2d) != 4:
+        return
+
+    matches       = _fuzzy_match_region(sku_text, targets)
+    tier, assign  = _classify_assignment(matches)
+
+    img_bytes, source_type = _extract_region_pixels(
+        src_path, page_index, pil_page, box_2d, fitz_doc)
+    if not img_bytes:
+        return
+
+    rel_path = _save_raw_image(img_bytes, upload_folder, sku_text[:30])
+    if not rel_path:
+        return
+    if source_type != 'embedded':
+        rel_path = _trim_near_white_edges(rel_path, upload_folder)
+
+    # Confidence tag
+    if tier == 'orphan':
+        confidence = 'low'
+    elif tier == 'tie':
+        confidence = 'review'
+    elif tier == 'weak':
+        confidence = 'low'
+    elif source_type == 'embedded':
+        confidence = 'high'
+    else:
+        confidence = 'medium'
+
+    if tier == 'orphan':
+        unassigned = out.get('_unassigned')
+        if isinstance(unassigned, dict):
+            unassigned['candidates'].append({
+                'path':          rel_path,
+                'source':        'document',
+                'variant_sku':   '',
+                'matched_label': sku_text,
+                'confidence':    'low',
+            })
+        return
+
+    for draft_id, variant_sku, _score in assign:
+        cand_conf = 'review' if tier == 'tie' else confidence
+        bucket    = out.get(draft_id)
+        if not isinstance(bucket, dict):
+            continue
+        existing_paths = {c.get('path') for c in bucket['candidates']}
+        if rel_path not in existing_paths:
+            bucket['candidates'].append({
+                'path':          rel_path,
+                'source':        'document',
+                'variant_sku':   variant_sku,
+                'matched_label': sku_text,
+                'confidence':    cand_conf,
+            })
+        if variant_sku:
+            vp = bucket['variant_paths']
+            vp.setdefault(variant_sku, [])
+            if rel_path not in vp[variant_sku]:
+                vp[variant_sku].append(rel_path)
+
+
+def _assign_primary_and_status(draft: dict, out: dict) -> None:
+    """Pick the primary image and set status on one draft's bucket."""
+    did    = draft.get('id')
+    bucket = out.get(did)
+    if not isinstance(bucket, dict):
+        return
+    kind     = (draft.get('kind') or 'singleton').lower()
+    variants = draft.get('variants') or []
+
+    if not bucket['image_path']:
+        if kind == 'variants' and bucket['variant_paths']:
+            for v in variants:
+                vsku  = (v.get('model_number') or '').strip()
+                paths = bucket['variant_paths'].get(vsku) or []
+                if paths:
+                    bucket['image_path'] = paths[0]
+                    break
+        if not bucket['image_path'] and bucket['candidates']:
+            for c in bucket['candidates']:
+                if c['confidence'] in ('high', 'medium'):
+                    bucket['image_path'] = c['path']
+                    break
+            if not bucket['image_path']:
+                bucket['image_path'] = bucket['candidates'][0]['path']
+
+    if kind == 'variants' and variants:
+        need = sum(1 for v in variants
+                   if (v.get('model_number') or '').strip())
+        have = sum(1 for v in variants
+                   if (v.get('model_number') or '').strip()
+                   and bucket['variant_paths'].get(
+                       (v.get('model_number') or '').strip()))
+        if have == 0 and not bucket['image_path']:
+            bucket['status'] = 'failed'
+        elif have < need:
+            bucket['status'] = 'partial'
+        else:
+            bucket['status'] = 'done'
+    else:
+        bucket['status'] = 'done' if bucket['image_path'] else 'failed'
+
+
+# ── Orchestrator ────────────────────────────────────────────────────────────
+
+def unified_extract(
+        drafts:        list[dict],
+        file_paths:    list[str],
+        upload_folder: str,
+        log_cb:        Callable[[str, str], None] | None = None,
+) -> dict:
+    """Phase 1 unified image extractor.
+
+    Normalises every input to rendered page images, runs ONE Gemini detection
+    call per page, fuzzy-matches each detected region's SKU text to the
+    workspace drafts, then pulls the cleanest pixels (embedded raster preferred,
+    rendered crop as fallback) and saves them.
+
+    Returns the same per-draft bucket shape as run_image_pipeline so
+    save_images_to_variant_gallery and the marketing.py route work unchanged.
+
+    Extra key: out["_unassigned"] holds orphan candidates (regions that
+    didn't fuzzy-match any draft with sufficient confidence).
+    """
+    out: dict = {
+        d["id"]: {
+            "image_path":    None,
+            "variant_paths": {},
+            "candidates":    [],
+            "status":        "pending",
+        }
+        for d in drafts if d.get("id") is not None
+    }
+    out["_unassigned"] = {"candidates": []}
+
+    if not drafts or not file_paths:
+        return out
+
+    _emit(log_cb, "info",
+          f"Unified extractor: {len(drafts)} draft(s), "
+          f"{len(file_paths)} file(s)")
+
+    targets = _build_match_targets(drafts)
+    _emit(log_cb, "info", f"{len(targets)} SKU target(s) indexed")
+
+    # Open every PDF once so the same fitz.Document is used for both rendering
+    # and embedded-image extraction — avoids double-opening on multi-page files.
+    open_fitz: dict[str, Any] = {}
+    for src in file_paths:
+        if src and os.path.exists(src) and src.lower().endswith('.pdf'):
+            try:
+                open_fitz[src] = fitz.open(src)  # type: ignore[attr-defined]
+            except Exception as e:
+                _emit(log_cb, "warn",
+                      f"Cannot open {os.path.basename(src)}: {e}")
+                open_fitz[src] = None
+
+    try:
+        for src in file_paths:
+            if not src or not os.path.exists(src):
+                continue
+            ext = os.path.splitext(src)[1].lower()
+
+            if ext == '.pdf':
+                doc = open_fitz.get(src)
+                if doc is None:
+                    continue
+                for pno in range(len(doc)):
+                    try:
+                        pix      = doc[pno].get_pixmap(matrix=_UNIFIED_RENDER_MATRIX)
+                        pil_page = Image.open(
+                            io.BytesIO(pix.tobytes('png'))).convert('RGB')
+                    except Exception as e:
+                        _emit(log_cb, "warn",
+                              f"Render failed ({os.path.basename(src)} p{pno+1}): {e}")
+                        continue
+                    regions = _detect_regions_on_page(pil_page, pno + 1, log_cb)
+                    for r in regions:
+                        _process_unified_region(
+                            r, src, pno, pil_page, doc,
+                            targets, out, upload_folder)
+
+            elif ext in ('.jpg', '.jpeg', '.png', '.webp',
+                         '.bmp', '.tiff', '.tif'):
+                try:
+                    pil_page = Image.open(src).convert('RGB')
+                except Exception as e:
+                    _emit(log_cb, "warn",
+                          f"Image load failed ({os.path.basename(src)}): {e}")
+                    continue
+                regions = _detect_regions_on_page(pil_page, 1, log_cb)
+                for r in regions:
+                    _process_unified_region(
+                        r, src, 0, pil_page, None,
+                        targets, out, upload_folder)
+
+    finally:
+        for doc in open_fitz.values():
+            if doc is not None:
+                try:
+                    doc.close()
+                except Exception:
+                    pass
+
+    for draft in drafts:
+        _assign_primary_and_status(draft, out)
+
+    drafts_ok  = sum(1 for k, b in out.items()
+                     if isinstance(k, int) and b.get('image_path'))
+    total_cand = sum(len(b['candidates']) for k, b in out.items()
+                     if isinstance(k, int))
+    orphans    = len(out.get('_unassigned', {}).get('candidates', []))
+    _emit(log_cb,
+          "ok" if drafts_ok else "warn",
+          f"Unified extractor done: {drafts_ok}/{len(drafts)} draft(s) with image, "
+          f"{total_cand} candidate(s), {orphans} orphan(s)")
+    return out
