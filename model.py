@@ -1,14 +1,24 @@
 from flask_sqlalchemy import SQLAlchemy
-from datetime import datetime
+from datetime import datetime, timezone
 from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy.dialects.postgresql import JSONB
 
 db = SQLAlchemy()
 
 
+def _utcnow_naive() -> datetime:
+    """Drop-in replacement for the deprecated datetime.utcnow(). Returns a
+    tz-naive UTC datetime so it stays compatible with the existing tz-naive
+    `db.DateTime` columns and any callers comparing against historical rows."""
+    return datetime.now(timezone.utc).replace(tzinfo=None)
+
+
 # ================= USER MODEL =================
 
 class User(db.Model):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
@@ -16,7 +26,7 @@ class User(db.Model):
     role = db.Column(db.String(20), nullable=False)  # 'admin', 'marketing', 'director', 'web'
     display_name = db.Column(db.String(100))
     is_active = db.Column(db.Boolean, default=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=_utcnow_naive)
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -31,6 +41,15 @@ class User(db.Model):
 # ================= PRODUCT MODEL =================
 
 class Product(db.Model):
+    # Explicit `__init__` so static type-checkers (Pyrefly / Pyright / mypy)
+    # see the column-kwarg constructor as valid. SQLAlchemy's declarative
+    # base provides `_declarative_constructor` which already accepts these
+    # kwargs at runtime; this just publishes the same signature for the
+    # type-checking layer. Functionally a no-op — `super().__init__(**kwargs)`
+    # delegates to the base constructor unchanged.
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
     id = db.Column(db.Integer, primary_key=True)
     model_name = db.Column(db.String(100), nullable=False)
 
@@ -39,7 +58,7 @@ class Product(db.Model):
     # 'ready_for_web', 'specsheet_draft', 'pending_director_spec', 'web_changes_requested', 'finalized'
     workflow_stage = db.Column(db.String(50), default='marketing_draft', index=True)
 
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=_utcnow_naive)
     # Soft-delete: set to a timestamp when "deleted", NULL means active
     deleted_at = db.Column(db.DateTime, nullable=True, index=True)
 
@@ -69,6 +88,9 @@ class Product(db.Model):
 # ================= PRODUCT HISTORY (EVENT LOG) =================
 
 class ProductHistory(db.Model):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
     id = db.Column(db.Integer, primary_key=True)
     product_id = db.Column(db.Integer, db.ForeignKey('product.id'), nullable=False, index=True)
     
@@ -77,7 +99,7 @@ class ProductHistory(db.Model):
     description = db.Column(db.Text)
     action_type = db.Column(db.String(20), default='neutral') 
     
-    timestamp = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+    timestamp = db.Column(db.DateTime, default=_utcnow_naive, index=True)
 
     product = db.relationship('Product', backref=db.backref('history', lazy=True, cascade="all, delete"))
 
@@ -85,6 +107,9 @@ class ProductHistory(db.Model):
 # ================= VERSION SNAPSHOTS =================
 
 class ProductVersion(db.Model):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
     id = db.Column(db.Integer, primary_key=True)
     product_id = db.Column(db.Integer, db.ForeignKey('product.id'), nullable=False, index=True)
     version_num = db.Column(db.Integer, nullable=False)
@@ -100,7 +125,7 @@ class ProductVersion(db.Model):
 
     # Metadata
     created_by_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=_utcnow_naive)
     label = db.Column(db.String(100))  # e.g. "Before Director Review"
 
     product = db.relationship('Product', backref=db.backref('versions', lazy=True, cascade="all, delete"))
@@ -110,6 +135,9 @@ class ProductVersion(db.Model):
 # ================= FIELD-LEVEL CHANGE LOG =================
 
 class FieldChangeLog(db.Model):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
     id = db.Column(db.Integer, primary_key=True)
     product_id = db.Column(db.Integer, db.ForeignKey('product.id'), nullable=False, index=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
@@ -119,7 +147,7 @@ class FieldChangeLog(db.Model):
     new_value = db.Column(db.Text)           # Human-readable
     version_num = db.Column(db.Integer)      # Which version this change belongs to
     
-    timestamp = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+    timestamp = db.Column(db.DateTime, default=_utcnow_naive, index=True)
     
     product = db.relationship('Product', backref=db.backref('field_changes', lazy=True, cascade="all, delete"))
     user = db.relationship('User', backref='field_changes')
@@ -128,18 +156,24 @@ class FieldChangeLog(db.Model):
 # ================= PROMPT MODEL =================
 
 class Prompt(db.Model):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False, unique=True)  # e.g. "pis_extraction"
     display_name = db.Column(db.String(200))
     description = db.Column(db.Text)
     category = db.Column(db.String(50))
     prompt_text = db.Column(db.Text, nullable=False)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=_utcnow_naive, onupdate=_utcnow_naive)
 
 
 # ================= JOB MODEL =================
 
 class Job(db.Model):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
     id = db.Column(db.String(8), primary_key=True)
     model_name = db.Column(db.String(200))
     status = db.Column(db.String(20), default='queued', index=True)
@@ -149,5 +183,5 @@ class Job(db.Model):
     dismissed = db.Column(db.Boolean, default=False)
     payload = db.Column(JSONB, nullable=True)
     result = db.Column(JSONB, nullable=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=_utcnow_naive)
     completed_at = db.Column(db.DateTime, nullable=True)

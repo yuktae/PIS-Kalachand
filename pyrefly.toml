@@ -1,0 +1,20 @@
+# Pyrefly type-checker configuration.
+#
+# Without this, Pyrefly auto-discovers a Python interpreter and on this
+# machine picks up the Microsoft Store Python 3.11 in
+# C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_…
+# That interpreter doesn't have flask / werkzeug / sqlalchemy installed,
+# so every import in blueprints/* lights up red in the Problems panel
+# even though the code runs fine when launched via the project venv.
+#
+# Pointing `python-interpreter` at the venv tells Pyrefly to query its
+# site-packages directly, so the imports resolve.
+
+python-interpreter = "venv/Scripts/python.exe"
+python-version = "3.12"
+
+# Project layout — anchor everything at the repo root so absolute imports
+# like `from blueprints.marketing import …` and `from utils import …`
+# resolve against this directory's modules first.
+project-includes = ["**/*.py"]
+project-excludes = ["venv/**", "**/__pycache__/**", ".git/**"]
