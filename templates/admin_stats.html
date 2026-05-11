@@ -1,0 +1,424 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div x-data="statsPanel()" x-init="init()" class="page-fade-in">
+
+    <!-- Hero Section -->
+    <div class="mb-6 relative rounded-2xl bg-white border border-gray-100 p-8 shadow-sm overflow-hidden">
+        <div class="absolute inset-0 bg-[radial-gradient(#f1f5f9_1px,transparent_1px)] [background-size:16px_16px] opacity-50"></div>
+        <div class="absolute right-0 top-0 w-64 h-64 bg-emerald-100 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 opacity-40"></div>
+        <div class="relative z-10 flex flex-col md:flex-row justify-between items-center gap-6">
+            <div>
+                <h2 class="text-3xl font-bold text-slate-800 mb-2 flex items-center gap-3">
+                    <div class="w-10 h-10 bg-gradient-to-br from-emerald-600 to-teal-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-emerald-200">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                        </svg>
+                    </div>
+                    Stats &amp; Analytics
+                </h2>
+                <p class="text-slate-500 text-sm">Live snapshot of platform activity, AI usage, and team contribution.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sticky Section Nav -->
+    <div class="sticky top-0 z-20 -mx-6 md:-mx-10 px-6 md:px-10 py-3 bg-[#F8F9FC]/80 backdrop-blur-md border-b border-gray-100 mb-8">
+        <div class="flex flex-wrap gap-2">
+            <template x-for="s in sections" :key="s.id">
+                <button @click="scrollTo(s.id)"
+                    :class="activeSection === s.id ? 'bg-slate-900 text-white shadow-lg shadow-slate-200' : 'bg-white text-slate-600 border border-gray-200 hover:bg-slate-50'"
+                    class="px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2">
+                    <span x-html="s.icon"></span>
+                    <span x-text="s.label"></span>
+                </button>
+            </template>
+        </div>
+    </div>
+
+    <!-- ========== Section 1: Overview ========== -->
+    <section id="section-overview" class="mb-12 scroll-mt-24">
+        <div class="flex items-center gap-3 mb-4">
+            <div class="w-1 h-6 bg-slate-900 rounded-full"></div>
+            <h3 class="text-lg font-bold text-slate-800">Overview</h3>
+        </div>
+        <div class="grid grid-cols-2 lg:grid-cols-5 gap-4">
+            <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+                <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Total Products</p>
+                <p class="text-3xl font-bold text-slate-900 mt-2">{{ total_products }}</p>
+                <p class="text-[11px] text-slate-400 mt-1.5">Active records</p>
+            </div>
+            <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+                <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">In Progress</p>
+                <p class="text-3xl font-bold text-amber-600 mt-2">{{ in_progress }}</p>
+                <p class="text-[11px] text-slate-400 mt-1.5">Not yet finalized</p>
+            </div>
+            <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+                <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Finalized</p>
+                <p class="text-3xl font-bold text-emerald-600 mt-2">{{ finalized_count }}</p>
+                <p class="text-[11px] text-slate-400 mt-1.5">Fully approved</p>
+            </div>
+            <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+                <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">New This Week</p>
+                <p class="text-3xl font-bold text-blue-600 mt-2">{{ products_this_week }}</p>
+                <p class="text-[11px] text-slate-400 mt-1.5">Last 7 days</p>
+            </div>
+            <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+                <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Active Users</p>
+                <p class="text-3xl font-bold text-violet-600 mt-2">{{ active_users }}</p>
+                <p class="text-[11px] text-slate-400 mt-1.5">Currently enabled</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ========== Section 2: Workflow Pipeline ========== -->
+    <section id="section-workflow" class="mb-12 scroll-mt-24">
+        <div class="flex items-center gap-3 mb-4">
+            <div class="w-1 h-6 bg-amber-500 rounded-full"></div>
+            <h3 class="text-lg font-bold text-slate-800">Workflow Pipeline</h3>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
+            <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Approvals (7d)</p>
+                <p class="text-3xl font-bold text-emerald-600 mt-2">{{ approvals_this_week }}</p>
+                <p class="text-[11px] text-slate-400 mt-1.5">PIS + SpecSheet approvals</p>
+            </div>
+            <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Avg Time to Finalize</p>
+                <p class="text-3xl font-bold text-slate-900 mt-2">{{ avg_finalize_days }} <span class="text-base font-medium text-slate-500">days</span></p>
+                <p class="text-[11px] text-slate-400 mt-1.5">From creation to SpecSheet approval</p>
+            </div>
+            <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Throughput</p>
+                <p class="text-3xl font-bold text-slate-900 mt-2">{{ daily_counts | sum(attribute='value') }}</p>
+                <p class="text-[11px] text-slate-400 mt-1.5">Products created in last 14 days</p>
+            </div>
+        </div>
+
+        <!-- Daily creation chart -->
+        <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm mb-4">
+            <div class="flex items-center justify-between mb-4">
+                <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Products Created — Last 14 Days</p>
+                <p class="text-[10px] font-bold text-slate-400">Daily</p>
+            </div>
+            {% set max_daily = daily_counts | map(attribute='value') | max %}
+            <div class="flex items-end gap-1.5 h-40">
+                {% for d in daily_counts %}
+                <div class="flex-1 flex flex-col items-center gap-1.5 group relative">
+                    <div class="w-full rounded-t-md transition-all bg-gradient-to-t from-blue-500 to-blue-400 hover:from-blue-600 hover:to-blue-500"
+                         style="height: {{ ((d.value / max_daily * 100) if max_daily and max_daily > 0 else 0) }}%;
+                                min-height: {{ '4px' if d.value > 0 else '2px' }};"></div>
+                    <span class="text-[9px] font-bold text-slate-400">{{ d.short }}</span>
+                    <div class="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-900 text-white text-[10px] font-bold rounded-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+                        {{ d.label }}: <strong>{{ d.value }}</strong>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Stage breakdown -->
+        <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+            <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Workflow Stage Distribution</p>
+            {% if stage_breakdown %}
+            {% set total_active = stage_breakdown | sum(attribute='count') %}
+            <div class="space-y-2.5">
+                {% for s in stage_breakdown %}
+                <div>
+                    <div class="flex items-center justify-between mb-1">
+                        <p class="text-xs font-bold text-slate-700 capitalize">{{ s.stage.replace('_', ' ') }}</p>
+                        <span class="text-[11px] font-bold text-slate-500">{{ s.count }} <span class="text-slate-400 font-medium">({{ ((s.count / total_active * 100) | round(0) | int) if total_active else 0 }}%)</span></span>
+                    </div>
+                    <div class="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                        <div class="h-full rounded-full
+                            {% if 'finalized' in s.stage %}bg-emerald-500
+                            {% elif 'pending' in s.stage %}bg-amber-500
+                            {% elif 'changes_requested' in s.stage %}bg-red-500
+                            {% elif 'specsheet' in s.stage or 'web' in s.stage %}bg-indigo-500
+                            {% else %}bg-slate-500{% endif %}"
+                             style="width: {{ ((s.count / total_active * 100) if total_active else 0) }}%"></div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="text-sm text-slate-400 text-center py-8">No products yet.</p>
+            {% endif %}
+        </div>
+    </section>
+
+    <!-- ========== Section 3: AI Job Activity ========== -->
+    <section id="section-jobs" class="mb-12 scroll-mt-24">
+        <div class="flex items-center gap-3 mb-4">
+            <div class="w-1 h-6 bg-violet-600 rounded-full"></div>
+            <h3 class="text-lg font-bold text-slate-800">AI Job Activity</h3>
+        </div>
+
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+            <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+                <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Total Jobs</p>
+                <p class="text-3xl font-bold text-slate-900 mt-2">{{ total_jobs }}</p>
+                <p class="text-[11px] text-slate-400 mt-1.5">All time</p>
+            </div>
+            <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+                <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Success Rate</p>
+                <p class="text-3xl font-bold text-emerald-600 mt-2">{{ success_rate }}<span class="text-base text-slate-500">%</span></p>
+                <p class="text-[11px] text-slate-400 mt-1.5">{{ completed_jobs }} of {{ total_jobs }}</p>
+            </div>
+            <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+                <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Avg Duration</p>
+                <p class="text-3xl font-bold text-slate-900 mt-2">{{ '%.1f' % (avg_job_seconds / 60) if avg_job_seconds else 0 }}<span class="text-base text-slate-500">m</span></p>
+                <p class="text-[11px] text-slate-400 mt-1.5">Per completed job</p>
+            </div>
+            <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+                <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Last 7 Days</p>
+                <p class="text-3xl font-bold text-violet-600 mt-2">{{ jobs_last_week }}</p>
+                <p class="text-[11px] text-slate-400 mt-1.5">Jobs queued</p>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <!-- Donut: status breakdown -->
+            <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Status Breakdown</p>
+                {% if total_jobs %}
+                {% set p_complete = (completed_jobs / total_jobs * 100) %}
+                {% set p_failed   = (failed_jobs / total_jobs * 100) %}
+                {% set p_queued   = (queued_jobs / total_jobs * 100) %}
+                <div class="flex items-center gap-4">
+                    <svg viewBox="0 0 42 42" class="w-28 h-28 -rotate-90">
+                        <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="#f1f5f9" stroke-width="6"/>
+                        <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="#10b981" stroke-width="6"
+                            stroke-dasharray="{{ p_complete }} {{ 100 - p_complete }}" stroke-dashoffset="0"/>
+                        <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="#ef4444" stroke-width="6"
+                            stroke-dasharray="{{ p_failed }} {{ 100 - p_failed }}" stroke-dashoffset="-{{ p_complete }}"/>
+                        <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="#f59e0b" stroke-width="6"
+                            stroke-dasharray="{{ p_queued }} {{ 100 - p_queued }}" stroke-dashoffset="-{{ p_complete + p_failed }}"/>
+                    </svg>
+                    <div class="space-y-1.5 text-xs flex-1">
+                        <div class="flex items-center gap-2"><span class="w-2.5 h-2.5 bg-emerald-500 rounded-sm"></span><span class="font-bold text-slate-700 flex-1">Completed</span><span class="text-slate-500">{{ completed_jobs }}</span></div>
+                        <div class="flex items-center gap-2"><span class="w-2.5 h-2.5 bg-red-500 rounded-sm"></span><span class="font-bold text-slate-700 flex-1">Failed</span><span class="text-slate-500">{{ failed_jobs }}</span></div>
+                        <div class="flex items-center gap-2"><span class="w-2.5 h-2.5 bg-amber-500 rounded-sm"></span><span class="font-bold text-slate-700 flex-1">Active/Queued</span><span class="text-slate-500">{{ queued_jobs }}</span></div>
+                    </div>
+                </div>
+                {% else %}
+                <p class="text-sm text-slate-400 text-center py-8">No jobs run yet.</p>
+                {% endif %}
+            </div>
+
+            <!-- Recent jobs list -->
+            <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm lg:col-span-2">
+                <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Recent Jobs</p>
+                {% if recent_jobs %}
+                <div class="space-y-2 max-h-[280px] overflow-y-auto">
+                    {% for j in recent_jobs %}
+                    <div class="flex items-center justify-between gap-3 p-3 rounded-xl bg-slate-50/50 border border-gray-100 hover:bg-slate-50 transition-colors">
+                        <div class="flex items-center gap-3 min-w-0 flex-1">
+                            <span class="w-2 h-2 rounded-full flex-shrink-0
+                                {% if j.status == 'completed' %}bg-emerald-500
+                                {% elif j.status == 'failed' %}bg-red-500
+                                {% elif j.status == 'processing' %}bg-amber-500 animate-pulse
+                                {% else %}bg-slate-400{% endif %}"></span>
+                            <div class="min-w-0 flex-1">
+                                <p class="text-xs font-bold text-slate-700 truncate">{{ j.model_name or 'Untitled job' }}</p>
+                                <p class="text-[10px] text-slate-400 truncate">{{ j.message or '—' }}</p>
+                            </div>
+                        </div>
+                        <div class="flex flex-col items-end gap-0.5 flex-shrink-0">
+                            <span class="px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider
+                                {% if j.status == 'completed' %}bg-emerald-50 text-emerald-700
+                                {% elif j.status == 'failed' %}bg-red-50 text-red-700
+                                {% elif j.status == 'processing' %}bg-amber-50 text-amber-700
+                                {% else %}bg-slate-100 text-slate-700{% endif %}">{{ j.status }}</span>
+                            <span class="text-[10px] text-slate-400">{{ j.created_at.strftime('%d %b %H:%M') if j.created_at else '' }}</span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-sm text-slate-400 text-center py-8">No jobs run yet.</p>
+                {% endif %}
+            </div>
+        </div>
+    </section>
+
+    <!-- ========== Section 4: Team Activity ========== -->
+    <section id="section-team" class="mb-12 scroll-mt-24">
+        <div class="flex items-center gap-3 mb-4">
+            <div class="w-1 h-6 bg-red-500 rounded-full"></div>
+            <h3 class="text-lg font-bold text-slate-800">Team Activity</h3>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
+            {% if most_active_user %}
+            <div class="bg-gradient-to-br from-amber-500 to-orange-500 p-6 rounded-2xl shadow-lg shadow-amber-200 text-white">
+                <p class="text-[10px] font-bold uppercase tracking-wider opacity-80 mb-3">Most Active Contributor</p>
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="w-12 h-12 rounded-xl bg-white/20 backdrop-blur flex items-center justify-center text-base font-bold">
+                        {{ most_active_user.display_name[0:2]|upper }}
+                    </div>
+                    <div class="min-w-0">
+                        <p class="text-lg font-bold truncate">{{ most_active_user.display_name }}</p>
+                        <p class="text-xs opacity-80 capitalize">{{ most_active_user.role }}</p>
+                    </div>
+                </div>
+                <div class="pt-3 border-t border-white/20">
+                    <p class="text-3xl font-bold">{{ most_active_user.edits }}</p>
+                    <p class="text-[10px] opacity-80 uppercase tracking-wider">Field changes logged</p>
+                </div>
+            </div>
+            {% else %}
+            <div class="bg-slate-50 border border-gray-100 p-6 rounded-2xl flex items-center justify-center text-center">
+                <p class="text-sm text-slate-400">No user activity recorded yet.</p>
+            </div>
+            {% endif %}
+
+            <!-- Activity per role -->
+            <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm lg:col-span-2">
+                <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Activity per Role</p>
+                {% if role_activity %}
+                {% set max_role = role_activity | map(attribute='count') | max %}
+                <div class="space-y-3">
+                    {% for r in role_activity %}
+                    <div>
+                        <div class="flex items-center justify-between mb-1.5">
+                            <p class="text-xs font-bold text-slate-700 capitalize flex items-center gap-2">
+                                <span class="w-2 h-2 rounded-full
+                                    {% if r.role == 'marketing' %}bg-red-500
+                                    {% elif r.role == 'director' %}bg-amber-500
+                                    {% elif r.role == 'web' %}bg-indigo-500
+                                    {% else %}bg-slate-700{% endif %}"></span>
+                                {{ r.role }}
+                            </p>
+                            <span class="text-[11px] font-bold text-slate-500">{{ r.count }} edits</span>
+                        </div>
+                        <div class="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                            <div class="h-full rounded-full
+                                {% if r.role == 'marketing' %}bg-red-500
+                                {% elif r.role == 'director' %}bg-amber-500
+                                {% elif r.role == 'web' %}bg-indigo-500
+                                {% else %}bg-slate-700{% endif %}"
+                                 style="width: {{ ((r.count / max_role * 100) if max_role else 0) }}%"></div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-sm text-slate-400 text-center py-8">No activity recorded yet.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- User contribution table -->
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            <div class="px-6 pt-5 pb-3">
+                <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Per-User Contribution</p>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-sm">
+                    <thead class="bg-gray-50/50 text-xs uppercase font-semibold text-slate-500 border-y border-gray-100">
+                        <tr>
+                            <th class="px-6 py-3">User</th>
+                            <th class="px-6 py-3">Role</th>
+                            <th class="px-6 py-3 text-right">Field Edits</th>
+                            <th class="px-6 py-3 w-1/3">Share</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                        {% set max_user = user_activity | map(attribute='edits') | max %}
+                        {% for u in user_activity %}
+                        <tr class="hover:bg-slate-50 transition-colors">
+                            <td class="px-6 py-3">
+                                <div class="flex items-center gap-3">
+                                    <span class="w-8 h-8 rounded-lg flex items-center justify-center text-[10px] font-bold text-white
+                                        {% if u.role == 'admin' %}bg-slate-900
+                                        {% elif u.role == 'marketing' %}bg-red-600
+                                        {% elif u.role == 'director' %}bg-amber-600
+                                        {% elif u.role == 'web' %}bg-indigo-600{% endif %}">
+                                        {{ u.display_name[0:2]|upper }}
+                                    </span>
+                                    <div>
+                                        <p class="font-bold text-slate-800 text-xs">{{ u.display_name }}</p>
+                                        <p class="text-[10px] text-gray-400">@{{ u.username }}</p>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-6 py-3">
+                                <span class="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider
+                                    {% if u.role == 'admin' %}bg-slate-100 text-slate-700
+                                    {% elif u.role == 'marketing' %}bg-red-50 text-red-700
+                                    {% elif u.role == 'director' %}bg-amber-50 text-amber-700
+                                    {% elif u.role == 'web' %}bg-indigo-50 text-indigo-700{% endif %}">{{ u.role }}</span>
+                            </td>
+                            <td class="px-6 py-3 text-right font-bold text-slate-800 text-xs">{{ u.edits }}</td>
+                            <td class="px-6 py-3">
+                                <div class="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                                    <div class="h-full rounded-full
+                                        {% if u.role == 'admin' %}bg-slate-700
+                                        {% elif u.role == 'marketing' %}bg-red-500
+                                        {% elif u.role == 'director' %}bg-amber-500
+                                        {% elif u.role == 'web' %}bg-indigo-500{% endif %}"
+                                         style="width: {{ ((u.edits / max_user * 100) if max_user else 0) }}%"></div>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+</div>
+
+<style>
+.page-fade-in {
+    animation: pageFadeIn 0.3s ease-out;
+}
+@keyframes pageFadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+</style>
+
+<script>
+function statsPanel() {
+    return {
+        activeSection: 'section-overview',
+        sections: [
+            { id: 'section-overview', label: 'Overview', icon: '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>' },
+            { id: 'section-workflow', label: 'Workflow', icon: '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>' },
+            { id: 'section-jobs', label: 'AI Jobs', icon: '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>' },
+            { id: 'section-team', label: 'Team', icon: '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>' },
+        ],
+
+        init() {
+            this.setupObserver();
+        },
+
+        setupObserver() {
+            const opts = { rootMargin: '-30% 0px -60% 0px', threshold: 0 };
+            const obs = new IntersectionObserver((entries) => {
+                for (const e of entries) {
+                    if (e.isIntersecting) {
+                        this.activeSection = e.target.id;
+                    }
+                }
+            }, opts);
+            this.sections.forEach(s => {
+                const el = document.getElementById(s.id);
+                if (el) obs.observe(el);
+            });
+        },
+
+        scrollTo(id) {
+            const el = document.getElementById(id);
+            if (el) {
+                this.activeSection = id;
+                el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        },
+    };
+}
+</script>
+{% endblock %}

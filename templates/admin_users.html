@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div x-data="adminPanel()" x-init="init()">
+<div x-data="adminPanel()" x-init="init()" class="page-fade-in">
 
     <!-- Hero Section -->
     <div class="mb-8 relative rounded-2xl bg-white border border-gray-100 p-8 shadow-sm overflow-hidden">
@@ -19,38 +19,91 @@
                 </h2>
                 <p class="text-slate-500 text-sm">Create and manage user accounts for each team section.</p>
             </div>
-            <button @click="showCreateModal = true"
-                class="px-6 py-2.5 bg-slate-900 text-white rounded-xl text-sm font-bold hover:bg-slate-800 transition-colors shadow-lg shadow-slate-200 flex items-center gap-2">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                </svg>
-                Create User
-            </button>
+            <div class="flex items-center gap-3">
+                <button @click="showExportModal = true"
+                    class="px-5 py-2.5 bg-white border border-gray-200 text-slate-700 rounded-xl text-sm font-bold hover:bg-emerald-50 hover:border-emerald-200 hover:text-emerald-700 transition-colors flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                    Export to Excel
+                </button>
+                <button @click="showCreateModal = true"
+                    class="px-6 py-2.5 bg-slate-900 text-white rounded-xl text-sm font-bold hover:bg-slate-800 transition-colors shadow-lg shadow-slate-200 flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                    </svg>
+                    Create User
+                </button>
+            </div>
         </div>
     </div>
 
-    <!-- Stats -->
-    <div class="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
-        <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+    <!-- Stats (clickable) -->
+    <div class="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+        <button type="button" @click="setRoleFilter('all')"
+            :class="roleFilter === 'all' ? 'ring-2 ring-slate-900 border-slate-900' : 'border-gray-100 hover:border-slate-300'"
+            class="text-left bg-white p-4 rounded-xl border shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5 cursor-pointer">
             <p class="text-xs font-bold text-gray-400">TOTAL USERS</p>
             <p class="text-2xl font-bold text-slate-800 mt-1">{{ users|length }}</p>
-        </div>
-        <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+        </button>
+        <button type="button" @click="setRoleFilter('admin')"
+            :class="roleFilter === 'admin' ? 'ring-2 ring-slate-900 border-slate-900' : 'border-gray-100 hover:border-slate-300'"
+            class="text-left bg-white p-4 rounded-xl border shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5 cursor-pointer">
             <p class="text-xs font-bold text-gray-400">ADMIN</p>
             <p class="text-2xl font-bold text-slate-800 mt-1">{{ users|selectattr('role','equalto','admin')|list|length }}</p>
-        </div>
-        <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+        </button>
+        <button type="button" @click="setRoleFilter('marketing')"
+            :class="roleFilter === 'marketing' ? 'ring-2 ring-red-500 border-red-500' : 'border-gray-100 hover:border-red-200'"
+            class="text-left bg-white p-4 rounded-xl border shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5 cursor-pointer">
             <p class="text-xs font-bold text-gray-400">MARKETING</p>
             <p class="text-2xl font-bold text-red-600 mt-1">{{ users|selectattr('role','equalto','marketing')|list|length }}</p>
-        </div>
-        <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+        </button>
+        <button type="button" @click="setRoleFilter('director')"
+            :class="roleFilter === 'director' ? 'ring-2 ring-amber-500 border-amber-500' : 'border-gray-100 hover:border-amber-200'"
+            class="text-left bg-white p-4 rounded-xl border shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5 cursor-pointer">
             <p class="text-xs font-bold text-gray-400">DIRECTOR</p>
-            <p class="text-2xl font-bold text-slate-800 mt-1">{{ users|selectattr('role','equalto','director')|list|length }}</p>
-        </div>
-        <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+            <p class="text-2xl font-bold text-amber-600 mt-1">{{ users|selectattr('role','equalto','director')|list|length }}</p>
+        </button>
+        <button type="button" @click="setRoleFilter('web')"
+            :class="roleFilter === 'web' ? 'ring-2 ring-indigo-500 border-indigo-500' : 'border-gray-100 hover:border-indigo-200'"
+            class="text-left bg-white p-4 rounded-xl border shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5 cursor-pointer">
             <p class="text-xs font-bold text-gray-400">WEB TEAM</p>
             <p class="text-2xl font-bold text-indigo-600 mt-1">{{ users|selectattr('role','equalto','web')|list|length }}</p>
+        </button>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-6 flex flex-col md:flex-row gap-3 md:items-center">
+        <div class="relative flex-1">
+            <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            <input x-model="searchTerm" type="text" placeholder="Search by name or email..."
+                class="w-full pl-10 pr-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-100 transition-all">
         </div>
+        <select x-model="roleFilter"
+            class="px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-100 min-w-[160px]">
+            <option value="all">All Roles</option>
+            <option value="admin">Admin</option>
+            <option value="marketing">Marketing</option>
+            <option value="director">Director</option>
+            <option value="web">Web</option>
+        </select>
+        <div class="flex bg-gray-50 border border-gray-200 rounded-xl p-1">
+            <button @click="statusFilter = 'all'"
+                :class="statusFilter === 'all' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-600 hover:bg-white'"
+                class="px-4 py-1.5 text-xs font-bold rounded-lg transition-all">All</button>
+            <button @click="statusFilter = 'active'"
+                :class="statusFilter === 'active' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-600 hover:bg-white'"
+                class="px-4 py-1.5 text-xs font-bold rounded-lg transition-all">Active</button>
+            <button @click="statusFilter = 'inactive'"
+                :class="statusFilter === 'inactive' ? 'bg-gray-500 text-white shadow-sm' : 'text-slate-600 hover:bg-white'"
+                class="px-4 py-1.5 text-xs font-bold rounded-lg transition-all">Inactive</button>
+        </div>
+        <button x-show="hasActiveFilters" @click="clearFilters()"
+            class="px-3 py-2.5 text-xs font-bold text-slate-500 hover:text-red-600 transition-colors">
+            Clear
+        </button>
     </div>
 
     <!-- Users Table -->
@@ -69,7 +122,10 @@
                 </thead>
                 <tbody class="divide-y divide-gray-100">
                     {% for user in users %}
-                    <tr class="hover:bg-slate-50 transition-colors" id="user-row-{{ user.id }}">
+                    <tr class="hover:bg-slate-50 transition-colors row-stagger"
+                        style="--row-i: {{ loop.index0 }}"
+                        x-show="rowVisible('{{ user.role }}', {{ 'true' if user.is_active else 'false' }}, '{{ (user.display_name or '')|e }}', '{{ user.username|e }}', '{{ user.email|e }}')"
+                        id="user-row-{{ user.id }}">
                         <td class="px-6 py-4">
                             <div class="flex items-center gap-3">
                                 <div class="w-9 h-9 rounded-lg flex items-center justify-center text-xs font-bold text-white
@@ -109,20 +165,35 @@
                         <td class="px-6 py-4 text-xs text-gray-400">{{ user.created_at.strftime('%d %b %Y') }}</td>
                         <td class="px-6 py-4 text-right">
                             <div class="flex items-center justify-end gap-2">
-                                <button @click="openEdit({{ user.id }}, '{{ user.display_name }}', '{{ user.role }}', {{ 'true' if user.is_active else 'false' }})"
+                                {% if user.role == 'admin' and user.username == 'admin' %}
+                                <div class="relative group inline-flex"
+                                     title="System Admin cannot be deactivated or deleted">
+                                    <div class="w-8 h-8 rounded-lg bg-gray-50 text-gray-400 flex items-center justify-center cursor-help">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                        </svg>
+                                    </div>
+                                    <div class="pointer-events-none absolute right-full top-1/2 -translate-y-1/2 mr-2 z-30 w-max max-w-xs px-3 py-2 bg-slate-900 text-white text-[11px] font-medium rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                                        System Admin cannot be deactivated or deleted
+                                        <div class="absolute right-[-4px] top-1/2 -translate-y-1/2 w-2 h-2 bg-slate-900 rotate-45"></div>
+                                    </div>
+                                </div>
+                                {% else %}
+                                <button @click="openEdit({{ user.id }}, '{{ (user.display_name or '')|e }}', '{{ user.username|e }}', '{{ user.email|e }}', '{{ user.role }}', {{ 'true' if user.is_active else 'false' }})"
                                     class="px-3 py-1.5 bg-indigo-50 text-indigo-700 rounded-lg text-xs font-bold hover:bg-indigo-100 transition-colors">
                                     Edit
                                 </button>
                                 {% if user.id != session.get('user_id') %}
-                                <button @click="deactivateUser({{ user.id }})"
-                                    class="px-3 py-1.5 bg-red-50 text-red-600 rounded-lg text-xs font-bold hover:bg-red-100 transition-colors">
+                                <button @click="confirmDeactivate({{ user.id }}, '{{ (user.display_name or user.username)|e }}', {{ 'true' if user.is_active else 'false' }})"
+                                    class="px-3 py-1.5 {% if user.is_active %}bg-amber-50 text-amber-700 hover:bg-amber-100{% else %}bg-emerald-50 text-emerald-700 hover:bg-emerald-100{% endif %} rounded-lg text-xs font-bold transition-colors">
                                     {{ 'Activate' if not user.is_active else 'Deactivate' }}
                                 </button>
-                                <button @click="confirmDelete({{ user.id }}, '{{ user.display_name or user.username }}')"
+                                <button @click="confirmDelete({{ user.id }}, '{{ (user.display_name or user.username)|e }}')"
                                     class="px-3 py-1.5 bg-red-600 text-white rounded-lg text-xs font-bold hover:bg-red-700 transition-colors flex items-center gap-1">
                                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                                     Delete
                                 </button>
+                                {% endif %}
                                 {% endif %}
                             </div>
                         </td>
@@ -130,12 +201,38 @@
                     {% endfor %}
                 </tbody>
             </table>
+
+            <!-- Empty State -->
+            <div x-show="visibleCount === 0" class="text-center py-16 px-6">
+                <div class="w-16 h-16 mx-auto bg-slate-50 text-slate-300 rounded-2xl flex items-center justify-center mb-4">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728L5.636 5.636m12.728 12.728A9 9 0 015.636 5.636" />
+                    </svg>
+                </div>
+                <p class="text-sm font-bold text-slate-700 mb-1">No users match your current filters</p>
+                <p class="text-xs text-slate-400 mb-4">Try adjusting your search or filter selection.</p>
+                <button @click="clearFilters()" class="text-xs font-bold text-indigo-600 hover:text-indigo-800 transition-colors">Clear Filters</button>
+            </div>
         </div>
     </div>
 
     <!-- CREATE USER MODAL -->
-    <div x-show="showCreateModal" x-transition class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" x-cloak>
-        <div class="bg-white rounded-3xl w-full max-w-lg p-8 shadow-2xl" @click.away="showCreateModal = false">
+    <div x-show="showCreateModal"
+         x-transition:enter="transition ease-out duration-200"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-150"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0"
+         class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" x-cloak>
+        <div x-show="showCreateModal"
+             x-transition:enter="transition ease-out duration-250"
+             x-transition:enter-start="opacity-0 scale-95"
+             x-transition:enter-end="opacity-100 scale-100"
+             x-transition:leave="transition ease-in duration-150"
+             x-transition:leave-start="opacity-100 scale-100"
+             x-transition:leave-end="opacity-0 scale-95"
+             class="bg-white rounded-3xl w-full max-w-lg p-8 shadow-2xl" @click.away="showCreateModal = false">
             <h3 class="text-xl font-bold text-slate-900 mb-6 flex items-center gap-2">
                 <div class="w-8 h-8 bg-slate-900 text-white rounded-lg flex items-center justify-center">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -189,13 +286,52 @@
     </div>
 
     <!-- EDIT USER MODAL -->
-    <div x-show="showEditModal" x-transition class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" x-cloak>
-        <div class="bg-white rounded-3xl w-full max-w-lg p-8 shadow-2xl" @click.away="showEditModal = false">
-            <h3 class="text-xl font-bold text-slate-900 mb-6">Edit User</h3>
+    <div x-show="showEditModal"
+         x-transition:enter="transition ease-out duration-200"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-150"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0"
+         class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" x-cloak>
+        <div x-show="showEditModal"
+             x-transition:enter="transition ease-out duration-250"
+             x-transition:enter-start="opacity-0 scale-95"
+             x-transition:enter-end="opacity-100 scale-100"
+             x-transition:leave="transition ease-in duration-150"
+             x-transition:leave-start="opacity-100 scale-100"
+             x-transition:leave-end="opacity-0 scale-95"
+             class="bg-white rounded-3xl w-full max-w-lg p-8 shadow-2xl" @click.away="showEditModal = false">
+            <h3 class="text-xl font-bold text-slate-900 mb-6 flex items-center gap-2">
+                <div class="w-8 h-8 bg-slate-900 text-white rounded-lg flex items-center justify-center">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                </div>
+                Edit User
+            </h3>
             <div class="space-y-4">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 block">Display Name</label>
+                        <input x-model="editForm.display_name" type="text"
+                            class="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:border-indigo-300 focus:ring-2 focus:ring-indigo-50">
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 block">Username</label>
+                        <input x-model="editForm.username" type="text"
+                            class="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:border-indigo-300 focus:ring-2 focus:ring-indigo-50">
+                        <p class="mt-1 text-[10px] text-amber-600 flex items-center gap-1">
+                            <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                            </svg>
+                            Changing the username will affect this user's login
+                        </p>
+                    </div>
+                </div>
                 <div>
-                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 block">Display Name</label>
-                    <input x-model="editForm.display_name" type="text"
+                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 block">Email</label>
+                    <input x-model="editForm.email" type="email"
                         class="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:border-indigo-300 focus:ring-2 focus:ring-indigo-50">
                 </div>
                 <div class="grid grid-cols-2 gap-4">
@@ -218,15 +354,73 @@
                 <div x-show="editError" class="p-3 bg-red-50 text-red-700 text-xs font-medium rounded-xl border border-red-100" x-text="editError"></div>
                 <div class="flex gap-3 pt-2">
                     <button @click="showEditModal = false" class="flex-1 py-3 bg-gray-100 text-gray-700 rounded-xl font-bold hover:bg-gray-200 transition-colors text-sm">Cancel</button>
-                    <button @click="saveEdit()" class="flex-1 py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-colors text-sm shadow-lg shadow-indigo-200">Save Changes</button>
+                    <button @click="saveEdit()" class="flex-1 py-3 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition-colors text-sm shadow-lg shadow-slate-200">Save Changes</button>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- DEACTIVATE CONFIRMATION MODAL -->
+    <div x-show="showDeactivateModal"
+         x-transition:enter="transition ease-out duration-200"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-150"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0"
+         class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" x-cloak>
+        <div x-show="showDeactivateModal"
+             x-transition:enter="transition ease-out duration-250"
+             x-transition:enter-start="opacity-0 scale-95"
+             x-transition:enter-end="opacity-100 scale-100"
+             x-transition:leave="transition ease-in duration-150"
+             x-transition:leave-start="opacity-100 scale-100"
+             x-transition:leave-end="opacity-0 scale-95"
+             class="bg-white rounded-3xl w-full max-w-md p-8 shadow-2xl" @click.away="showDeactivateModal = false">
+            <h3 class="text-xl font-bold text-slate-900 mb-3 flex items-center gap-2">
+                <div class="w-8 h-8 bg-amber-500 text-white rounded-lg flex items-center justify-center">
+                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                    </svg>
+                </div>
+                <span x-text="deactivateTargetActive ? 'Deactivate User?' : 'Activate User?'"></span>
+            </h3>
+            <p class="text-sm text-gray-500 mb-6">
+                <template x-if="deactivateTargetActive">
+                    <span>Are you sure you want to deactivate <strong class="text-slate-800" x-text="deactivateUserName"></strong>? They will lose access immediately.</span>
+                </template>
+                <template x-if="!deactivateTargetActive">
+                    <span>Re-activate <strong class="text-slate-800" x-text="deactivateUserName"></strong>? They will regain access on next login.</span>
+                </template>
+            </p>
+            <div class="flex gap-3">
+                <button @click="showDeactivateModal = false" class="flex-1 py-3 bg-gray-100 text-gray-700 rounded-xl font-bold hover:bg-gray-200 transition-colors text-sm">Cancel</button>
+                <button @click="executeDeactivate()"
+                    :class="deactivateTargetActive ? 'bg-amber-500 hover:bg-amber-600 shadow-amber-200' : 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-200'"
+                    class="flex-1 py-3 text-white rounded-xl font-bold transition-colors text-sm shadow-lg">
+                    <span x-text="deactivateTargetActive ? 'Deactivate' : 'Activate'"></span>
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- DELETE CONFIRMATION MODAL -->
-    <div x-show="showDeleteModal" x-transition class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" x-cloak>
-        <div class="bg-white rounded-3xl w-full max-w-sm p-8 shadow-2xl text-center" @click.away="showDeleteModal = false">
+    <div x-show="showDeleteModal"
+         x-transition:enter="transition ease-out duration-200"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-150"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0"
+         class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" x-cloak>
+        <div x-show="showDeleteModal"
+             x-transition:enter="transition ease-out duration-250"
+             x-transition:enter-start="opacity-0 scale-95"
+             x-transition:enter-end="opacity-100 scale-100"
+             x-transition:leave="transition ease-in duration-150"
+             x-transition:leave-start="opacity-100 scale-100"
+             x-transition:leave-end="opacity-0 scale-95"
+             class="bg-white rounded-3xl w-full max-w-sm p-8 shadow-2xl text-center" @click.away="showDeleteModal = false">
             <div class="w-16 h-16 bg-red-50 text-red-600 rounded-2xl flex items-center justify-center mx-auto mb-5 ring-8 ring-red-50/50">
                 <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -241,7 +435,73 @@
             </div>
         </div>
     </div>
+
+    <!-- EXPORT MODAL -->
+    <div x-show="showExportModal"
+         x-transition:enter="transition ease-out duration-200"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-150"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0"
+         class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" x-cloak>
+        <div x-show="showExportModal"
+             x-transition:enter="transition ease-out duration-250"
+             x-transition:enter-start="opacity-0 scale-95"
+             x-transition:enter-end="opacity-100 scale-100"
+             x-transition:leave="transition ease-in duration-150"
+             x-transition:leave-start="opacity-100 scale-100"
+             x-transition:leave-end="opacity-0 scale-95"
+             class="bg-white rounded-3xl w-full max-w-md p-8 shadow-2xl" @click.away="showExportModal = false">
+            <h3 class="text-xl font-bold text-slate-900 mb-2 flex items-center gap-2">
+                <div class="w-8 h-8 bg-emerald-600 text-white rounded-lg flex items-center justify-center">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                </div>
+                Export Users to Excel
+            </h3>
+            <p class="text-sm text-gray-500 mb-5">Select the role(s) you want to include in the export.</p>
+            <div class="space-y-2.5 mb-5">
+                <label class="flex items-center gap-3 px-4 py-3 bg-gray-50 hover:bg-gray-100 rounded-xl border border-gray-200 cursor-pointer transition-colors">
+                    <input type="checkbox" x-model="exportRoles.marketing" class="w-4 h-4 accent-red-600">
+                    <span class="text-sm font-bold text-slate-700">Marketing</span>
+                </label>
+                <label class="flex items-center gap-3 px-4 py-3 bg-gray-50 hover:bg-gray-100 rounded-xl border border-gray-200 cursor-pointer transition-colors">
+                    <input type="checkbox" x-model="exportRoles.director" class="w-4 h-4 accent-amber-600">
+                    <span class="text-sm font-bold text-slate-700">Director</span>
+                </label>
+                <label class="flex items-center gap-3 px-4 py-3 bg-gray-50 hover:bg-gray-100 rounded-xl border border-gray-200 cursor-pointer transition-colors">
+                    <input type="checkbox" x-model="exportRoles.web" class="w-4 h-4 accent-indigo-600">
+                    <span class="text-sm font-bold text-slate-700">Web Team</span>
+                </label>
+            </div>
+            <div x-show="exportError" class="p-3 mb-4 bg-red-50 text-red-700 text-xs font-medium rounded-xl border border-red-100" x-text="exportError"></div>
+            <div class="flex gap-3">
+                <button @click="showExportModal = false" class="flex-1 py-3 bg-gray-100 text-gray-700 rounded-xl font-bold hover:bg-gray-200 transition-colors text-sm">Cancel</button>
+                <button @click="executeExport()" class="flex-1 py-3 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 transition-colors text-sm shadow-lg shadow-emerald-200">Export</button>
+            </div>
+        </div>
+    </div>
 </div>
+
+<style>
+.row-stagger {
+    animation: rowFadeIn 0.4s ease-out backwards;
+    animation-delay: calc(var(--row-i) * 30ms);
+}
+@keyframes rowFadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.page-fade-in {
+    animation: pageFadeIn 0.3s ease-out;
+}
+@keyframes pageFadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+</style>
 
 <script>
 function adminPanel() {
@@ -249,22 +509,62 @@ function adminPanel() {
         showCreateModal: false,
         showEditModal: false,
         showDeleteModal: false,
+        showDeactivateModal: false,
+        showExportModal: false,
         createError: '',
         editError: '',
         deleteError: '',
+        exportError: '',
         deleteUserId: null,
         deleteUserName: '',
+        deactivateUserId: null,
+        deactivateUserName: '',
+        deactivateTargetActive: true,
+        searchTerm: '',
+        roleFilter: 'all',
+        statusFilter: 'all',
         createForm: { display_name: '', username: '', email: '', password: '', role: 'marketing' },
-        editForm: { id: null, display_name: '', role: '', password: '', is_active: true },
-        
+        editForm: { id: null, display_name: '', username: '', email: '', role: '', password: '', is_active: true },
+        exportRoles: { marketing: true, director: true, web: true },
+
         init() {},
-        
-        openEdit(id, displayName, role, isActive) {
-            this.editForm = { id, display_name: displayName, role, password: '', is_active: isActive };
+
+        get hasActiveFilters() {
+            return this.searchTerm.trim() !== '' || this.roleFilter !== 'all' || this.statusFilter !== 'all';
+        },
+
+        get visibleCount() {
+            return document.querySelectorAll('tbody tr[id^="user-row-"]:not([style*="display: none"])').length;
+        },
+
+        rowVisible(role, isActive, displayName, username, email) {
+            if (this.roleFilter !== 'all' && role !== this.roleFilter) return false;
+            if (this.statusFilter === 'active' && !isActive) return false;
+            if (this.statusFilter === 'inactive' && isActive) return false;
+            const term = this.searchTerm.trim().toLowerCase();
+            if (term) {
+                const haystack = (displayName + ' ' + username + ' ' + email).toLowerCase();
+                if (!haystack.includes(term)) return false;
+            }
+            return true;
+        },
+
+        setRoleFilter(role) {
+            this.roleFilter = role;
+        },
+
+        clearFilters() {
+            this.searchTerm = '';
+            this.roleFilter = 'all';
+            this.statusFilter = 'all';
+        },
+
+        openEdit(id, displayName, username, email, role, isActive) {
+            this.editForm = { id, display_name: displayName, username, email, role, password: '', is_active: isActive };
             this.editError = '';
             this.showEditModal = true;
         },
-        
+
         async createUser() {
             this.createError = '';
             try {
@@ -283,15 +583,17 @@ function adminPanel() {
                 this.createError = 'Network error. Please try again.';
             }
         },
-        
+
         async saveEdit() {
             this.editError = '';
             const payload = {
                 display_name: this.editForm.display_name,
+                username: this.editForm.username,
+                email: this.editForm.email,
                 role: this.editForm.role
             };
             if (this.editForm.password) payload.password = this.editForm.password;
-            
+
             try {
                 const res = await fetch(`/api/admin/users/${this.editForm.id}`, {
                     method: 'PUT',
@@ -308,31 +610,35 @@ function adminPanel() {
                 this.editError = 'Network error. Please try again.';
             }
         },
-        
-        async deactivateUser(userId) {
-            if (!confirm('Are you sure you want to toggle this user\'s active status?')) return;
+
+        confirmDeactivate(userId, userName, isActive) {
+            this.deactivateUserId = userId;
+            this.deactivateUserName = userName;
+            this.deactivateTargetActive = isActive;
+            this.showDeactivateModal = true;
+        },
+
+        async executeDeactivate() {
             try {
-                const row = document.getElementById('user-row-' + userId);
-                const isActive = row.querySelector('.text-emerald-600') !== null;
-                
-                await fetch(`/api/admin/users/${userId}`, {
+                await fetch(`/api/admin/users/${this.deactivateUserId}`, {
                     method: 'PUT',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ is_active: !isActive })
+                    body: JSON.stringify({ is_active: !this.deactivateTargetActive })
                 });
+                this.showDeactivateModal = false;
                 window.location.reload();
             } catch (e) {
                 alert('Failed to update user status.');
             }
         },
-        
+
         confirmDelete(userId, userName) {
             this.deleteUserId = userId;
             this.deleteUserName = userName;
             this.deleteError = '';
             this.showDeleteModal = true;
         },
-        
+
         async executeDelete() {
             this.deleteError = '';
             try {
@@ -349,6 +655,41 @@ function adminPanel() {
                 }
             } catch (e) {
                 this.deleteError = 'Network error. Please try again.';
+            }
+        },
+
+        async executeExport() {
+            this.exportError = '';
+            const selected = Object.keys(this.exportRoles).filter(k => this.exportRoles[k]);
+            if (selected.length === 0) {
+                this.exportError = 'Please select at least one role.';
+                return;
+            }
+            try {
+                const res = await fetch('/api/admin/users/export', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ roles: selected })
+                });
+                if (!res.ok) {
+                    const data = await res.json().catch(() => ({}));
+                    this.exportError = data.error || 'Export failed.';
+                    return;
+                }
+                const blob = await res.blob();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                const cd = res.headers.get('Content-Disposition') || '';
+                const match = cd.match(/filename="([^"]+)"/);
+                a.download = match ? match[1] : 'users_export.csv';
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                URL.revokeObjectURL(url);
+                this.showExportModal = false;
+            } catch (e) {
+                this.exportError = 'Network error. Please try again.';
             }
         }
     };

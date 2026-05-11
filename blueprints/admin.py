@@ -61,6 +61,20 @@ def api_update_user(user_id):
     data = request.get_json(force=True)
     if 'display_name' in data:
         user.display_name = data['display_name'].strip()
+    if 'username' in data:
+        new_username = data['username'].strip().lower()
+        if new_username and new_username != user.username:
+            clash = User.query.filter(User.username == new_username, User.id != user.id).first()
+            if clash:
+                return jsonify({"error": "Username already taken"}), 400
+            user.username = new_username
+    if 'email' in data:
+        new_email = data['email'].strip().lower()
+        if new_email and new_email != user.email:
+            clash = User.query.filter(User.email == new_email, User.id != user.id).first()
+            if clash:
+                return jsonify({"error": "Email already taken"}), 400
+            user.email = new_email
     if 'role' in data and data['role'] in ('admin', 'marketing', 'director', 'web'):
         user.role = data['role']
     if 'is_active' in data:
@@ -83,6 +97,186 @@ def api_delete_user(user_id):
     db.session.delete(user)
     db.session.commit()
     return jsonify({"ok": True, "message": f"User {user.username} permanently deleted"})
+
+
+# ── STATS & ANALYTICS ─────────────────────────────────────────────────────────
+
+@admin_bp.route('/admin/stats')
+def admin_stats():
+    if session.get('role') != 'admin':
+        return redirect(url_for('auth.login'))
+
+    from datetime import datetime, timedelta, timezone
+    from sqlalchemy import func, or_
+
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    week_ago = now - timedelta(days=7)
+
+    # ── Section 1: Overview ───────────────────────────────────────────────
+    total_products  = Product.query.filter(Product.deleted_at.is_(None)).count()
+    finalized_count = Product.query.filter(Product.workflow_stage == 'finalized',
+                                           Product.deleted_at.is_(None)).count()
+    in_progress     = total_products - finalized_count
+    active_users    = User.query.filter_by(is_active=True).count()
+    products_this_week = Product.query.filter(Product.created_at >= week_ago,
+                                              Product.deleted_at.is_(None)).count()
+
+    # ── Section 2: Workflow Pipeline ──────────────────────────────────────
+    stage_rows = (db.session.query(Product.workflow_stage, func.count(Product.id))
+                  .filter(Product.deleted_at.is_(None))
+                  .group_by(Product.workflow_stage).all())
+    stage_breakdown = [{'stage': s or 'unknown', 'count': c} for s, c in stage_rows]
+    stage_breakdown.sort(key=lambda x: x['count'], reverse=True)
+
+    # Approvals this week — count "Approved" history entries
+    approvals_this_week = ProductHistory.query.filter(
+        ProductHistory.timestamp >= week_ago,
+        ProductHistory.action_title.ilike('%approved%')
+    ).count()
+
+    # Avg time draft → finalized: use the last "SpecSheet Approved" timestamp per product
+    avg_finalize_days = 0.0
+    finalized_products = Product.query.filter(Product.workflow_stage == 'finalized',
+                                              Product.deleted_at.is_(None)).all()
+    if finalized_products:
+        deltas = []
+        for p in finalized_products:
+            final_evt = (ProductHistory.query
+                         .filter(ProductHistory.product_id == p.id,
+                                 ProductHistory.action_title.ilike('%specsheet approved%'))
+                         .order_by(ProductHistory.timestamp.desc()).first())
+            if final_evt and p.created_at:
+                deltas.append((final_evt.timestamp - p.created_at).total_seconds() / 86400)
+        if deltas:
+            avg_finalize_days = round(sum(deltas) / len(deltas), 1)
+
+    # Daily product creation — last 14 days
+    daily_counts = []
+    for i in range(13, -1, -1):
+        day = now - timedelta(days=i)
+        day_start = day.replace(hour=0, minute=0, second=0, microsecond=0)
+        day_end   = day_start + timedelta(days=1)
+        cnt = Product.query.filter(Product.created_at >= day_start,
+                                   Product.created_at < day_end,
+                                   Product.deleted_at.is_(None)).count()
+        daily_counts.append({'label': day.strftime('%d %b'), 'short': day.strftime('%a'), 'value': cnt})
+
+    # ── Section 3: AI / Job Activity ──────────────────────────────────────
+    total_jobs     = Job.query.count()
+    completed_jobs = Job.query.filter_by(status='completed').count()
+    failed_jobs    = Job.query.filter_by(status='failed').count()
+    queued_jobs    = Job.query.filter(Job.status.in_(['queued', 'processing'])).count()
+    success_rate   = round((completed_jobs / total_jobs * 100), 1) if total_jobs else 0
+
+    # Average job duration (completed jobs only)
+    avg_job_seconds = 0
+    completed_with_times = (Job.query
+                            .filter(Job.status == 'completed',
+                                    Job.completed_at.isnot(None))
+                            .all())
+    if completed_with_times:
+        durations = [(j.completed_at - j.created_at).total_seconds()
+                     for j in completed_with_times if j.created_at]
+        if durations:
+            avg_job_seconds = round(sum(durations) / len(durations), 1)
+
+    recent_jobs = Job.query.order_by(Job.created_at.desc()).limit(8).all()
+
+    # Jobs over last 7 days
+    jobs_last_week = Job.query.filter(Job.created_at >= week_ago).count()
+
+    # ── Section 4: Team Activity ──────────────────────────────────────────
+    user_activity = (db.session.query(
+            User.id, User.display_name, User.username, User.role,
+            func.count(FieldChangeLog.id).label('edits'),
+        )
+        .outerjoin(FieldChangeLog, FieldChangeLog.user_id == User.id)
+        .group_by(User.id, User.display_name, User.username, User.role)
+        .order_by(func.count(FieldChangeLog.id).desc())
+        .all())
+
+    user_activity_list = [{
+        'id': r.id,
+        'display_name': r.display_name or r.username,
+        'username': r.username,
+        'role': r.role,
+        'edits': r.edits or 0,
+    } for r in user_activity]
+
+    role_activity_rows = (db.session.query(User.role, func.count(FieldChangeLog.id))
+                          .join(FieldChangeLog, FieldChangeLog.user_id == User.id)
+                          .group_by(User.role).all())
+    role_activity = [{'role': r or 'unknown', 'count': c} for r, c in role_activity_rows]
+
+    # Most active user (top by edits, at least 1 edit)
+    most_active_user = next((u for u in user_activity_list if u['edits'] > 0), None)
+
+    return render_template('admin_stats.html',
+        total_products=total_products,
+        in_progress=in_progress,
+        finalized_count=finalized_count,
+        active_users=active_users,
+        products_this_week=products_this_week,
+        stage_breakdown=stage_breakdown,
+        approvals_this_week=approvals_this_week,
+        avg_finalize_days=avg_finalize_days,
+        daily_counts=daily_counts,
+        total_jobs=total_jobs,
+        completed_jobs=completed_jobs,
+        failed_jobs=failed_jobs,
+        queued_jobs=queued_jobs,
+        success_rate=success_rate,
+        avg_job_seconds=avg_job_seconds,
+        jobs_last_week=jobs_last_week,
+        recent_jobs=recent_jobs,
+        user_activity=user_activity_list,
+        role_activity=role_activity,
+        most_active_user=most_active_user,
+    )
+
+
+# ── EXPORT USERS ──────────────────────────────────────────────────────────────
+
+@admin_bp.route('/api/admin/users/export', methods=['POST'])
+def api_export_users():
+    err = _require_admin()
+    if err: return err
+    import io, csv
+    from flask import Response
+
+    data = request.get_json(force=True) or {}
+    roles = data.get('roles') or []
+    valid_roles = {'marketing', 'director', 'web'}
+    selected = [r for r in roles if r in valid_roles]
+    if not selected:
+        return jsonify({"error": "Select at least one role"}), 400
+
+    users = User.query.filter(User.role.in_(selected)).order_by(User.role, User.created_at.desc()).all()
+
+    buf = io.StringIO()
+    writer = csv.writer(buf)
+    writer.writerow(['Display Name', 'Username', 'Email', 'Role', 'Status', 'Created Date'])
+    for u in users:
+        writer.writerow([
+            u.display_name or '',
+            u.username,
+            u.email,
+            u.role,
+            'Active' if u.is_active else 'Inactive',
+            u.created_at.strftime('%Y-%m-%d') if u.created_at else '',
+        ])
+    csv_bytes = buf.getvalue().encode('utf-8-sig')
+    filename = f"users_export_{datetime_safe_now()}.csv"
+    return Response(
+        csv_bytes,
+        mimetype='text/csv; charset=utf-8',
+        headers={'Content-Disposition': f'attachment; filename="{filename}"'}
+    )
+
+
+def datetime_safe_now():
+    from datetime import datetime, timezone
+    return datetime.now(timezone.utc).replace(tzinfo=None).strftime('%Y%m%d_%H%M%S')
 
 
 # ── PROMPT MANAGEMENT ─────────────────────────────────────────────────────────
