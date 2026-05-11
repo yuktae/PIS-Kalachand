@@ -1,0 +1,1795 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto py-12 px-4" x-data="proformaImport()">
+
+    <!-- HEADER -->
+    <div class="text-center mb-12 animate-fade-in">
+        <h2 class="text-4xl font-extrabold text-slate-900 tracking-tight mb-4">Import Proforma</h2>
+        <p class="text-slate-500 max-w-xl mx-auto leading-relaxed">
+            Upload a brochure, invoice, or supplier URL — pick a processing mode and let the AI engine extract one or
+            many products into draft PIS records.
+        </p>
+    </div>
+
+    <!-- MODE TOGGLE -->
+    <div class="bg-white rounded-[2.5rem] shadow-2xl shadow-slate-200/60 border border-slate-100 p-8 mb-8 animate-slide-up">
+        <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Processing Mode</label>
+        <div class="grid grid-cols-3 gap-3">
+            <template x-for="opt in modeOptions" :key="opt.value">
+                <label
+                    class="cursor-pointer rounded-2xl border p-4 transition-all"
+                    :class="mode === opt.value
+                        ? 'border-red-500 bg-red-50/70 shadow-sm ring-2 ring-red-100'
+                        : 'border-slate-100 bg-slate-50/40 hover:border-slate-200 hover:bg-white'">
+                    <input type="radio" name="mode" :value="opt.value" x-model="mode" class="sr-only">
+                    <p class="text-sm font-bold"
+                        :class="mode === opt.value ? 'text-red-700' : 'text-slate-700'"
+                        x-text="opt.label"></p>
+                    <p class="text-[10px] font-medium text-slate-400 mt-1" x-text="opt.hint"></p>
+                </label>
+            </template>
+        </div>
+    </div>
+
+    <!-- ════════════════════════════════════════════════════════════════════
+         AUTO-DETECT — minimal upload zone. AI classifies the document and
+         routes the user to either Single Item or Invoice / Multiple. The
+         file is saved ONCE here and the target wizard's session is primed
+         server-side, so there is no re-upload after the route decision.
+         ════════════════════════════════════════════════════════════════════ -->
+    <div x-show="mode === 'auto'" x-transition
+        class="bg-white rounded-[2.5rem] shadow-2xl shadow-slate-200/60 border border-slate-100 overflow-hidden relative animate-slide-up">
+
+        <div class="p-10 space-y-6">
+            <div>
+                <h3 class="font-extrabold text-2xl text-slate-900 tracking-tight">Drop a proforma to begin</h3>
+                <p class="text-sm text-slate-500 mt-1">The AI will analyse the document and route you to the right flow — single product or bulk import. No other settings to fill in.</p>
+            </div>
+
+            <!-- Idle drop zone (hidden once analysis starts) -->
+            <div x-show="!autoBusy && !autoError" class="relative group">
+                <label
+                    class="relative border-2 border-dashed border-slate-200 rounded-[2rem] p-12 flex flex-col items-center justify-center text-center cursor-pointer hover:border-red-300 transition-all bg-slate-50/50 group-hover:bg-white">
+                    <input type="file" multiple accept=".pdf,.docx,.jpg,.jpeg,.png,.webp"
+                        @change="onAutoFiles($event)"
+                        class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10">
+                    <div class="w-16 h-16 bg-white rounded-2xl shadow-sm border border-slate-100 flex items-center justify-center mb-4 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300">
+                        <svg class="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                        </svg>
+                    </div>
+                    <p class="text-sm font-bold text-slate-700">Click to upload</p>
+                    <p class="text-xs text-slate-400 mt-2">PDF, DOCX, or image — multi-file supported</p>
+                </label>
+            </div>
+
+            <!-- Analyzing state -->
+            <div x-show="autoBusy" x-cloak
+                class="border border-slate-100 rounded-[2rem] bg-slate-50/60 p-10 flex items-center gap-5">
+                <svg class="w-10 h-10 animate-spin text-red-500 shrink-0" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <div class="min-w-0">
+                    <p class="text-sm font-bold text-slate-800" x-text="autoBusyMsg || 'Analysing document…'"></p>
+                    <p class="text-xs text-slate-400 mt-0.5">Counting products and detecting the right flow.</p>
+                </div>
+            </div>
+
+            <!-- Error / retry state -->
+            <div x-show="autoError" x-cloak
+                class="border border-red-100 rounded-[2rem] bg-red-50 p-6 flex items-start gap-4">
+                <svg class="w-6 h-6 text-red-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                </svg>
+                <div class="flex-1 min-w-0">
+                    <p class="text-sm font-bold text-red-700">Auto-detect failed</p>
+                    <p class="text-xs text-red-600 mt-0.5" x-text="autoError"></p>
+                    <button type="button" @click="autoError = ''"
+                        class="mt-3 px-4 py-1.5 text-xs font-bold uppercase tracking-widest bg-white text-red-700 border border-red-200 rounded-lg hover:bg-red-50">
+                        Try again
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ════════════════════════════════════════════════════════════════════
+         MULTIPLE — bulk import wizard (Phase A: upload + triage + preview)
+         ════════════════════════════════════════════════════════════════════ -->
+    <div x-show="mode === 'multiple'" x-transition
+        class="bg-white rounded-[2.5rem] shadow-2xl shadow-slate-200/60 border border-slate-100 overflow-hidden relative animate-slide-up">
+
+        <div class="p-10 space-y-10">
+
+            <!-- 1. UPLOAD -->
+            <section class="space-y-4">
+                <div class="flex items-baseline justify-between">
+                    <h3 class="font-extrabold text-xl text-slate-900">Upload proforma(s)</h3>
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">PDF, DOCX, image — multi-file ok</span>
+                </div>
+
+                <div class="relative group">
+                    <label
+                        class="relative border-2 border-dashed border-slate-200 rounded-[2rem] p-8 flex flex-col items-center justify-center text-center cursor-pointer hover:border-red-300 transition-all bg-slate-50/50 group-hover:bg-white">
+                        <input type="file" multiple accept=".pdf,.docx,.jpg,.jpeg,.png,.webp"
+                            @change="onBulkFiles($event)"
+                            class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10">
+                        <div class="w-14 h-14 bg-white rounded-2xl shadow-sm border border-slate-100 flex items-center justify-center mb-3 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300">
+                            <svg class="w-7 h-7 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                            </svg>
+                        </div>
+                        <p class="text-sm font-bold text-slate-700">Click to upload</p>
+                        <p class="text-[11px] text-slate-400 mt-1">One or more proforma documents</p>
+                    </label>
+                </div>
+
+                <div x-show="bulkFiles.length > 0" class="space-y-2">
+                    <template x-for="(f, i) in bulkFiles" :key="f.name + '_' + i">
+                        <div class="flex items-center justify-between p-4 bg-red-50 border border-red-100 rounded-2xl shadow-sm">
+                            <div class="flex items-center gap-4">
+                                <div class="p-2.5 bg-white rounded-xl text-red-500 shadow-sm border border-red-50">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-bold text-slate-800 truncate max-w-xs" x-text="f.name"></p>
+                                    <p class="text-[10px] font-bold text-red-400 uppercase tracking-widest" x-text="(f.size/1024/1024).toFixed(2) + ' MB'"></p>
+                                </div>
+                            </div>
+                            <button type="button" @click="removeBulkFile(i)" class="w-9 h-9 flex items-center justify-center text-slate-400 hover:text-red-600 hover:bg-white rounded-xl transition-all">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                            </button>
+                        </div>
+                    </template>
+                </div>
+
+                <!-- Internal-Kalachand toggle -->
+                <div class="flex items-center justify-between p-5 bg-slate-50/80 rounded-2xl border border-slate-100">
+                    <div class="flex flex-col">
+                        <span class="text-xs font-bold text-slate-700 uppercase tracking-widest mb-1">Internal Kalachand proforma?</span>
+                        <span class="text-[10px] text-slate-400 font-medium">Tick if this is a Kalachand-created doc (MUR pricing, no supplier letterhead) so the AI knows to research the category instead of trusting the document.</span>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" x-model="bulkInternal" class="sr-only peer">
+                        <div class="w-11 h-6 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-600"></div>
+                    </label>
+                </div>
+
+                <button @click="runBulkTriage()"
+                    :disabled="bulkFiles.length === 0 || bulkRunning"
+                    class="w-full py-4 bg-slate-900 hover:bg-red-600 disabled:bg-slate-300 text-white font-bold rounded-full transition-all uppercase tracking-wide text-sm">
+                    <span x-show="!bulkRunning && !bulkTriageDone">Run triage scan</span>
+                    <span x-show="!bulkRunning && bulkTriageDone">Re-run triage</span>
+                    <span x-show="bulkRunning" x-text="bulkRunningStage"></span>
+                </button>
+            </section>
+
+            <!-- Progress bar -->
+            <div x-show="bulkTriageStarted" class="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                <div class="h-full transition-all duration-500 ease-out bg-gradient-to-r from-red-500 to-red-700"
+                    :style="`width: ${bulkProgress}%`"></div>
+            </div>
+
+            <!-- 2. TRIAGE SUMMARY -->
+            <section x-show="bulkTriage" x-transition class="space-y-4">
+                <div class="flex items-baseline justify-between">
+                    <h3 class="font-extrabold text-xl text-slate-900">Triage summary</h3>
+                    <span class="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full uppercase tracking-widest border border-emerald-100">AI scan</span>
+                </div>
+
+                <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
+                    <div class="bg-slate-50 border border-slate-100 rounded-2xl p-4">
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Items</p>
+                        <p class="text-2xl font-extrabold text-slate-900 mt-1" x-text="bulkTriage?.summary?.item_count ?? 0"></p>
+                    </div>
+                    <div class="bg-slate-50 border border-slate-100 rounded-2xl p-4">
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Density</p>
+                        <p class="text-sm font-bold text-slate-900 mt-1 capitalize" x-text="bulkTriage?.summary?.density ?? '—'"></p>
+                    </div>
+                    <div class="bg-slate-50 border border-slate-100 rounded-2xl p-4">
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Images</p>
+                        <p class="text-sm font-bold text-slate-900 mt-1 capitalize" x-text="bulkTriage?.summary?.has_images ?? '—'"></p>
+                    </div>
+                    <div class="bg-slate-50 border border-slate-100 rounded-2xl p-4">
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Origin</p>
+                        <p class="text-sm font-bold text-slate-900 mt-1" x-text="(bulkTriage?.summary?.origin || '—').replace('_', ' ')"></p>
+                    </div>
+                    <div class="bg-slate-50 border border-slate-100 rounded-2xl p-4">
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Cluster shape</p>
+                        <p class="text-sm font-bold text-slate-900 mt-1 capitalize" x-text="bulkTriage?.summary?.cluster_shape ?? '—'"></p>
+                    </div>
+                </div>
+
+                <p x-show="bulkTriage?.summary?.notes" class="text-xs text-slate-500 italic" x-text="bulkTriage?.summary?.notes"></p>
+
+                <!-- Rework with feedback -->
+                <div class="space-y-2 pt-2 border-t border-slate-100">
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Looks wrong? Re-run the scan with feedback</p>
+                    <textarea x-model="bulkRework" rows="2"
+                        :disabled="bulkRunning"
+                        placeholder="e.g. 'rows 3–5 are colour variants of the same wardrobe, not separate products'"
+                        class="w-full px-4 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-xs focus:bg-white focus:ring-2 focus:ring-red-200 focus:border-red-300 outline-none transition-all disabled:opacity-60"></textarea>
+                    <div class="flex items-center justify-end gap-2">
+                        <button type="button" @click="bulkRework = ''"
+                            x-show="bulkRework.trim() && !bulkRunning"
+                            class="text-[10px] font-bold text-slate-400 hover:text-slate-700 uppercase tracking-widest">Clear</button>
+                        <button type="button" @click="runBulkRework()"
+                            :disabled="!bulkRework.trim() || bulkRunning"
+                            class="px-5 py-2 bg-slate-900 hover:bg-red-600 disabled:bg-slate-300 text-white text-[10px] font-bold uppercase tracking-widest rounded-xl transition-all">
+                            <span x-show="!bulkRunning">↻ Re-run with feedback</span>
+                            <span x-show="bulkRunning">Re-running...</span>
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 3. CLUSTER PREVIEW -->
+            <section x-show="bulkClusterGroups.length > 0" x-transition class="space-y-4">
+                <div class="flex items-baseline justify-between">
+                    <h3 class="font-extrabold text-xl text-slate-900">Cluster preview</h3>
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest" x-text="bulkActiveDraftCount() + ' draft PIS'"></span>
+                </div>
+                <p class="text-xs text-slate-500">Each container below will become one PIS. Click a cluster title or item name to rename. Use the · menu on items to move them, split them out, or skip them.</p>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <template x-for="(g, gi) in bulkClusterGroups" :key="g.id">
+                        <div class="rounded-2xl border-2 transition-all hover:shadow-md"
+                            :class="g.kind === 'variants' ? 'border-red-200 bg-red-50/30' : 'border-slate-200 bg-white'">
+                            <!-- Cluster header — click label to rename, split button for variant groups
+                                 (rounded-t-2xl matches the parent so we can drop overflow-hidden and let
+                                 item-action popovers escape the card boundary). -->
+                            <div class="px-4 py-3 border-b flex items-center justify-between gap-3 rounded-t-2xl"
+                                :class="g.kind === 'variants' ? 'border-red-100 bg-red-50/60' : 'border-slate-100 bg-slate-50/60'">
+                                <div class="min-w-0 flex-1">
+                                    <p class="text-[10px] font-bold uppercase tracking-widest"
+                                        :class="g.kind === 'variants' ? 'text-red-700' : 'text-slate-500'"
+                                        x-text="g.kind === 'variants' ? 'Variant group · 1 PIS' : 'Distinct · 1 PIS'"></p>
+                                    <input
+                                        x-show="bulkEditingClusterId === g.id"
+                                        x-ref="clusterInputs"
+                                        :value="g.label"
+                                        @keydown.enter.prevent="renameCluster(gi, $event.target.value); bulkEditingClusterId = null"
+                                        @keydown.escape.prevent="bulkEditingClusterId = null"
+                                        @blur="renameCluster(gi, $event.target.value); bulkEditingClusterId = null"
+                                        class="w-full text-sm font-bold text-slate-900 bg-white border border-slate-300 rounded px-2 py-0.5 focus:outline-none focus:ring-2 focus:ring-red-200">
+                                    <p x-show="bulkEditingClusterId !== g.id"
+                                        @click="bulkEditingClusterId = g.id; $nextTick(() => { const i = $refs.clusterInputs; if (i && i.focus) i.focus(); })"
+                                        class="text-sm font-bold text-slate-900 truncate cursor-text hover:bg-white/60 rounded px-1 -mx-1"
+                                        x-text="g.label"></p>
+                                </div>
+                                <div class="shrink-0 flex items-center gap-2">
+                                    <span class="text-[10px] font-bold text-slate-500 bg-white border border-slate-200 px-2 py-0.5 rounded-full"
+                                        x-text="g.item_indexes.length + ' row' + (g.item_indexes.length === 1 ? '' : 's')"></span>
+                                    <button type="button"
+                                        x-show="g.kind === 'variants' && g.item_indexes.length > 1"
+                                        @click="splitCluster(gi)"
+                                        class="text-[10px] font-bold text-red-600 hover:text-red-800 uppercase tracking-widest"
+                                        title="Split each variant into its own PIS">⇲ Split</button>
+                                </div>
+                            </div>
+                            <!-- Item rows — rename inline, three-dot menu for actions -->
+                            <div class="divide-y divide-slate-100">
+                                <template x-for="idx in g.item_indexes" :key="'item_' + idx">
+                                    <div class="px-4 py-3 flex items-start gap-3 group/item"
+                                        :class="bulkTriage.items[idx]?.skip ? 'opacity-40' : ''">
+                                        <div class="shrink-0 w-1.5 h-1.5 mt-2 rounded-full"
+                                            :class="bulkTriage.items[idx]?.has_image ? 'bg-emerald-500' : 'bg-slate-300'"
+                                            :title="bulkTriage.items[idx]?.has_image ? 'Has product photo' : 'No photo'"></div>
+                                        <div class="flex-1 min-w-0">
+                                            <input
+                                                x-show="bulkEditingItemIdx === idx"
+                                                x-ref="itemInputs"
+                                                :value="bulkTriage.items[idx]?.name || ''"
+                                                @keydown.enter.prevent="renameItem(idx, $event.target.value); bulkEditingItemIdx = null"
+                                                @keydown.escape.prevent="bulkEditingItemIdx = null"
+                                                @blur="renameItem(idx, $event.target.value); bulkEditingItemIdx = null"
+                                                class="w-full text-sm font-bold text-slate-800 bg-white border border-slate-300 rounded px-2 py-0.5 focus:outline-none focus:ring-2 focus:ring-red-200">
+                                            <p x-show="bulkEditingItemIdx !== idx"
+                                                @click="bulkEditingItemIdx = idx; $nextTick(() => { const i = $refs.itemInputs; if (i && i.focus) i.focus(); })"
+                                                class="text-sm font-bold text-slate-800 truncate cursor-text hover:bg-slate-50 rounded px-1 -mx-1"
+                                                :class="bulkTriage.items[idx]?.skip ? 'line-through' : ''"
+                                                x-text="bulkTriage.items[idx]?.name || ('Row ' + (idx+1))"></p>
+                                            <div class="flex flex-wrap gap-x-3 gap-y-0.5 text-[10px] text-slate-500 mt-0.5">
+                                                <span x-show="bulkTriage.items[idx]?.brand" x-text="bulkTriage.items[idx]?.brand"></span>
+                                                <span x-show="bulkTriage.items[idx]?.model_number" class="font-mono" x-text="bulkTriage.items[idx]?.model_number"></span>
+                                                <span x-show="bulkTriage.items[idx]?.price" class="font-bold text-slate-700" x-text="bulkTriage.items[idx]?.price"></span>
+                                                <span x-show="bulkTriage.items[idx]?.category_hint" class="text-slate-400" x-text="bulkTriage.items[idx]?.category_hint"></span>
+                                            </div>
+                                        </div>
+                                        <!-- Three-dot popover (auto-flips above if too close to viewport bottom) -->
+                                        <div class="shrink-0 relative" x-data="{
+                                                open: false,
+                                                flipUp: false,
+                                                toggleMenu(btnEl) {
+                                                    if (this.open) { this.open = false; return; }
+                                                    const rect = btnEl.getBoundingClientRect();
+                                                    const menuHeight = 230;   // approx, max ~6 items
+                                                    const room = window.innerHeight - rect.bottom;
+                                                    this.flipUp = (room < menuHeight + 16) && (rect.top > menuHeight + 16);
+                                                    this.open = true;
+                                                }
+                                            }" @click.outside="open = false" @keydown.escape.window="open = false">
+                                            <button type="button" @click.stop="toggleMenu($el)"
+                                                class="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-100 transition-all opacity-0 group-hover/item:opacity-100 focus:opacity-100"
+                                                :class="open ? 'opacity-100 bg-slate-100' : ''"
+                                                title="Item actions">
+                                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><circle cx="10" cy="4" r="1.5"/><circle cx="10" cy="10" r="1.5"/><circle cx="10" cy="16" r="1.5"/></svg>
+                                            </button>
+                                            <div x-show="open" x-transition.opacity
+                                                :class="flipUp ? 'bottom-9' : 'top-9'"
+                                                class="absolute right-0 z-30 w-56 bg-white border border-slate-200 rounded-xl shadow-xl py-1.5 text-left">
+                                                <button type="button" @click="open = false; bulkEditingItemIdx = idx; $nextTick(() => { const i = $refs.itemInputs; if (i && i.focus) i.focus(); })"
+                                                    class="w-full px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 flex items-center gap-2">
+                                                    <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                                                    Rename
+                                                </button>
+                                                <button type="button" @click="open = false; splitItem(idx)"
+                                                    x-show="g.item_indexes.length > 1"
+                                                    class="w-full px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 flex items-center gap-2">
+                                                    <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+                                                    Split out as own PIS
+                                                </button>
+                                                <div class="border-t border-slate-100 my-1" x-show="bulkClusterGroups.length > 1"></div>
+                                                <p x-show="bulkClusterGroups.length > 1" class="px-4 pt-1 pb-0.5 text-[9px] font-bold text-slate-400 uppercase tracking-widest">Move to…</p>
+                                                <template x-for="(tg, tgi) in bulkClusterGroups" :key="'mv_' + tg.id">
+                                                    <button type="button"
+                                                        x-show="tgi !== gi"
+                                                        @click="open = false; moveItem(idx, tgi)"
+                                                        class="w-full px-4 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50 flex items-center gap-2 truncate">
+                                                        <svg class="w-3.5 h-3.5 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                                                        <span class="truncate" x-text="tg.label"></span>
+                                                    </button>
+                                                </template>
+                                                <div class="border-t border-slate-100 my-1"></div>
+                                                <button type="button" @click="open = false; toggleSkipItem(idx)"
+                                                    class="w-full px-4 py-2 text-xs font-semibold hover:bg-slate-50 flex items-center gap-2"
+                                                    :class="bulkTriage.items[idx]?.skip ? 'text-emerald-700' : 'text-red-600'">
+                                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                            :d="bulkTriage.items[idx]?.skip
+                                                                ? 'M5 13l4 4L19 7'
+                                                                : 'M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636'"/>
+                                                    </svg>
+                                                    <span x-text="bulkTriage.items[idx]?.skip ? 'Un-skip (include in PIS)' : 'Skip this row'"></span>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </section>
+
+            <!-- 4. GENERATE PIS (Phase C — persist drafts, redirect) -->
+            <section x-show="bulkClusterGroups.length > 0" x-transition class="pt-4 border-t border-slate-100">
+                <button @click="runBulkExtract()"
+                    :disabled="bulkRunning || bulkActiveDraftCount() === 0"
+                    class="w-full py-5 bg-slate-900 hover:bg-red-600 disabled:bg-slate-300 text-white font-bold rounded-full uppercase tracking-wide text-sm flex items-center justify-center gap-3 transition-all">
+                    <span x-show="!bulkRunning">
+                        Generate <span x-text="bulkActiveDraftCount()"></span> PIS
+                        <span x-show="bulkActiveDraftCount() < bulkClusterGroups.length"
+                            class="text-[10px] font-normal opacity-80 ml-2"
+                            x-text="'(' + (bulkClusterGroups.length - bulkActiveDraftCount()) + ' skipped)'"></span>
+                    </span>
+                    <span x-show="bulkRunning" x-text="bulkRunningStage"></span>
+                    <svg x-show="!bulkRunning" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                    </svg>
+                </button>
+                <p class="text-center text-[10px] text-slate-400 mt-3 font-medium">
+                    Drafts go to your marketing queue. Phase D will add a workspace where each PIS gets enriched lazily (image, content, category).
+                </p>
+                <p x-show="bulkErrorMsg" class="text-xs text-red-600 mt-3 text-center" x-text="bulkErrorMsg"></p>
+            </section>
+
+        </div>
+    </div>
+
+    <!-- ════════════════════════════════════════════════════════════════════
+         SINGLE — single-page cascading flow
+         ════════════════════════════════════════════════════════════════════ -->
+    <div x-show="mode === 'single'" x-transition
+        class="bg-white rounded-[2.5rem] shadow-2xl shadow-slate-200/60 border border-slate-100 overflow-hidden relative animate-slide-up">
+
+        <div class="p-10 space-y-10">
+
+            <!-- 1. UPLOAD -->
+            <section class="space-y-4">
+                <div class="flex items-baseline justify-between">
+                    <h3 class="font-extrabold text-xl text-slate-900">Upload</h3>
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">PDF or image</span>
+                </div>
+
+                <div class="relative group">
+                    <label
+                        class="relative border-2 border-dashed border-slate-200 rounded-[2rem] p-8 flex flex-col items-center justify-center text-center cursor-pointer hover:border-red-300 transition-all bg-slate-50/50 group-hover:bg-white">
+                        <input type="file" multiple accept=".pdf,.jpg,.jpeg,.png,.webp,.docx"
+                            @change="onWizardFiles($event)"
+                            class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10">
+                        <div class="w-14 h-14 bg-white rounded-2xl shadow-sm border border-slate-100 flex items-center justify-center mb-3 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300">
+                            <svg class="w-7 h-7 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                            </svg>
+                        </div>
+                        <p class="text-sm font-bold text-slate-700">Click to upload</p>
+                        <p class="text-[11px] text-slate-400 mt-1">PDF, image, or DOCX</p>
+                    </label>
+                </div>
+
+                <div x-show="wizardFiles.length > 0" class="space-y-2">
+                    <template x-for="(f, i) in wizardFiles" :key="f.name + '_' + i">
+                        <div class="flex items-center justify-between p-4 bg-red-50 border border-red-100 rounded-2xl shadow-sm">
+                            <div class="flex items-center gap-4">
+                                <div class="p-2.5 bg-white rounded-xl text-red-500 shadow-sm border border-red-50">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-bold text-slate-800 truncate max-w-xs" x-text="f.name"></p>
+                                    <p class="text-[10px] font-bold text-red-400 uppercase tracking-widest" x-text="(f.size/1024/1024).toFixed(2) + ' MB'"></p>
+                                </div>
+                            </div>
+                            <button type="button" @click="removeWizardFile(i)" class="w-9 h-9 flex items-center justify-center text-slate-400 hover:text-red-600 hover:bg-white rounded-xl transition-all">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                            </button>
+                        </div>
+                    </template>
+                </div>
+
+                <button @click="runCascade()"
+                    :disabled="wizardFiles.length === 0 || running"
+                    class="w-full py-4 bg-slate-900 hover:bg-red-600 disabled:bg-slate-300 text-white font-bold rounded-full transition-all uppercase tracking-wide text-sm">
+                    <span x-show="!running && !cascadeStarted">Start Processing</span>
+                    <span x-show="!running && cascadeStarted">Re-run</span>
+                    <span x-show="running" x-text="runningStage"></span>
+                </button>
+            </section>
+
+            <!-- Progress bar (hidden until something started) -->
+            <div x-show="cascadeStarted" class="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                <div class="h-full transition-all duration-500 ease-out bg-gradient-to-r from-red-500 to-red-700"
+                    :style="`width: ${progress}%`"></div>
+            </div>
+
+            <!-- 2. EXTRACTED NAME (cascades in after scan) -->
+            <section x-show="sections.name" x-transition class="space-y-4">
+                <div class="flex items-baseline justify-between">
+                    <h3 class="font-extrabold text-xl text-slate-900">Detected product</h3>
+                    <span class="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full uppercase tracking-widest border border-emerald-100">From document</span>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="space-y-1.5 md:col-span-2">
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest">Target Model Name</label>
+                        <input type="text" x-model="form.model_name" placeholder="e.g. Samsung 55 OLED"
+                            class="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl focus:bg-white focus:ring-4 focus:ring-red-500/5 focus:border-red-400 outline-none transition-all text-sm font-semibold text-slate-800">
+                    </div>
+                    <div class="space-y-1.5">
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest">Brand</label>
+                        <input type="text" x-model="form.brand"
+                            class="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-sm">
+                    </div>
+                    <div class="space-y-1.5">
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest">Model Number</label>
+                        <input type="text" x-model="form.model_number"
+                            class="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-sm">
+                    </div>
+                </div>
+            </section>
+
+            <!-- 3. SUPPLIER URL (cascades in after find_url) -->
+            <section x-show="sections.url" x-transition class="space-y-4">
+                <div class="flex items-baseline justify-between">
+                    <h3 class="font-extrabold text-xl text-slate-900">Supplier URL</h3>
+                    <button type="button" @click="rerunFromUrl()" :disabled="running"
+                        class="text-[10px] font-bold text-slate-500 hover:text-red-600 uppercase tracking-widest disabled:text-slate-300">↻ Search again</button>
+                </div>
+
+                <div class="space-y-2">
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest">URL</label>
+                    <div class="flex gap-2">
+                        <input type="url" x-model="form.supplier_url" placeholder="https://supplier.com/product-page"
+                            class="flex-1 px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl focus:bg-white focus:ring-4 focus:ring-red-500/5 focus:border-red-400 outline-none transition-all text-sm">
+                        <a x-show="form.supplier_url" :href="form.supplier_url" target="_blank" rel="noopener"
+                            class="px-5 py-3.5 bg-red-50 hover:bg-red-100 text-red-600 border border-red-100 rounded-2xl flex items-center gap-2 text-xs font-bold uppercase tracking-widest transition-all">
+                            Open
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 3h7v7m0-7L10 14m-3-9H5a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg>
+                        </a>
+                    </div>
+                </div>
+
+                <div x-show="urlCandidates.length > 0" class="space-y-1.5">
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Other candidates</p>
+                    <template x-for="c in urlCandidates" :key="c">
+                        <div class="flex items-center gap-2 px-3 py-2 bg-slate-50 hover:bg-slate-100 border border-slate-100 rounded-xl transition-all">
+                            <button type="button" @click="form.supplier_url = c"
+                                class="text-[10px] font-bold text-red-500 hover:text-red-700 uppercase tracking-widest shrink-0">Use</button>
+                            <a :href="c" target="_blank" rel="noopener"
+                                class="text-xs text-slate-600 hover:text-red-600 truncate flex-1" x-text="c"></a>
+                            <a :href="c" target="_blank" rel="noopener"
+                                class="text-slate-400 hover:text-red-600 shrink-0" title="Open in new tab">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 3h7v7m0-7L10 14m-3-9H5a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg>
+                            </a>
+                            <button type="button" @click="removeCandidate(c)"
+                                class="text-slate-400 hover:text-red-600 shrink-0" title="Remove">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                            </button>
+                        </div>
+                    </template>
+                </div>
+
+                <!-- Add custom URL -->
+                <div class="space-y-1.5 pt-2 border-t border-slate-100">
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Add a URL manually</p>
+                    <div class="flex gap-2">
+                        <input type="url" x-model="manualUrl" @keydown.enter.prevent="addManualUrl()"
+                            placeholder="https://example.com/product-page"
+                            class="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-xs focus:bg-white focus:ring-2 focus:ring-red-200 focus:border-red-300 outline-none transition-all">
+                        <button type="button" @click="addManualUrl()" :disabled="!manualUrl.trim()"
+                            class="px-5 py-2.5 bg-slate-900 hover:bg-red-600 disabled:bg-slate-300 text-white text-[10px] font-bold uppercase tracking-widest rounded-xl transition-all">Add</button>
+                    </div>
+                    <p class="text-[10px] text-slate-400">Adds to the candidate list. The most-recently-added URL also becomes the supplier URL above.</p>
+                </div>
+            </section>
+
+            <!-- 4. IMAGE CANDIDATES (cascades in after extract_images) -->
+            <section x-show="sections.images || proformaPreviewUrl" x-transition class="space-y-4">
+                <div class="flex items-baseline justify-between gap-3 flex-wrap">
+                    <h3 class="font-extrabold text-xl text-slate-900">Product image</h3>
+                    <div class="flex items-center gap-3">
+                        <button type="button"
+                            x-show="proformaPreviewUrl"
+                            @click="openProformaCropModal()"
+                            :disabled="cropping"
+                            class="text-[10px] font-bold text-red-600 hover:text-red-800 uppercase tracking-widest disabled:text-slate-300"
+                            title="Manually crop the original proforma">
+                            ✂ Crop from proforma
+                        </button>
+                        <button type="button" @click="rerunFromImages()" :disabled="running"
+                            class="text-[10px] font-bold text-slate-500 hover:text-red-600 uppercase tracking-widest disabled:text-slate-300">↻ Re-extract</button>
+                    </div>
+                </div>
+                <p x-show="running && runningStage" class="text-xs text-slate-500" x-text="'AI is searching: ' + runningStage"></p>
+
+                <p class="text-xs text-slate-500" x-show="imageCandidates.length === 0 && !running">No image candidates were extracted. You can save without an image.</p>
+                <p class="text-xs text-slate-500" x-show="imageCandidates.length === 1">Confident match — confirm or skip.</p>
+                <p class="text-xs text-slate-500" x-show="imageCandidates.length > 1">Multiple candidates — pick the best.</p>
+
+                <div x-show="imageCandidates.length > 0" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <template x-for="(c, i) in imageCandidates" :key="c.path + '_' + i">
+                        <div class="rounded-2xl border-2 overflow-hidden transition-all hover:shadow-lg"
+                            :class="form.selected_image === c.path ? 'border-red-500 ring-4 ring-red-100' : 'border-slate-200 hover:border-red-300'">
+                            <button type="button" @click="form.selected_image = c.path" class="block w-full">
+                                <img :src="'/static/' + c.path" :alt="'Candidate ' + (i+1)"
+                                    class="w-full aspect-square object-contain bg-white" loading="lazy">
+                            </button>
+                            <div class="px-3 py-2 bg-slate-50 border-t border-slate-100 text-left flex items-center justify-between gap-2">
+                                <div class="min-w-0">
+                                    <p class="text-[10px] font-bold uppercase tracking-widest"
+                                        :class="c.source === 'document' ? 'text-emerald-600' : (c.source === 'manual' ? 'text-red-600' : 'text-blue-600')"
+                                        x-text="c.source === 'document' ? 'From document' : (c.source === 'manual' ? 'Manual crop' : 'Web crop')"></p>
+                                    <a x-show="c.page_url" :href="c.page_url" target="_blank" rel="noopener"
+                                        class="text-[10px] text-slate-400 hover:text-red-600 truncate block" x-text="c.page_url"></a>
+                                </div>
+                                <button type="button" @click.stop="openCropModal(i)"
+                                    :disabled="cropping"
+                                    class="shrink-0 text-[10px] font-bold text-slate-500 hover:text-red-600 uppercase tracking-widest border border-slate-200 hover:border-red-300 rounded-lg px-2 py-1 transition-all disabled:opacity-50"
+                                    title="Open manual crop tool">✂ Crop</button>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </section>
+
+            <!-- CROP MODAL -->
+            <div x-show="cropTarget !== null" x-cloak
+                class="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-md"
+                @keydown.escape.window="cancelCrop()">
+                <div class="bg-white rounded-[2rem] w-full max-w-3xl shadow-2xl border border-white/20 overflow-hidden flex flex-col"
+                    @click.outside="cancelCrop()">
+                    <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                        <h4 class="font-extrabold text-lg text-slate-900">Crop image</h4>
+                        <button type="button" @click="cancelCrop()" class="text-slate-400 hover:text-slate-700 p-1">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                        </button>
+                    </div>
+                    <div class="p-4 bg-slate-50">
+                        <div class="flex items-center justify-between flex-wrap gap-3 mb-3">
+                            <p class="text-[11px] text-slate-500">Drag on the image to draw the crop rectangle. Release to set. Apply to save.</p>
+                            <div class="flex items-center gap-1.5 bg-white border border-slate-200 rounded-xl p-1">
+                                <template x-for="opt in cropRatioOptions" :key="opt.value">
+                                    <button type="button" @click="setCropRatio(opt.value)"
+                                        :class="cropRatio === opt.value
+                                            ? 'bg-slate-900 text-white shadow-sm'
+                                            : 'text-slate-500 hover:text-slate-900'"
+                                        class="text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-lg transition-all"
+                                        :title="opt.title"
+                                        x-text="opt.label"></button>
+                                </template>
+                            </div>
+                        </div>
+                        <!-- The drag container is sized to the image's natural aspect once it
+                             loads. Until then we keep a minimum height so dragging always
+                             works, and so users see *something* if the URL fails. -->
+                        <div class="flex justify-center">
+                            <div class="relative max-w-full select-none touch-none bg-slate-100 border border-slate-200 rounded-lg overflow-hidden cursor-crosshair"
+                                x-ref="cropContainer"
+                                :style="`width: ${cropContainerW}px; height: ${cropContainerH}px; max-width: 100%; max-height: 60vh;`"
+                                @mousedown="cropStart($event)"
+                                @mousemove="cropMove($event)"
+                                @mouseup="cropEnd($event)"
+                                @mouseleave="cropEnd($event)"
+                                @touchstart.prevent="cropStart($event.touches[0])"
+                                @touchmove.prevent="cropMove($event.touches[0])"
+                                @touchend.prevent="cropEnd($event.changedTouches[0])">
+                                <img x-show="cropImageSrc && !cropImageBroken"
+                                    :src="cropImageSrc" x-ref="cropImage"
+                                    @load="onCropImageLoad($event)"
+                                    @error="onCropImageError($event)"
+                                    class="block w-full h-full object-contain bg-white pointer-events-none"
+                                    draggable="false" alt="Crop source">
+                                <div x-show="cropImageBroken"
+                                    class="absolute inset-0 flex items-center justify-center text-center p-4 pointer-events-none">
+                                    <div>
+                                        <p class="text-xs font-bold text-red-600 mb-1">Image failed to load</p>
+                                        <p class="text-[10px] text-slate-500 break-all" x-text="cropImageSrc"></p>
+                                    </div>
+                                </div>
+                                <div x-show="cropRect.w > 0 && cropRect.h > 0"
+                                    class="absolute border-2 border-red-500 bg-red-500/10 pointer-events-none"
+                                    :style="`left:${cropRect.x*100}%; top:${cropRect.y*100}%; width:${cropRect.w*100}%; height:${cropRect.h*100}%`">
+                                </div>
+                            </div>
+                        </div>
+                        <p class="text-[10px] text-slate-400 mt-2 break-all" x-text="cropImageSrc"></p>
+                        <p x-show="cropError" class="text-xs text-red-600 mt-3" x-text="cropError"></p>
+                    </div>
+                    <div class="px-6 py-4 border-t border-slate-100 flex justify-end gap-2">
+                        <button type="button" @click="cancelCrop()"
+                            class="px-5 py-2.5 text-xs font-bold uppercase tracking-widest text-slate-600 hover:text-slate-900 border border-slate-200 hover:border-slate-400 rounded-xl transition-all">Cancel</button>
+                        <button type="button" @click="applyCrop()"
+                            :disabled="cropping || cropRect.w < 0.02 || cropRect.h < 0.02"
+                            class="px-6 py-2.5 text-xs font-bold uppercase tracking-widest bg-slate-900 hover:bg-red-600 disabled:bg-slate-300 text-white rounded-xl transition-all">
+                            <span x-show="!cropping">Apply crop</span>
+                            <span x-show="cropping">Saving...</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 5. SAVE — enabled the moment a candidate is selected, even if
+                 the cascade is still searching for more. The save call itself
+                 also aborts the in-flight extract stream so we don't keep
+                 burning SERP requests after the user has decided. -->
+            <section x-show="sections.images" x-transition class="pt-4 border-t border-slate-100">
+                <button @click="runFinalize()"
+                    :disabled="finalizing || !form.model_name.trim()
+                                || (!form.selected_image && imageCandidates.length === 0)"
+                    class="w-full py-5 bg-slate-900 hover:bg-red-600 disabled:bg-slate-300 text-white font-bold rounded-full transition-all uppercase tracking-wide text-sm flex items-center justify-center gap-3">
+                    <span x-show="!finalizing && form.selected_image && running">Save with selected image — skip the rest</span>
+                    <span x-show="!finalizing && form.selected_image && !running">Save with selected image</span>
+                    <span x-show="!finalizing && !form.selected_image">Save without image</span>
+                    <span x-show="finalizing">Saving...</span>
+                    <svg x-show="!finalizing" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                    </svg>
+                </button>
+                <p x-show="running && !finalizing"
+                   class="text-[11px] text-slate-400 mt-2 text-center">
+                    Still searching for more options — feel free to commit any time.
+                </p>
+                <p x-show="errorMsg" class="text-xs text-red-600 mt-3 text-center" x-text="errorMsg"></p>
+            </section>
+
+        </div>
+    </div>
+
+    <!-- LEGACY MODE PROGRESS MODAL -->
+    <div x-show="legacyProcessing" x-cloak
+        class="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-900/70 backdrop-blur-md animate-fade-in">
+        <div class="bg-white rounded-[2.5rem] w-full max-w-xl p-10 shadow-2xl animate-scale-up border border-white/20 relative overflow-hidden">
+            <div class="absolute -top-12 -right-12 w-48 h-48 bg-red-50 rounded-full blur-3xl opacity-60"></div>
+            <div class="relative z-10">
+                <div class="w-20 h-20 bg-red-50 text-red-600 rounded-3xl flex items-center justify-center mb-8 mx-auto shadow-sm ring-8 ring-red-50/50">
+                    <svg x-show="progress < 100" class="w-10 h-10 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <svg x-show="progress >= 100" class="w-10 h-10 text-emerald-500 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+                    </svg>
+                </div>
+                <h3 class="font-extrabold text-2xl text-slate-900 mb-3 text-center" x-text="statusMessage"></h3>
+                <p class="text-xs text-slate-400 text-center mb-6 uppercase tracking-widest font-bold">Mode: <span x-text="mode"></span></p>
+                <div class="w-full bg-slate-100 rounded-full h-3 relative overflow-hidden ring-4 ring-slate-50 mb-6">
+                    <div class="h-full transition-all duration-700 ease-out bg-gradient-to-r from-red-500 to-red-700" :style="`width: ${progress}%`"></div>
+                </div>
+                <div x-show="items.length > 0" class="max-h-56 overflow-y-auto rounded-2xl bg-slate-50/70 border border-slate-100 divide-y divide-slate-100">
+                    <template x-for="(item, idx) in items" :key="item.name + '_' + idx">
+                        <div class="flex items-center justify-between gap-3 px-4 py-2.5">
+                            <p class="text-xs font-semibold text-slate-700 truncate" x-text="item.name"></p>
+                            <span class="text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full"
+                                :class="{
+                                    'bg-amber-50 text-amber-600 border border-amber-100': item.status === 'pending' || item.status === 'searching',
+                                    'bg-emerald-50 text-emerald-600 border border-emerald-100': item.status === 'completed',
+                                    'bg-red-50 text-red-600 border border-red-100': item.status === 'failed'
+                                }"
+                                x-text="item.status"></span>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    @keyframes scale-up { 0% { opacity: 0; transform: scale(0.95) translateY(10px); } 100% { opacity: 1; transform: scale(1) translateY(0); } }
+    .animate-scale-up { animation: scale-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    @keyframes fade-in { 0% { opacity: 0; } 100% { opacity: 1; } }
+    .animate-fade-in { animation: fade-in 0.6s ease-out forwards; }
+    @keyframes slide-up { 0% { opacity: 0; transform: translateY(20px); } 100% { opacity: 1; transform: translateY(0); } }
+    .animate-slide-up { animation: slide-up 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+</style>
+
+<script>
+    function proformaImport() {
+        return {
+            mode: 'auto',
+            modeOptions: [
+                {value: 'auto',     label: 'Auto-Detect',        hint: 'Let the AI decide'},
+                {value: 'single',   label: 'Single Item',        hint: 'One product brochure'},
+                {value: 'multiple', label: 'Invoice / Multiple', hint: 'List of products'}
+            ],
+
+            // ── Auto-Detect state (one-shot upload + classify + dispatch) ──
+            autoBusy: false,
+            autoBusyMsg: '',
+            autoError: '',
+
+            // Legacy auto/multiple state — retained for the streaming
+            // progress panel only; the form that fed it has been replaced
+            // by the Auto-Detect drop-zone above, so these fields are
+            // effectively read-only now.
+            legacyFiles: [],
+            legacyProcessing: false,
+            statusMessage: 'Preparing...',
+            items: [],
+
+            // ── Bulk wizard state (Phase A) ──
+            bulkFiles: [],
+            bulkInternal: false,
+            bulkRunning: false,
+            bulkRunningStage: '',
+            bulkProgress: 0,
+            bulkTriageStarted: false,
+            bulkTriageDone: false,
+            bulkSessionToken: null,
+            bulkTriage: null,             // { summary: {...}, items: [...] }
+            bulkClusterGroups: [],
+            bulkRework: '',
+            bulkErrorMsg: '',
+            // Phase B inline-edit state
+            bulkEditingItemIdx: null,    // null or item index currently in rename mode
+            bulkEditingClusterId: null,  // null or cluster id currently in rename mode
+
+            // Wizard state
+            wizardFiles: [],
+            sessionToken: null,
+            cascadeStarted: false,
+            running: false,         // true while the cascade pulls candidates
+            finalizing: false,      // true ONLY during the finalize POST — kept
+                                    // separate from `running` so the Save
+                                    // button enables the moment a candidate
+                                    // is picked, even if web search hasn't
+                                    // finished trickling more in.
+            extractAbort: null,     // AbortController for the in-flight
+                                    // /single/extract_images stream — used to
+                                    // bail out when the user commits early.
+            runningStage: '',
+            progress: 0,
+            errorMsg: '',
+            sections: { name: false, url: false, images: false },
+            form: {
+                model_name: '', brand: '', model_number: '',
+                supplier_url: '', selected_image: ''
+            },
+            urlCandidates: [],
+            imageCandidates: [],
+            manualUrl: '',
+            proformaPreviewUrl: '',   // relative "uploads/..." path of the proforma render
+
+            // Crop modal state
+            // cropTarget: number → replaces imageCandidates[idx] in place.
+            //             'proforma' → adds a new candidate from the proforma source.
+            //             null → modal closed.
+            cropTarget: null,
+            cropMode: 'replace',      // 'replace' or 'add'
+            cropSourcePath: '',       // path sent to /single/crop
+            cropImageSrc: '',
+            cropImageBroken: false,
+            cropContainerW: 600,      // px, recomputed from natural image size on load
+            cropContainerH: 400,
+            cropRect: { x: 0, y: 0, w: 0, h: 0 },   // relative coords [0,1]
+            cropDragging: false,
+            cropOrigin: { x: 0, y: 0 },
+            cropping: false,
+            cropError: '',
+            // Aspect ratio constraint for the manual crop. 4:3 matches the
+            // marketing review thumbnail (templates/verify_marketing.html
+            // uses aspect-[4/3] + object-contain). Free = no constraint.
+            cropRatio: '4:3',
+            cropRatioOptions: [
+                { value: 'free', label: 'Free',   title: 'No aspect constraint' },
+                { value: '4:3',  label: '4:3',    title: 'Matches the PIS review thumbnail' },
+                { value: '1:1',  label: '1:1',    title: 'Square — common catalog default' },
+                { value: '3:4',  label: '3:4',    title: 'Portrait — for tall products' },
+            ],
+
+            // ── Auto-Detect handler ─────────────────────────────────────
+            // Runs the full one-upload-then-route pipeline:
+            //   1. POST files to /import_proforma/auto_detect
+            //   2. Server saves files, classifies via triage, primes the
+            //      target wizard's session, returns {mode, single|multiple}
+            //   3. Switch this.mode + hydrate the target wizard's state.
+            //      Single → resume the cascade from URL search step (we
+            //              already have session_token + scan + preview).
+            //      Multiple → drop straight onto the triage/cluster preview.
+            async onAutoFiles(e) {
+                const files = Array.from(e?.target?.files || []);
+                if (e?.target) e.target.value = '';   // allow re-upload of same file
+                if (files.length === 0 || this.autoBusy) return;
+
+                this.autoBusy = true;
+                this.autoError = '';
+                this.autoBusyMsg = `Uploading ${files.length} file${files.length > 1 ? 's' : ''}…`;
+
+                try {
+                    const fd = new FormData();
+                    files.forEach(f => fd.append('ai_document', f));
+                    this.autoBusyMsg = 'Analysing document…';
+                    const r = await fetch("{{ url_for('marketing.import_proforma_auto_detect') }}", {
+                        method: 'POST', body: fd,
+                    });
+                    const j = await r.json().catch(() => ({}));
+                    if (!r.ok || j.error) {
+                        this.autoError = j.error || `Server returned HTTP ${r.status}`;
+                        return;
+                    }
+
+                    if (j.mode === 'multiple') {
+                        this._dispatchToBulk(j, files);
+                    } else if (j.mode === 'single') {
+                        await this._dispatchToSingle(j, files);
+                    } else {
+                        this.autoError = `Unexpected mode '${j.mode}' returned by classifier`;
+                    }
+                } catch (err) {
+                    this.autoError = 'Network error: ' + (err.message || String(err));
+                } finally {
+                    this.autoBusy = false;
+                    this.autoBusyMsg = '';
+                }
+            },
+
+            /** Hydrate the bulk wizard's state from an /auto_detect response
+             *  and switch the UI to mode='multiple'. The server already
+             *  saved the files and ran the triage — the user lands directly
+             *  on the cluster-preview step. */
+            _dispatchToBulk(j, files) {
+                const m = j.multiple || {};
+                this.resetBulkState();
+                this.bulkSessionToken    = m.session_token || null;
+                this.bulkTriage          = m.triage || null;
+                this.bulkClusterGroups   = m.cluster_groups || [];
+                this.bulkTriageStarted   = true;
+                this.bulkTriageDone      = true;
+                this.bulkRunning         = false;
+                this.bulkRunningStage    = '';
+                // Mirror the original File[] objects so the file-card list
+                // in the bulk UI shows what was uploaded (server-side files
+                // are referenced via session_token; these are display-only).
+                this.bulkFiles = files.map(f => f);
+                this.mode = 'multiple';
+                this.$nextTick(() => window.scrollTo({ top: 0, behavior: 'smooth' }));
+            },
+
+            /** Hydrate the single wizard's state from an /auto_detect single
+             *  response and resume its cascade from the URL-search step.
+             *  We already have session_token + the quick-scan results, so
+             *  there is no second call to /single/scan. */
+            async _dispatchToSingle(j, files) {
+                const s = j.single || {};
+                this.resetWizardState();
+                this.sessionToken      = s.session_token || null;
+                this.wizardFiles       = files.map(f => f);   // display only
+                this.form.model_name   = s.scan?.product_name || '';
+                this.form.brand        = s.scan?.brand || '';
+                this.form.model_number = s.scan?.model_number || '';
+                this.proformaPreviewUrl = s.proforma_preview || '';
+                this.sections.name     = true;
+                this.cascadeStarted    = true;
+                this.mode              = 'single';
+                this.$nextTick(() => window.scrollTo({ top: 0, behavior: 'smooth' }));
+
+                if (!this.form.model_name.trim()) {
+                    this.errorMsg = 'Could not extract a product name. Edit the field and click "↻ Search again".';
+                    return;
+                }
+
+                // Resume the cascade from URL search → image extraction.
+                this.running = true;
+                try {
+                    await this.callFindUrl();
+                    await this.callExtractImages();
+                } catch (err) {
+                    this.errorMsg = 'Cascade error: ' + (err.message || String(err));
+                } finally {
+                    this.running = false;
+                    this.runningStage = '';
+                }
+            },
+
+            // ── Bulk wizard handlers (Phase A) ──
+            onBulkFiles(e) {
+                Array.from(e.target.files).forEach(f => {
+                    if (!this.bulkFiles.some(m => m.name === f.name && m.size === f.size)) {
+                        this.bulkFiles.push(f);
+                    }
+                });
+            },
+            removeBulkFile(i) { this.bulkFiles.splice(i, 1); },
+
+            resetBulkState() {
+                this.bulkSessionToken = null;
+                this.bulkTriageStarted = false;
+                this.bulkTriageDone = false;
+                this.bulkProgress = 0;
+                this.bulkErrorMsg = '';
+                this.bulkTriage = null;
+                this.bulkClusterGroups = [];
+            },
+
+            async runBulkTriage() {
+                if (this.bulkFiles.length === 0 || this.bulkRunning) return;
+                this.resetBulkState();
+                this.bulkTriageStarted = true;
+                this.bulkRunning = true;
+                this.bulkRunningStage = 'Running triage scan...';
+                try {
+                    const fd = new FormData();
+                    this.bulkFiles.forEach(f => fd.append('ai_document', f));
+                    if (this.bulkInternal) fd.append('kalachand_internal', 'on');
+                    const resp = await fetch("{{ url_for('marketing.import_proforma_bulk_triage') }}",
+                        { method: 'POST', body: fd });
+                    const payload = await this.consumeStream(resp);
+                    if (!payload || payload.error) {
+                        this.bulkErrorMsg = payload?.error || 'Triage scan failed.';
+                        return;
+                    }
+                    this.bulkSessionToken = payload.session_token;
+                    this.bulkTriage = payload.triage || null;
+                    this.bulkClusterGroups = payload.cluster_groups || [];
+                    this.bulkTriageDone = true;
+                } catch (e) {
+                    this.bulkErrorMsg = 'Network error: ' + e.message;
+                } finally {
+                    this.bulkRunning = false;
+                    this.bulkRunningStage = '';
+                }
+            },
+
+            // ── Phase B: cluster-edit helpers (all client-side until commit) ──
+            bulkActiveDraftCount() {
+                // Skipped items don't get their own PIS, but a cluster with
+                // ALL its items skipped still counts as 0 — exclude empty clusters.
+                let n = 0;
+                for (const g of this.bulkClusterGroups) {
+                    const anyActive = g.item_indexes.some(idx =>
+                        !(this.bulkTriage?.items?.[idx]?.skip));
+                    if (anyActive) n++;
+                }
+                return n;
+            },
+            renameItem(itemIdx, newName) {
+                if (!this.bulkTriage?.items?.[itemIdx]) return;
+                const v = (newName || '').trim();
+                if (!v) return;   // ignore empty rename
+                this.bulkTriage.items[itemIdx].name = v;
+            },
+            renameCluster(groupIdx, newLabel) {
+                const g = this.bulkClusterGroups[groupIdx];
+                if (!g) return;
+                const v = (newLabel || '').trim();
+                if (!v || v === g.label) return;
+                const old = g.label;
+                g.label = v;
+                // Variant groups carry their label on each item too — keep in sync.
+                if (g.kind === 'variants') {
+                    for (const idx of g.item_indexes) {
+                        if (this.bulkTriage.items[idx]?.variant_group === old) {
+                            this.bulkTriage.items[idx].variant_group = v;
+                        }
+                    }
+                }
+            },
+            toggleSkipItem(itemIdx) {
+                const it = this.bulkTriage?.items?.[itemIdx];
+                if (!it) return;
+                it.skip = !it.skip;
+            },
+            _removeFromCluster(groupIdx, itemIdx) {
+                const g = this.bulkClusterGroups[groupIdx];
+                if (!g) return;
+                g.item_indexes = g.item_indexes.filter(i => i !== itemIdx);
+                if (g.item_indexes.length === 0) {
+                    this.bulkClusterGroups.splice(groupIdx, 1);
+                } else if (g.kind === 'variants' && g.item_indexes.length === 1) {
+                    // Variant group collapsed to 1 item → becomes a singleton.
+                    g.kind = 'singleton';
+                    const lone = this.bulkTriage.items[g.item_indexes[0]];
+                    if (lone) {
+                        lone.variant_group = null;
+                        g.label = lone.name || g.label;
+                    }
+                }
+            },
+            _findGroupIdxOf(itemIdx) {
+                return this.bulkClusterGroups.findIndex(
+                    g => g.item_indexes.includes(itemIdx));
+            },
+            splitItem(itemIdx) {
+                // Pull this item out of its current cluster into a new singleton.
+                const fromIdx = this._findGroupIdxOf(itemIdx);
+                if (fromIdx < 0) return;
+                this._removeFromCluster(fromIdx, itemIdx);
+                const it = this.bulkTriage.items[itemIdx];
+                if (it) it.variant_group = null;
+                this.bulkClusterGroups.push({
+                    id: 'g_split_' + itemIdx + '_' + Date.now(),
+                    label: it?.name || ('Item ' + (itemIdx + 1)),
+                    kind: 'singleton',
+                    item_indexes: [itemIdx],
+                });
+            },
+            moveItem(itemIdx, targetGroupIdx) {
+                const fromIdx = this._findGroupIdxOf(itemIdx);
+                const target = this.bulkClusterGroups[targetGroupIdx];
+                if (fromIdx < 0 || !target || fromIdx === targetGroupIdx) return;
+                this._removeFromCluster(fromIdx, itemIdx);
+                // After remove, target's index might have shifted if from < target.
+                // Re-find by id to be safe.
+                const newTargetIdx = this.bulkClusterGroups.indexOf(target);
+                if (newTargetIdx < 0) return;
+                target.item_indexes.push(itemIdx);
+                // Moving an item INTO a singleton turns it into a variant group.
+                if (target.kind === 'singleton' && target.item_indexes.length > 1) {
+                    target.kind = 'variants';
+                }
+                // Sync the moved item's variant_group label.
+                const it = this.bulkTriage.items[itemIdx];
+                if (it) {
+                    it.variant_group = target.kind === 'variants' ? target.label : null;
+                }
+            },
+            splitCluster(groupIdx) {
+                const g = this.bulkClusterGroups[groupIdx];
+                if (!g || g.kind !== 'variants' || g.item_indexes.length <= 1) return;
+                // Each item becomes its own singleton.
+                const indexes = [...g.item_indexes];
+                this.bulkClusterGroups.splice(groupIdx, 1);
+                for (const idx of indexes) {
+                    const it = this.bulkTriage.items[idx];
+                    if (it) it.variant_group = null;
+                    this.bulkClusterGroups.push({
+                        id: 'g_split_' + idx + '_' + Date.now(),
+                        label: it?.name || ('Item ' + (idx + 1)),
+                        kind: 'singleton',
+                        item_indexes: [idx],
+                    });
+                }
+            },
+
+            async runBulkExtract() {
+                if (!this.bulkSessionToken || this.bulkRunning) return;
+                if (this.bulkActiveDraftCount() === 0) {
+                    this.bulkErrorMsg = 'No active items — un-skip at least one row.';
+                    return;
+                }
+                this.bulkRunning = true;
+                this.bulkRunningStage = 'Persisting drafts...';
+                this.bulkErrorMsg = '';
+                try {
+                    const resp = await fetch("{{ url_for('marketing.import_proforma_bulk_extract') }}", {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({
+                            session_token: this.bulkSessionToken,
+                            cluster_groups: this.bulkClusterGroups,
+                            items: this.bulkTriage?.items || [],
+                        }),
+                    });
+                    const json = await resp.json().catch(() => ({}));
+                    if (!resp.ok || json.error) {
+                        this.bulkErrorMsg = json.error || ('HTTP ' + resp.status);
+                        return;
+                    }
+                    if (json.redirect) {
+                        this.bulkRunningStage = `Created ${json.count} draft(s) — redirecting...`;
+                        window.location.href = json.redirect;
+                        return;
+                    }
+                } catch (e) {
+                    this.bulkErrorMsg = 'Network error: ' + e.message;
+                } finally {
+                    // Don't flip back on success — we're navigating away.
+                    if (this.bulkErrorMsg) {
+                        this.bulkRunning = false;
+                        this.bulkRunningStage = '';
+                    }
+                }
+            },
+
+            async runBulkRework() {
+                if (!this.bulkSessionToken || !this.bulkRework.trim() || this.bulkRunning) return;
+                this.bulkRunning = true;
+                this.bulkRunningStage = 'Re-running triage with feedback...';
+                this.bulkErrorMsg = '';
+                try {
+                    const resp = await fetch("{{ url_for('marketing.import_proforma_bulk_triage_rework') }}", {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({
+                            session_token: this.bulkSessionToken,
+                            feedback: this.bulkRework.trim(),
+                            origin_hint: this.bulkInternal ? 'kalachand_internal' : 'external_supplier',
+                        }),
+                    });
+                    const payload = await this.consumeStream(resp);
+                    if (!payload || payload.error) {
+                        this.bulkErrorMsg = payload?.error || 'Rework failed.';
+                        return;
+                    }
+                    this.bulkTriage = payload.triage || this.bulkTriage;
+                    this.bulkClusterGroups = payload.cluster_groups || [];
+                    // Clear the textarea — the AI has applied the feedback;
+                    // the user can add more if they want another pass.
+                    this.bulkRework = '';
+                } catch (e) {
+                    this.bulkErrorMsg = 'Network error: ' + e.message;
+                } finally {
+                    this.bulkRunning = false;
+                    this.bulkRunningStage = '';
+                }
+            },
+
+            // ── Legacy file handlers
+            onLegacyFiles(e) {
+                Array.from(e.target.files).forEach(f => {
+                    if (!this.legacyFiles.some(m => m.name === f.name && m.size === f.size)) {
+                        this.legacyFiles.push(f);
+                    }
+                });
+            },
+            removeLegacyFile(i) { this.legacyFiles.splice(i, 1); },
+
+            // ── Wizard file handlers
+            onWizardFiles(e) {
+                Array.from(e.target.files).forEach(f => {
+                    if (!this.wizardFiles.some(m => m.name === f.name && m.size === f.size)) {
+                        this.wizardFiles.push(f);
+                    }
+                });
+            },
+            removeWizardFile(i) { this.wizardFiles.splice(i, 1); },
+
+            resetWizardState() {
+                this.sessionToken = null;
+                this.cascadeStarted = false;
+                this.progress = 0;
+                this.errorMsg = '';
+                this.sections = { name: false, url: false, images: false };
+                this.form = {model_name: '', brand: '', model_number: '', supplier_url: '', selected_image: ''};
+                this.urlCandidates = [];
+                this.imageCandidates = [];
+                this.manualUrl = '';
+                this.proformaPreviewUrl = '';
+            },
+
+            addManualUrl() {
+                const u = this.manualUrl.trim();
+                if (!u) return;
+                if (!/^https?:\/\//i.test(u)) {
+                    this.errorMsg = 'URL must start with http:// or https://';
+                    return;
+                }
+                this.errorMsg = '';
+                if (!this.urlCandidates.includes(u) && this.form.supplier_url !== u) {
+                    this.urlCandidates.unshift(u);
+                }
+                this.form.supplier_url = u;
+                this.manualUrl = '';
+            },
+
+            removeCandidate(c) {
+                this.urlCandidates = this.urlCandidates.filter(x => x !== c);
+            },
+
+            // ── NDJSON consumer — collects the final non-log payload
+            async consumeStream(response) {
+                if (!response.ok) {
+                    let txt = ''; try { txt = await response.text(); } catch(_) {}
+                    this.errorMsg = 'HTTP ' + response.status + (txt ? ': ' + txt.slice(0, 200) : '');
+                    return null;
+                }
+                if (!response.body) {
+                    this.errorMsg = 'No streaming body';
+                    return null;
+                }
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let buffer = '';
+                let payload = null;
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    buffer += decoder.decode(value, { stream: true });
+                    let nl;
+                    while ((nl = buffer.indexOf('\n')) !== -1) {
+                        const line = buffer.slice(0, nl).trim();
+                        buffer = buffer.slice(nl + 1);
+                        if (!line) continue;
+                        let evt; try { evt = JSON.parse(line); } catch (_) { continue; }
+                        if (typeof evt.progress === 'number') this.progress = evt.progress;
+                        if (evt.error) {
+                            this.errorMsg = evt.error;
+                            payload = {error: evt.error};
+                        }
+                        // Skip pure-log and pure-progress events. Anything else
+                        // is the final structured payload for this step.
+                        const onlyLog  = evt.log !== undefined && Object.keys(evt).length === 1;
+                        const onlyProg = typeof evt.progress === 'number'
+                                          && Object.keys(evt).every(k => k === 'progress' || k === 'message');
+                        if (!onlyLog && !onlyProg && !evt.error) {
+                            payload = evt;
+                        }
+                    }
+                }
+                return payload;
+            },
+
+            // ── Main cascade: scan → find_url → extract_images
+            async runCascade() {
+                if (this.wizardFiles.length === 0 || this.running) return;
+                this.resetWizardState();
+                this.cascadeStarted = true;
+                this.running = true;
+
+                try {
+                    // Step 1+2: scan
+                    this.runningStage = 'Scanning document...';
+                    const fd = new FormData();
+                    this.wizardFiles.forEach(f => fd.append('ai_document', f));
+                    let resp = await fetch("{{ url_for('marketing.import_proforma_single_scan') }}",
+                        { method: 'POST', body: fd });
+                    let payload = await this.consumeStream(resp);
+                    if (!payload || !payload.session_token) {
+                        this.running = false; return;
+                    }
+                    this.sessionToken = payload.session_token;
+                    this.form.model_name   = payload.scan?.product_name || '';
+                    this.form.brand        = payload.scan?.brand || '';
+                    this.form.model_number = payload.scan?.model_number || '';
+                    this.proformaPreviewUrl = payload.proforma_preview || '';
+                    this.sections.name = true;
+
+                    // Step 3: find_url
+                    if (!this.form.model_name.trim()) {
+                        this.errorMsg = 'Could not extract a product name. Edit the field above and click "↻ Search again".';
+                        this.running = false; return;
+                    }
+                    await this.callFindUrl();
+
+                    // Step 4: extract_images
+                    await this.callExtractImages();
+                } catch (e) {
+                    this.errorMsg = 'Network error: ' + e.message;
+                } finally {
+                    this.running = false;
+                    this.runningStage = '';
+                }
+            },
+
+            async callFindUrl() {
+                this.runningStage = 'Finding supplier URL...';
+                const resp = await fetch("{{ url_for('marketing.import_proforma_single_find_url') }}", {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        session_token: this.sessionToken,
+                        model_name: this.form.model_name.trim(),
+                        brand: this.form.brand.trim()
+                    })
+                });
+                const payload = await this.consumeStream(resp);
+                if (payload) {
+                    this.form.supplier_url = payload.supplier_url || '';
+                    this.urlCandidates = (payload.candidates || []).filter(c => c !== payload.supplier_url);
+                    this.sections.url = true;
+                }
+            },
+
+            async callExtractImages() {
+                this.runningStage = 'Extracting product image...';
+                this.imageCandidates = [];
+                this.form.selected_image = '';
+                this.sections.images = true;     // Reveal the grid up-front
+                                                 // so each candidate fades in
+                                                 // as it streams, instead of
+                                                 // appearing all at once at
+                                                 // the end.
+
+                // AbortController so an early Save can cancel the stream and
+                // we stop paying for SERP scrapes the user no longer cares
+                // about. Stored on `this` so runFinalize() can reach it.
+                const ctrl = new AbortController();
+                this.extractAbort = ctrl;
+
+                let resp;
+                try {
+                    resp = await fetch("{{ url_for('marketing.import_proforma_single_extract_images') }}", {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({
+                            session_token: this.sessionToken,
+                            supplier_url: this.form.supplier_url.trim()
+                        }),
+                        signal: ctrl.signal,
+                    });
+                } catch (e) {
+                    if (e.name === 'AbortError') return;   // user committed early — quiet exit
+                    throw e;
+                }
+
+                if (!resp.ok) {
+                    let txt = ''; try { txt = await resp.text(); } catch(_) {}
+                    this.errorMsg = 'HTTP ' + resp.status + (txt ? ': ' + txt.slice(0, 200) : '');
+                    return;
+                }
+                if (!resp.body) {
+                    this.errorMsg = 'No streaming body';
+                    return;
+                }
+
+                // Custom NDJSON loop — `consumeStream` only keeps the LAST
+                // payload, so it would defeat the whole point of streaming
+                // candidates. Here we append each `candidate` event as it
+                // arrives, and let the final `candidates: [...]` payload
+                // act only as a recovery checkpoint.
+                const reader = resp.body.getReader();
+                const decoder = new TextDecoder();
+                const seen = new Set();
+                let buffer = '';
+                try {
+                while (true) {
+                    let chunk;
+                    try {
+                        chunk = await reader.read();
+                    } catch (e) {
+                        if (e.name === 'AbortError') return;   // user committed early
+                        throw e;
+                    }
+                    const { done, value } = chunk;
+                    if (done) break;
+                    buffer += decoder.decode(value, { stream: true });
+                    let nl;
+                    while ((nl = buffer.indexOf('\n')) !== -1) {
+                        const line = buffer.slice(0, nl).trim();
+                        buffer = buffer.slice(nl + 1);
+                        if (!line) continue;
+                        let evt; try { evt = JSON.parse(line); } catch (_) { continue; }
+
+                        if (typeof evt.progress === 'number') this.progress = evt.progress;
+                        if (evt.error) { this.errorMsg = evt.error; }
+
+                        // Per-candidate event — the new streaming path. We
+                        // append immediately so the user sees nano-banana
+                        // pop in around 10 s instead of waiting for web.
+                        if (evt.candidate && evt.candidate.path
+                            && !seen.has(evt.candidate.path)) {
+                            seen.add(evt.candidate.path);
+                            this.imageCandidates.push(evt.candidate);
+                            // Auto-select the first candidate so the user
+                            // can already commit if they don't want to wait.
+                            if (!this.form.selected_image) {
+                                this.form.selected_image = evt.candidate.path;
+                            }
+                        }
+
+                        // Final payload — recovery checkpoint. If we somehow
+                        // missed earlier candidate events (network blip,
+                        // partial parse), this catches us up.
+                        if (Array.isArray(evt.candidates)) {
+                            for (const c of evt.candidates) {
+                                if (c.path && !seen.has(c.path)) {
+                                    seen.add(c.path);
+                                    this.imageCandidates.push(c);
+                                }
+                            }
+                        }
+                    }
+                }
+                } finally {
+                    // Clear the controller now that the stream has drained
+                    // (or been aborted) so subsequent re-runs don't try to
+                    // re-use a stale instance.
+                    if (this.extractAbort === ctrl) this.extractAbort = null;
+                }
+            },
+
+            async rerunFromUrl() {
+                if (!this.sessionToken || this.running || !this.form.model_name.trim()) return;
+                this.running = true;
+                try {
+                    await this.callFindUrl();
+                    await this.callExtractImages();
+                } catch (e) {
+                    this.errorMsg = 'Network error: ' + e.message;
+                } finally {
+                    this.running = false;
+                    this.runningStage = '';
+                }
+            },
+
+            async rerunFromImages() {
+                if (!this.sessionToken || this.running) return;
+                this.running = true;
+                try {
+                    await this.callExtractImages();
+                } catch (e) {
+                    this.errorMsg = 'Network error: ' + e.message;
+                } finally {
+                    this.running = false;
+                    this.runningStage = '';
+                }
+            },
+
+            // ── Crop modal handlers
+            _resetCropModalState() {
+                this.cropImageBroken = false;
+                this.cropContainerW = 600;
+                this.cropContainerH = 400;
+                this.cropRect = { x: 0, y: 0, w: 0, h: 0 };
+                this.cropDragging = false;
+                this.cropError = '';
+            },
+            _normalizeUploadPath(p) {
+                if (!p) return '';
+                let s = String(p).replace(/\\/g, '/');
+                if (s.startsWith('/static/')) s = s.slice('/static/'.length);
+                else if (s.startsWith('static/')) s = s.slice('static/'.length);
+                if (s.startsWith('/')) s = s.slice(1);
+                return s;  // e.g. "uploads/visual_xxx.jpg"
+            },
+            _staticUrlFor(p) {
+                const norm = this._normalizeUploadPath(p);
+                return norm ? ('/static/' + encodeURI(norm)) : '';
+            },
+            openCropModal(idx) {
+                if (idx < 0 || idx >= this.imageCandidates.length) return;
+                const c = this.imageCandidates[idx];
+                if (!c || !c.path) return;
+                // Set the source URL first so the image can begin loading
+                // before the modal becomes visible (avoids a one-frame flash
+                // of broken image).
+                this._resetCropModalState();
+                this.cropMode = 'replace';
+                this.cropSourcePath = this._normalizeUploadPath(c.path);
+                this.cropImageSrc = this._staticUrlFor(c.path);
+                this.cropTarget = idx;
+            },
+            openProformaCropModal() {
+                if (!this.proformaPreviewUrl) {
+                    this.cropError = 'Proforma preview is not ready yet.';
+                    return;
+                }
+                this._resetCropModalState();
+                this.cropMode = 'add';
+                this.cropSourcePath = this._normalizeUploadPath(this.proformaPreviewUrl);
+                this.cropImageSrc = this._staticUrlFor(this.proformaPreviewUrl);
+                this.cropTarget = 'proforma';
+            },
+            cancelCrop() {
+                if (this.cropping) return;
+                this.cropTarget = null;
+                this.cropMode = 'replace';
+                this.cropSourcePath = '';
+                this.cropImageSrc = '';
+                this._resetCropModalState();
+            },
+            onCropImageLoad(e) {
+                this.cropImageBroken = false;
+                this.cropError = '';
+                // Size the container to match the image's intrinsic aspect
+                // ratio, capped so it fits inside the modal viewport. This
+                // makes crop coordinates accurate regardless of source size.
+                const img = e.target;
+                const nw = img.naturalWidth || 0;
+                const nh = img.naturalHeight || 0;
+                if (nw === 0 || nh === 0) return;
+                const maxW = Math.min(window.innerWidth - 120, 880);
+                const maxH = Math.floor(window.innerHeight * 0.6);
+                let w = nw, h = nh;
+                const scale = Math.min(maxW / w, maxH / h, 1);
+                this.cropContainerW = Math.max(200, Math.round(w * scale));
+                this.cropContainerH = Math.max(150, Math.round(h * scale));
+            },
+            onCropImageError(e) {
+                this.cropImageBroken = true;
+                console.error('Crop modal: image failed to load', this.cropImageSrc, e);
+            },
+            _cropRelXY(evt) {
+                // Use the container (always sized) rather than the image,
+                // which may be x-show'n off when the URL fails to load.
+                const el = this.$refs.cropContainer;
+                if (!el) return null;
+                const rect = el.getBoundingClientRect();
+                if (rect.width <= 0 || rect.height <= 0) return null;
+                const x = (evt.clientX - rect.left) / rect.width;
+                const y = (evt.clientY - rect.top) / rect.height;
+                return {
+                    x: Math.max(0, Math.min(1, x)),
+                    y: Math.max(0, Math.min(1, y)),
+                };
+            },
+            cropStart(evt) {
+                if (this.cropTarget === null) return;
+                const p = this._cropRelXY(evt);
+                if (!p) return;
+                this.cropDragging = true;
+                this.cropOrigin = p;
+                this.cropRect = { x: p.x, y: p.y, w: 0, h: 0 };
+            },
+            cropMove(evt) {
+                if (!this.cropDragging) return;
+                const p = this._cropRelXY(evt);
+                if (!p) return;
+                this.cropRect = this._buildRect(this.cropOrigin, p);
+            },
+            cropEnd() {
+                this.cropDragging = false;
+            },
+            _ratioValue() {
+                const map = { '4:3': 4/3, '1:1': 1, '3:4': 3/4 };
+                return map[this.cropRatio];
+            },
+            _buildRect(origin, current) {
+                // Free-form rect anchored on origin, grown toward current.
+                let dx = current.x - origin.x;
+                let dy = current.y - origin.y;
+                if (this.cropRatio !== 'free') {
+                    const r = this._ratioValue();
+                    const cw = this.cropContainerW || 1;
+                    const ch = this.cropContainerH || 1;
+                    let dxPx = Math.abs(dx) * cw;
+                    let dyPx = Math.abs(dy) * ch;
+                    // Whichever direction reaches the ratio boundary first
+                    // drives the other.
+                    if (dxPx / r > dyPx) dyPx = dxPx / r;
+                    else dxPx = dyPx * r;
+                    dx = (dx >= 0 ? 1 : -1) * (dxPx / cw);
+                    dy = (dy >= 0 ? 1 : -1) * (dyPx / ch);
+                }
+                let x1 = origin.x + dx;
+                let y1 = origin.y + dy;
+                let x = Math.min(origin.x, x1);
+                let y = Math.min(origin.y, y1);
+                let w = Math.abs(dx);
+                let h = Math.abs(dy);
+                // Clamp inside container.
+                if (x < 0) { w += x; x = 0; }
+                if (y < 0) { h += y; y = 0; }
+                if (x + w > 1) w = 1 - x;
+                if (y + h > 1) h = 1 - y;
+                // Re-enforce ratio after clamping (clamp may have skewed it).
+                if (this.cropRatio !== 'free') {
+                    const r = this._ratioValue();
+                    const cw = this.cropContainerW || 1;
+                    const ch = this.cropContainerH || 1;
+                    const wPx = w * cw;
+                    const hPx = h * ch;
+                    if (wPx / r > hPx + 0.5)      w = (hPx * r) / cw;
+                    else if (hPx > wPx / r + 0.5) h = (wPx / r) / ch;
+                }
+                return { x, y, w, h };
+            },
+            setCropRatio(r) {
+                this.cropRatio = r;
+                // If a rect already exists, snap it to the new ratio
+                // anchored at the existing top-left corner.
+                if (this.cropRect.w > 0 && this.cropRect.h > 0) {
+                    const origin = { x: this.cropRect.x, y: this.cropRect.y };
+                    const corner = {
+                        x: this.cropRect.x + this.cropRect.w,
+                        y: this.cropRect.y + this.cropRect.h,
+                    };
+                    this.cropRect = this._buildRect(origin, corner);
+                }
+            },
+            async applyCrop() {
+                if (this.cropTarget === null) return;
+                if (this.cropping) return;
+                if (this.cropRect.w < 0.02 || this.cropRect.h < 0.02) {
+                    this.cropError = 'Crop is too small — drag a larger rectangle.';
+                    return;
+                }
+                if (!this.cropSourcePath) {
+                    this.cropError = 'No source image to crop.';
+                    return;
+                }
+                this.cropping = true;
+                this.cropError = '';
+                try {
+                    const resp = await fetch("{{ url_for('marketing.import_proforma_single_crop') }}", {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({
+                            session_token: this.sessionToken,
+                            source_path: this.cropSourcePath,
+                            crop: this.cropRect,
+                        }),
+                    });
+                    const json = await resp.json().catch(() => ({}));
+                    if (!resp.ok || !json.path) {
+                        this.cropError = json.error || ('HTTP ' + resp.status);
+                        return;
+                    }
+                    if (this.cropMode === 'add') {
+                        // From-proforma manual crop: add as a fresh candidate.
+                        this.imageCandidates.push({
+                            path: json.path,
+                            page_url: null,
+                            source: 'manual',
+                        });
+                        this.form.selected_image = json.path;
+                        // Make sure the candidate grid is visible even if
+                        // extract_images hasn't completed yet.
+                        this.sections.images = true;
+                    } else {
+                        // Replace mode: swap candidate path in place.
+                        const idx = this.cropTarget;
+                        const candidate = this.imageCandidates[idx];
+                        if (candidate) {
+                            this.imageCandidates[idx] = {
+                                ...candidate,
+                                path: json.path,
+                            };
+                            this.form.selected_image = json.path;
+                        }
+                    }
+                    this.cancelCrop();
+                } catch (e) {
+                    this.cropError = 'Network error: ' + e.message;
+                } finally {
+                    this.cropping = false;
+                }
+            },
+
+            async runFinalize() {
+                if (this.finalizing || !this.form.model_name.trim()) return;
+                // Cancel the still-streaming /extract_images request so we
+                // don't keep paying for SERP scrapes the user has skipped.
+                // The cascade's `running` flag is left as-is until the abort
+                // unwinds — it self-clears in the cascade's own `finally`.
+                if (this.extractAbort) {
+                    try { this.extractAbort.abort(); } catch (_) {}
+                    this.extractAbort = null;
+                }
+                this.finalizing = true;
+                this.runningStage = 'Saving...';
+                this.errorMsg = '';
+                try {
+                    const resp = await fetch("{{ url_for('marketing.import_proforma_single_finalize') }}", {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({
+                            session_token: this.sessionToken,
+                            selected_image: this.form.selected_image || '',
+                            model_name: this.form.model_name.trim()
+                        })
+                    });
+                    const payload = await this.consumeStream(resp);
+                    if (payload && payload.redirect) {
+                        window.location.href = payload.redirect;
+                        return;
+                    }
+                } catch (e) {
+                    this.errorMsg = 'Network error: ' + e.message;
+                } finally {
+                    this.finalizing = false;
+                    this.runningStage = '';
+                }
+            },
+
+            // ── Legacy form submit
+            init() {
+                this.$nextTick(() => {
+                    const form = document.getElementById('proformaFormLegacy');
+                    if (!form) return;
+                    form.addEventListener('submit', async (e) => {
+                        e.preventDefault();
+                        if (this.legacyFiles.length === 0 && !form.querySelector('[name="supplier_url"]').value.trim()) {
+                            alert('Please upload at least one document or provide a supplier URL.');
+                            return;
+                        }
+                        this.legacyProcessing = true;
+                        this.progress = 0;
+                        this.statusMessage = 'Submitting...';
+                        this.items = [];
+
+                        const fd = new FormData(form);
+                        fd.delete('ai_document');
+                        this.legacyFiles.forEach(f => fd.append('ai_document', f));
+
+                        try {
+                            const response = await fetch("{{ url_for('marketing.import_proforma') }}", {
+                                method: 'POST', body: fd
+                            });
+                            if (!response.body) throw new Error('No streaming body');
+                            const reader = response.body.getReader();
+                            const decoder = new TextDecoder();
+                            let buffer = '';
+                            while (true) {
+                                const { done, value } = await reader.read();
+                                if (done) break;
+                                buffer += decoder.decode(value, { stream: true });
+                                let nl;
+                                while ((nl = buffer.indexOf('\n')) !== -1) {
+                                    const line = buffer.slice(0, nl).trim();
+                                    buffer = buffer.slice(nl + 1);
+                                    if (!line) continue;
+                                    let evt; try { evt = JSON.parse(line); } catch (_) { continue; }
+                                    if (typeof evt.progress === 'number') this.progress = evt.progress;
+                                    if (evt.message) this.statusMessage = evt.message;
+                                    if (Array.isArray(evt.products)) {
+                                        this.items = evt.products.map(p => ({name: p.name, status: p.status || 'pending'}));
+                                    }
+                                    if (evt.item_update) {
+                                        const idx = this.items.findIndex(i => i.name === evt.item_update.name);
+                                        if (idx === -1) {
+                                            this.items.push({name: evt.item_update.name, status: evt.item_update.status});
+                                        } else {
+                                            this.items[idx].status = evt.item_update.status;
+                                        }
+                                    }
+                                    if (evt.error) {
+                                        this.statusMessage = 'Error: ' + evt.error;
+                                        setTimeout(() => { this.legacyProcessing = false; }, 4000);
+                                        return;
+                                    }
+                                    if (evt.redirect) {
+                                        this.progress = 100;
+                                        this.statusMessage = 'Done — redirecting...';
+                                        setTimeout(() => { window.location.href = evt.redirect; }, 800);
+                                        return;
+                                    }
+                                }
+                            }
+                        } catch (err) {
+                            console.error(err);
+                            this.statusMessage = 'Network error — please try again';
+                            setTimeout(() => { this.legacyProcessing = false; }, 3000);
+                        }
+                    });
+                });
+            }
+        };
+    }
+</script>
+{% endblock %}
