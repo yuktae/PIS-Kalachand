@@ -7,13 +7,15 @@ import uuid
 import time
 import json
 import shutil
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from concurrent.futures import ThreadPoolExecutor
 
 from flask import (
     Blueprint, session, redirect, url_for, request, jsonify,
     current_app, send_from_directory
 )
+
+
 from werkzeug.utils import secure_filename
 from sqlalchemy.orm.attributes import flag_modified
 
@@ -21,13 +23,15 @@ from model import db, Product, ProductVersion, FieldChangeLog, User, Job
 from helpers import (
     get_current_username, save_version_snapshot,
     _get_field_section, load_forbidden_words, save_forbidden_words,
+    proforma_to_pis_data, extract_raw_text_from_files,
 )
 from utils.history import log_event
 from utils.web_scraping import scrape_url_data, scrape_url_data_deep
 from utils.ai_generation import generate_pis_data, generate_bulk_pis_data
 from utils.pdf_processing import extract_specific_image, clear_pdf_cache
 from utils.image_processing import (
-    find_and_validate_image, find_image_simple, download_web_image
+    find_and_validate_image, find_image_simple, download_web_image,
+    find_image_via_screenshot,
 )
 from utils.storage import store_image
 
@@ -40,7 +44,7 @@ pis_executor = ThreadPoolExecutor(max_workers=5)
 
 @api_bp.route('/favicon.ico')
 def favicon():
-    return send_from_directory(current_app.static_folder, 'favicon.ico', mimetype='image/x-icon')
+    return send_from_directory(current_app.static_folder or 'static', 'favicon.ico', mimetype='image/x-icon')
 
 
 # ── JOB HELPERS ───────────────────────────────────────────────────────────────
@@ -124,13 +128,13 @@ def _pis_worker(app, job_id, model_name, supplier_url, ai_filepaths, contains_im
             _update_job(job_id, status='completed', progress=100, message='Done!',
                         product_id=new_product.id,
                         redirect_url=f'/review/marketing/{new_product.id}',
-                        completed_at=datetime.utcnow().isoformat())
+                        completed_at=datetime.now(timezone.utc).replace(tzinfo=None).isoformat())
 
         except Exception as e:
             import traceback; traceback.print_exc()
             _update_job(job_id, status='failed', progress=100,
                         message=f'Generation failed: {str(e)[:100]}',
-                        error=str(e), completed_at=datetime.utcnow().isoformat())
+                        error=str(e), completed_at=datetime.now(timezone.utc).replace(tzinfo=None).isoformat())
 
 
 def _bulk_pis_worker(app, job_id, supplier_url, ai_filepaths, contains_images, product_filter, user_name):
@@ -158,7 +162,7 @@ def _bulk_pis_worker(app, job_id, supplier_url, ai_filepaths, contains_images, p
                 _update_job(job_id, status='completed', progress=100,
                             message='No products found in document.',
                             redirect_url='/dashboard/marketing',
-                            completed_at=datetime.utcnow().isoformat())
+                            completed_at=datetime.now(timezone.utc).replace(tzinfo=None).isoformat())
                 return
 
             _update_job(job_id, progress=20, message=f'Found {total_items} products. Processing...')
@@ -231,13 +235,13 @@ def _bulk_pis_worker(app, job_id, supplier_url, ai_filepaths, contains_images, p
             _update_job(job_id, status='completed', progress=100,
                         message=f'Bulk import complete — {total_items} products created!',
                         redirect_url='/dashboard/marketing',
-                        completed_at=datetime.utcnow().isoformat())
+                        completed_at=datetime.now(timezone.utc).replace(tzinfo=None).isoformat())
 
         except Exception as e:
             import traceback; traceback.print_exc()
             _update_job(job_id, status='failed', progress=100,
                         message=f'Bulk import failed: {str(e)[:100]}',
-                        error=str(e), completed_at=datetime.utcnow().isoformat())
+                        error=str(e), completed_at=datetime.now(timezone.utc).replace(tzinfo=None).isoformat())
 
 
 # ── ASYNC JOB ROUTES ─────────────────────────────────────────────────────────
@@ -266,12 +270,12 @@ def api_pis_generate_async():
 
     job_id    = str(uuid.uuid4())[:8]
     user_name = get_current_username()
-    _app      = current_app._get_current_object()
+    _app      = current_app._get_current_object()  # type: ignore[attr-defined]
 
     db.session.add(Job(
         id=job_id, model_name=model_name or 'Unknown Product',
         status='queued', progress=0, message='Queued — waiting for slot...',
-        created_at=datetime.utcnow(),
+        created_at=datetime.now(timezone.utc).replace(tzinfo=None),
     ))
     db.session.commit()
     pis_executor.submit(_pis_worker, _app, job_id, model_name, supplier_url, ai_filepaths, contains_images, user_name)
@@ -297,7 +301,7 @@ def api_pis_dismiss_job(job_id):
     job = db.session.get(Job, job_id)
     if not job:
         return jsonify({"ok": True})
-    if job.status not in ('completed', 'failed'):
+    if job.status not in ('completed', 'failed', 'preview_ready'):
         return jsonify({"error": "Cannot dismiss an active job"}), 400
     job.dismissed = True
     db.session.commit()
@@ -330,12 +334,12 @@ def api_bulk_generate_async():
     user_name = get_current_username()
     doc_names = ', '.join(os.path.basename(f) for f in ai_filepaths[:2])
     job_label = f"Bulk: {doc_names}" if doc_names else "Bulk Import"
-    _app      = current_app._get_current_object()
+    _app      = current_app._get_current_object()  # type: ignore[attr-defined]
 
     db.session.add(Job(
         id=job_id, model_name=job_label,
         status='queued', progress=0, message='Queued — waiting for slot...',
-        created_at=datetime.utcnow(),
+        created_at=datetime.now(timezone.utc).replace(tzinfo=None),
     ))
     db.session.commit()
     pis_executor.submit(_bulk_pis_worker, _app, job_id, supplier_url, ai_filepaths, contains_images, product_filter, user_name)
@@ -416,6 +420,259 @@ def api_delete_image(product_id):
         return {"status": "success"}
     except Exception as e:
         return {"error": str(e)}, 500
+
+
+@api_bp.route('/api/product/<int:product_id>/images/set_main', methods=['POST'])
+def api_set_main_image(product_id):
+    """Promote an existing gallery image to the main slot. The previous
+    main (if any) is demoted into additional_images so nothing is lost.
+    Body: {"path": "uploads/..."}."""
+    product = Product.query.get_or_404(product_id)
+    data = request.get_json(silent=True) or {}
+    new_main = (data.get('path') or '').strip()
+    if not new_main:
+        return {"error": "No path provided"}, 400
+
+    imgs = list(product.additional_images) if product.additional_images else []
+    if new_main != product.image_path and new_main not in imgs:
+        return {"error": "Path not in this product's gallery"}, 400
+
+    if new_main == product.image_path:
+        return {"status": "success", "main_path": new_main, "additional_images": imgs}
+
+    old_main = product.image_path
+    if new_main in imgs:
+        imgs.remove(new_main)
+    if old_main and old_main not in imgs:
+        imgs.append(old_main)
+    product.image_path = new_main
+    product.additional_images = imgs
+    flag_modified(product, 'additional_images')
+
+    fname = new_main.split('/')[-1] if '/' in new_main else new_main
+    log_event(product.id, get_current_username(), 'Main Photo Changed',
+              f'Promoted gallery photo to main: {fname}', 'neutral')
+    db.session.commit()
+    return {"status": "success", "main_path": new_main,
+            "additional_images": list(product.additional_images or [])}
+
+
+# ── PRODUCT DELETE (soft) ─────────────────────────────────────────────────────
+
+_DELETE_ROLES = ('admin', 'marketing', 'director')
+
+
+@api_bp.route('/api/product/<int:product_id>/delete', methods=['POST'])
+def api_delete_product(product_id):
+    """Soft-delete a single product. The row stays in the DB with
+    deleted_at set so it can be recovered later if needed; all dashboards
+    already filter on deleted_at IS NULL."""
+    if session.get('role') not in _DELETE_ROLES:
+        return jsonify({"error": "Not authorized"}), 403
+    product = Product.query.get_or_404(product_id)
+    if product.deleted_at is not None:
+        return jsonify({"ok": True, "id": product_id, "already_deleted": True})
+    product.deleted_at = datetime.now(timezone.utc).replace(tzinfo=None)
+    db.session.commit()
+    log_event(product.id, get_current_username(), 'Product Deleted',
+              'Product was deleted from the dashboard.', 'action')
+    return jsonify({"ok": True, "id": product_id})
+
+
+@api_bp.route('/api/products/bulk_delete', methods=['POST'])
+def api_bulk_delete_products():
+    """Soft-delete a list of products by id. Body: {"ids": [1, 2, 3]}."""
+    if session.get('role') not in _DELETE_ROLES:
+        return jsonify({"error": "Not authorized"}), 403
+    body = request.get_json(silent=True) or {}
+    raw_ids = body.get('ids')
+    if not isinstance(raw_ids, list) or not raw_ids:
+        return jsonify({"error": "ids must be a non-empty list"}), 400
+    try:
+        ids = [int(x) for x in raw_ids]
+    except (TypeError, ValueError):
+        return jsonify({"error": "ids must be integers"}), 400
+    affected = Product.query.filter(
+        Product.id.in_(ids),
+        Product.deleted_at.is_(None),
+    ).update({'deleted_at': datetime.now(timezone.utc).replace(tzinfo=None)}, synchronize_session=False)
+    db.session.commit()
+    return jsonify({"ok": True, "deleted_count": affected})
+
+
+# ── PHASE 2.5: SPLIT VARIANTS / MERGE DRAFTS ─────────────────────────────
+
+_REVIEWER_ROLES = ('admin', 'marketing', 'director')
+
+
+@api_bp.route('/api/product/<int:product_id>/split_variants', methods=['POST'])
+def api_split_variants(product_id):
+    """Phase 2.5: explode a draft whose `pis_data['variants']` list has more
+    than one entry into N independent draft Products.
+
+    Use case: the AI clustered five wardrobes as variants of one model when
+    they're actually distinct products. One click → five drafts. The
+    original product is soft-deleted so reviewers don't see duplicates.
+    """
+    if session.get('role') not in _REVIEWER_ROLES:
+        return jsonify({"error": "Not authorized"}), 403
+    product = Product.query.get_or_404(product_id)
+    pis = product.pis_data or {}
+    variants = pis.get('variants') or []
+    if not variants:
+        return jsonify({"error": "This product has no variants to split."}), 400
+
+    user_name = get_current_username()
+    created_ids = []
+
+    try:
+        for v in variants:
+            if not isinstance(v, dict):
+                continue
+            label = (v.get('label') or v.get('model_number') or 'Variant').strip() or 'Variant'
+            new_pis = copy.deepcopy(pis)
+            # Reset variants — each child is now a standalone product
+            new_pis['variants'] = []
+            # Override the header_info so the new draft is uniquely identifiable
+            hi = new_pis.setdefault('header_info', {})
+            hi['product_name'] = label
+            if v.get('model_number'):
+                hi['model_number'] = v['model_number']
+            if v.get('price'):
+                hi['price_estimate'] = v['price']
+                # Re-parse currency for the new value
+                from helpers import parse_price_currency, _normalize_mur_price
+                pm = parse_price_currency(v['price'])
+                new_pis['_price_meta'] = pm
+                hi['price_estimate'] = _normalize_mur_price(v['price'], pm)
+
+            # Drop the per-variant proforma block that no longer applies
+            if isinstance(new_pis.get('source_facts'), dict):
+                new_pis['source_facts'] = {**new_pis['source_facts']}
+                new_pis['source_facts']['product_name'] = label
+                if v.get('model_number'):
+                    new_pis['source_facts']['model_number'] = v['model_number']
+
+            new_product = Product(
+                model_name=label,
+                pis_data=new_pis,
+                image_path=product.image_path,
+                seo_keywords=(new_pis.get('seo_data') or {}).get('generated_keywords', ''),
+                workflow_stage='marketing_draft',
+            )
+            db.session.add(new_product)
+            db.session.commit()
+            log_event(new_product.id, user_name, 'New Product Added',
+                      f'Split out from product #{product.id} ({product.model_name}) variants.', 'neutral')
+            save_version_snapshot(new_product, label='Initial version (split)', is_major=True)
+            created_ids.append(new_product.id)
+
+        # Soft-delete the original — its variants now live as separate drafts
+        product.deleted_at = datetime.now(timezone.utc).replace(tzinfo=None)
+        db.session.commit()
+        log_event(product.id, user_name, 'Product Split',
+                  f'Split into {len(created_ids)} separate drafts: {created_ids}.', 'action')
+
+        return jsonify({"ok": True, "created_ids": created_ids,
+                        "redirect_url": "/dashboard/marketing"})
+    except Exception as e:
+        db.session.rollback()
+        import traceback; traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
+
+@api_bp.route('/api/products/merge', methods=['POST'])
+def api_merge_products():
+    """Phase 2.5: merge multiple drafts into a single base product whose
+    `variants` list captures the others.
+
+    Body: { "primary_id": int, "secondary_ids": [int, ...] }
+        - primary_id    → kept as the base; its pis_data is preserved
+        - secondary_ids → soft-deleted; their header_info/price get
+                          appended to primary's `variants` list and
+                          `pis_data['variants']` updated.
+    Use case: AI created 3 separate drafts for "Black", "White", "Grey" of
+    the same wardrobe. Reviewer ticks the 3 cards on the dashboard → Merge.
+    """
+    if session.get('role') not in _REVIEWER_ROLES:
+        return jsonify({"error": "Not authorized"}), 403
+
+    body = request.get_json(silent=True) or {}
+    raw_primary = body.get('primary_id')
+    if raw_primary is None:
+        return jsonify({"error": "primary_id is required"}), 400
+    try:
+        primary_id = int(raw_primary)
+        secondary_ids = [int(x) for x in (body.get('secondary_ids') or [])]
+    except (TypeError, ValueError):
+        return jsonify({"error": "primary_id and secondary_ids must be integers"}), 400
+    if not secondary_ids:
+        return jsonify({"error": "Pick at least 2 products to merge."}), 400
+    if primary_id in secondary_ids:
+        return jsonify({"error": "primary_id cannot also be in secondary_ids"}), 400
+
+    primary = Product.query.get(primary_id)
+    if not primary or primary.deleted_at:
+        return jsonify({"error": "Primary product not found"}), 404
+    secondaries = Product.query.filter(
+        Product.id.in_(secondary_ids),
+        Product.deleted_at.is_(None),
+    ).all()
+    if len(secondaries) != len(secondary_ids):
+        return jsonify({"error": "Some secondary products not found / already deleted"}), 404
+
+    user_name = get_current_username()
+    try:
+        primary_pis = copy.deepcopy(primary.pis_data or {})
+        existing_variants = primary_pis.get('variants') or []
+        if not isinstance(existing_variants, list):
+            existing_variants = []
+
+        for s in secondaries:
+            sh = (s.pis_data or {}).get('header_info', {}) or {}
+            existing_variants.append({
+                'label': sh.get('product_name') or s.model_name,
+                'model_number': sh.get('model_number') or '',
+                'price': sh.get('price_estimate') or '',
+            })
+            s.deleted_at = datetime.now(timezone.utc).replace(tzinfo=None)
+
+        primary_pis['variants'] = existing_variants
+        primary.pis_data = primary_pis
+        flag_modified(primary, 'pis_data')
+
+        db.session.commit()
+        log_event(primary.id, user_name, 'Products Merged',
+                  f'Merged {len(secondaries)} drafts ({[s.id for s in secondaries]}) '
+                  f'into this product as variants.', 'action')
+        for s in secondaries:
+            log_event(s.id, user_name, 'Product Merged',
+                      f'Merged into product #{primary.id} ({primary.model_name}).', 'action')
+        save_version_snapshot(primary, label=f'Merged {len(secondaries)} draft(s)', is_major=True)
+
+        return jsonify({"ok": True,
+                        "primary_id": primary.id,
+                        "absorbed_ids": [s.id for s in secondaries],
+                        "variant_count": len(existing_variants),
+                        "redirect_url": f"/review/marketing/{primary.id}"})
+    except Exception as e:
+        db.session.rollback()
+        import traceback; traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
+
+@api_bp.route('/api/products/clear_active', methods=['POST'])
+def api_clear_active_products():
+    """Soft-delete every currently active product. Used by the dashboard
+    'Clear All' button. Returns the count cleared."""
+    if session.get('role') not in _DELETE_ROLES:
+        return jsonify({"error": "Not authorized"}), 403
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    affected = Product.query.filter(Product.deleted_at.is_(None)).update(
+        {'deleted_at': now}, synchronize_session=False
+    )
+    db.session.commit()
+    return jsonify({"ok": True, "deleted_count": affected})
 
 
 @api_bp.route('/api/product/<int:product_id>/save_draft', methods=['POST'])
@@ -742,3 +999,344 @@ def _web_search_image(query, supplier_url, name, upload_folder, job_id):
         _update_job(job_id, progress=70, message='Downloading Image...')
         return download_web_image(public_url, name, upload_folder)
     return None
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# Phase 2 — Unified Proforma Import (extract → preview → commit/rework)
+# ══════════════════════════════════════════════════════════════════════════
+
+def _display_name_for(product_obj: dict, idx: int) -> str:
+    src = product_obj.get('source_facts') or {}
+    return (
+        src.get('product_name')
+        or src.get('model_number')
+        or f"Item_{idx+1}"
+    )
+
+
+def _resolve_image_for_product(product_obj, ai_filepath, supplier_url, upload_folder):
+    """Best-effort image resolution mirroring the legacy bulk worker:
+    PDF scan → AI-found URL → Google Images → DuckDuckGo fallback.
+    Mutates nothing; returns the static-relative path or None.
+    """
+    src      = product_obj.get('source_facts') or {}
+    ai_block = product_obj.get('ai_enriched_details') or {}
+    brand    = src.get('brand', '')
+    p_name   = src.get('product_name', '')
+    model_id = src.get('model_number', '')
+    display_name = p_name or model_id or 'Product'
+    query = _build_bulk_query(brand, p_name, model_id, display_name)
+
+    extracted = None
+    if ai_filepath:
+        pdf_term = model_id or display_name
+        try:
+            extracted = extract_specific_image(ai_filepath, pdf_term, upload_folder)
+        except Exception:
+            extracted = None
+
+    if not extracted:
+        ai_url = ai_block.get('found_image_url')
+        if ai_url and str(ai_url).startswith('http'):
+            extracted = download_web_image(ai_url, display_name, upload_folder)
+
+    if not extracted:
+        public_url = find_and_validate_image(query, supplier_url)
+        if public_url:
+            extracted = download_web_image(public_url, display_name, upload_folder)
+
+    if not extracted:
+        simple_url = find_image_simple(query, supplier_url)
+        if simple_url:
+            extracted = download_web_image(simple_url, display_name, upload_folder)
+
+    # Phase 2.2: last-resort fallback for "no-image" proformas — open the
+    # supplier/Google result page in a headless browser, screenshot it, and
+    # let the AI crop the product photo out (bypasses anti-hotlink blocks).
+    # Phase 2.3: pass `brand` so the SERP scraper can lock onto the official
+    # brand domain when available.
+    if not extracted:
+        extracted = find_image_via_screenshot(
+            display_name, supplier_url, upload_folder, brand=brand
+        )
+
+    if extracted:
+        extracted = store_image(extracted, display_name)
+    return extracted
+
+
+def _proforma_extract_worker(app, job_id, ai_filepaths, supplier_url,
+                             extraction_mode, contains_images, brand_hint,
+                             feedback=None, prior_products=None):
+    """Background worker that runs AI extraction + image search and parks
+    the result in Job.payload with status='preview_ready'. Used for both the
+    initial extract and the rework flow (when feedback is provided)."""
+    from utils.ai_generation import generate_proforma_data
+    with app.app_context():
+        try:
+            upload_folder = app.config['UPLOAD_FOLDER']
+            _update_job(job_id, status='processing', progress=10,
+                        message='Reading proforma...')
+
+            site_data = {"text": "", "html": ""}
+            if supplier_url:
+                _update_job(job_id, progress=20, message='Scraping supplier URL...')
+                site_data = scrape_url_data(supplier_url)
+
+            stage_msg = 'Re-extracting with feedback...' if feedback else 'Extracting products with AI...'
+            _update_job(job_id, progress=35, message=stage_msg)
+
+            products = generate_proforma_data(
+                file_paths=ai_filepaths,
+                url_data=site_data,
+                extraction_mode=extraction_mode,
+                brand_hint=brand_hint,
+                prior_data=prior_products,
+                feedback=feedback,
+            )
+
+            if not products:
+                _update_job(job_id, status='failed', progress=100,
+                            message='No products detected in document.',
+                            error='AI returned no products.',
+                            completed_at=datetime.now(timezone.utc).replace(tzinfo=None).isoformat())
+                return
+
+            # Phase 2.4: capture raw document text once and stash it in the
+            # payload — committed-later products run through proforma_to_pis_data
+            # with this same text so origins (verified vs discrepancy) are
+            # consistent regardless of when commit happens.
+            raw_doc_text = extract_raw_text_from_files(ai_filepaths) or ""
+            if site_data and site_data.get('text'):
+                raw_doc_text = (raw_doc_text + "\n" + site_data['text']) if raw_doc_text else site_data['text']
+
+            ai_filepath = ai_filepaths[0] if ai_filepaths else None
+            total = len(products)
+            for idx, p_obj in enumerate(products):
+                disp = _display_name_for(p_obj, idx)
+                pct = 35 + int(((idx + 1) / total) * 55)
+                _update_job(job_id, progress=pct,
+                            message=f'Finding image {idx+1}/{total}: {disp}')
+                try:
+                    img_path = _resolve_image_for_product(
+                        p_obj, ai_filepath, supplier_url, upload_folder
+                    )
+                except Exception as e:
+                    print(f'[proforma extract] image error for {disp}: {e}')
+                    img_path = None
+                p_obj['_image_path'] = img_path
+                p_obj['_display_name'] = disp
+
+            payload = {
+                'type': 'proforma_preview',
+                'ai_filepaths': ai_filepaths,
+                'supplier_url': supplier_url,
+                'extraction_mode': extraction_mode,
+                'contains_images': contains_images,
+                'brand_hint': brand_hint,
+                'products': products,
+                'raw_doc_text': raw_doc_text,
+            }
+            _update_job(
+                job_id,
+                status='preview_ready', progress=100,
+                message=f'{total} product{"s" if total != 1 else ""} ready for review.',
+                payload=payload,
+                redirect_url=None,
+                completed_at=datetime.now(timezone.utc).replace(tzinfo=None).isoformat(),
+            )
+        except Exception as e:
+            import traceback; traceback.print_exc()
+            _update_job(job_id, status='failed', progress=100,
+                        message=f'Extraction failed: {str(e)[:120]}',
+                        error=str(e),
+                        completed_at=datetime.now(timezone.utc).replace(tzinfo=None).isoformat())
+
+
+@api_bp.route('/api/proforma/extract', methods=['POST'])
+def api_proforma_extract():
+    """Kick off proforma extraction. Returns a job_id; poll /api/pis/jobs
+    until status='preview_ready', then GET /api/proforma/preview/<job_id>."""
+    extraction_mode = (request.form.get('extraction_mode') or 'auto').strip().lower()
+    if extraction_mode not in ('auto', 'single', 'multiple'):
+        extraction_mode = 'auto'
+    supplier_url    = request.form.get('supplier_url', '').strip()
+    brand_hint      = request.form.get('brand_hint', '').strip() or None
+    contains_images = request.form.get('contains_images') == 'on'
+    ai_files        = request.files.getlist('ai_document')
+
+    if not ai_files and not supplier_url:
+        return jsonify({"error": "Please provide a document or a supplier URL."}), 400
+
+    active_count = Job.query.filter(Job.status.in_(('queued', 'processing'))).count()
+    if active_count >= 5:
+        return jsonify({"error": "Maximum 5 concurrent jobs. Please wait."}), 429
+
+    ai_filepaths = []
+    for ai_file in ai_files:
+        if ai_file and ai_file.filename:
+            filename = secure_filename(ai_file.filename)
+            filepath = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
+            ai_file.save(filepath)
+            ai_filepaths.append(filepath)
+
+    job_id = str(uuid.uuid4())[:8]
+    label_doc = ', '.join(os.path.basename(f) for f in ai_filepaths[:2]) or 'Proforma Import'
+    _app = current_app._get_current_object()  # type: ignore[attr-defined]
+
+    db.session.add(Job(
+        id=job_id, model_name=f"Proforma: {label_doc}",
+        status='queued', progress=0,
+        message='Queued — waiting for slot...',
+        created_at=datetime.now(timezone.utc).replace(tzinfo=None),
+    ))
+    db.session.commit()
+
+    pis_executor.submit(
+        _proforma_extract_worker, _app, job_id, ai_filepaths, supplier_url,
+        extraction_mode, contains_images, brand_hint
+    )
+    return jsonify({"ok": True, "job_id": job_id}), 202
+
+
+@api_bp.route('/api/proforma/preview/<job_id>', methods=['GET'])
+def api_proforma_preview(job_id):
+    job = db.session.get(Job, job_id)
+    if not job:
+        return jsonify({"error": "Job not found"}), 404
+    if job.status != 'preview_ready':
+        return jsonify({"status": job.status, "message": job.message,
+                        "progress": job.progress}), 202
+
+    payload = job.payload or {}
+    products = payload.get('products') or []
+    preview = []
+    for idx, p in enumerate(products):
+        src = p.get('source_facts') or {}
+        ai  = p.get('ai_enriched_details') or {}
+        preview.append({
+            'index': idx,
+            'display_name':  p.get('_display_name') or _display_name_for(p, idx),
+            'image_path':    p.get('_image_path'),
+            'product_name':  src.get('product_name') or '',
+            'brand':         src.get('brand') or '',
+            'model_number':  src.get('model_number') or '',
+            'price_estimate':src.get('price_estimate') or '',
+            'summary':       (ai.get('range_overview') or '')[:240],
+            'variants':      p.get('variants') or [],
+            'has_variants':  bool(p.get('variants')),
+            'notes':         ai.get('notes') or '',
+        })
+    return jsonify({
+        "status": "preview_ready",
+        "job_id": job_id,
+        "extraction_mode": payload.get('extraction_mode'),
+        "products": preview,
+    })
+
+
+@api_bp.route('/api/proforma/commit/<job_id>', methods=['POST'])
+def api_proforma_commit(job_id):
+    """Persist the staged products into Product rows."""
+    job = db.session.get(Job, job_id)
+    if not job:
+        return jsonify({"error": "Job not found"}), 404
+    if job.status != 'preview_ready' or not job.payload:
+        return jsonify({"error": "Job is not ready for commit"}), 400
+
+    body = request.get_json(silent=True) or {}
+    accepted = body.get('accepted_indices')   # optional: subset of indices to commit
+
+    payload = dict(job.payload)
+    products = payload.get('products') or []
+    if accepted is not None:
+        try:
+            accepted_set = {int(i) for i in accepted}
+            products = [p for i, p in enumerate(products) if i in accepted_set]
+        except (TypeError, ValueError):
+            return jsonify({"error": "accepted_indices must be a list of integers"}), 400
+
+    if not products:
+        return jsonify({"error": "No products selected to commit"}), 400
+
+    raw_doc_text = payload.get('raw_doc_text') or ""
+    src_files    = payload.get('ai_filepaths') or []
+    user_name = get_current_username()
+    created_ids = []
+    try:
+        for idx, p_obj in enumerate(products):
+            display_name = p_obj.get('_display_name') or _display_name_for(p_obj, idx)
+            pis_data = proforma_to_pis_data(p_obj, raw_text=raw_doc_text,
+                                            source_files=src_files)
+            new_product = Product(
+                model_name=display_name,
+                pis_data=pis_data,
+                image_path=p_obj.get('_image_path'),
+                seo_keywords=(p_obj.get('ai_enriched_details') or {}).get('seo_data', {}).get('generated_keywords', ''),
+                workflow_stage='marketing_draft',
+            )
+            db.session.add(new_product)
+            db.session.commit()
+            log_event(
+                new_product.id, user_name, 'New Product Added',
+                'Imported through the Proforma Review workflow.',
+                'neutral'
+            )
+            save_version_snapshot(new_product, label='Initial version', is_major=True)
+            created_ids.append(new_product.id)
+
+        # Mark job as fully completed; if a single product, redirect to its review page.
+        if len(created_ids) == 1:
+            redirect_url = f'/review/marketing/{created_ids[0]}'
+        else:
+            redirect_url = '/dashboard/marketing'
+        job.status = 'completed'
+        job.message = f'Imported {len(created_ids)} product(s).'
+        job.redirect_url = redirect_url
+        job.completed_at = datetime.now(timezone.utc).replace(tzinfo=None)
+        db.session.commit()
+        clear_pdf_cache()
+        return jsonify({"ok": True, "created_ids": created_ids,
+                        "redirect_url": redirect_url})
+    except Exception as e:
+        db.session.rollback()
+        import traceback; traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
+
+@api_bp.route('/api/proforma/rework/<job_id>', methods=['POST'])
+def api_proforma_rework(job_id):
+    """Re-run AI extraction with reviewer feedback. The previous staging
+    payload (uploaded files, URL, mode) is reused so the AI keeps context.
+    """
+    job = db.session.get(Job, job_id)
+    if not job:
+        return jsonify({"error": "Job not found"}), 404
+    if not job.payload:
+        return jsonify({"error": "No staged payload to rework"}), 400
+
+    body = request.get_json(silent=True) or {}
+    feedback = (body.get('feedback') or '').strip()
+    if not feedback:
+        return jsonify({"error": "Feedback text is required"}), 400
+
+    payload = dict(job.payload)
+
+    job.status = 'queued'
+    job.progress = 0
+    job.message = 'Reworking with feedback...'
+    job.completed_at = None
+    db.session.commit()
+
+    _app = current_app._get_current_object()  # type: ignore[attr-defined]
+    pis_executor.submit(
+        _proforma_extract_worker, _app, job_id,
+        payload.get('ai_filepaths') or [],
+        payload.get('supplier_url') or '',
+        payload.get('extraction_mode') or 'auto',
+        payload.get('contains_images', False),
+        payload.get('brand_hint'),
+        feedback,
+        payload.get('products') or [],
+    )
+    return jsonify({"ok": True, "job_id": job_id}), 202
