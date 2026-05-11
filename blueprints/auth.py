@@ -22,6 +22,7 @@ def _redirect_by_role(role: str):
 
 
 @auth_bp.route('/')
+@auth_bp.route('/login', methods=['GET'])
 def login():
     if session.get('user_id') and session.get('_boot') == BOOT_TOKEN:
         return _redirect_by_role(session.get('role'))
