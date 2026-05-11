@@ -19,7 +19,7 @@ from flask import (
 from werkzeug.utils import secure_filename
 from sqlalchemy.orm.attributes import flag_modified
 
-from model import db, Product, ProductVersion, FieldChangeLog, User, Job
+from model import db, Product, ProductVersion, FieldChangeLog, User, Job, ProductHistory
 from helpers import (
     get_current_username, save_version_snapshot,
     _get_field_section, load_forbidden_words, save_forbidden_words,
@@ -861,15 +861,319 @@ def api_restore_version(product_id, version_id):
     version = ProductVersion.query.get_or_404(version_id)
     if version.product_id != product_id:
         return jsonify({"error": "Version does not belong to this product"}), 400
-    save_version_snapshot(product, label=f"Before rolling back to version {version.version_num}", is_major=True)
-    product.pis_data      = copy.deepcopy(version.pis_data)
-    product.spec_data     = copy.deepcopy(version.spec_data)
-    product.revision_data = copy.deepcopy(version.revision_data)
-    product.workflow_stage = version.workflow_stage
+
+    # Phase 3 — use the reconstruction helper so we can restore EVEN IF the
+    # target version is a minor (diff-only) snapshot. The helper walks back
+    # to the nearest major and applies forward diffs.
+    from utils.version_reconstruction import reconstruct_version_data
+    reconstructed = reconstruct_version_data(product_id, version.version_num)
+    if reconstructed is None:
+        return jsonify({"error": "Could not reconstruct version data"}), 500
+
+    # Capture a fresh anchor of the CURRENT state so the user can undo.
+    pre_restore_version = save_version_snapshot(
+        product,
+        label=f"Before rolling back to version {version.version_num}",
+        is_major=True,
+    )
+
+    product.pis_data      = copy.deepcopy(reconstructed.get('pis_data'))
+    product.spec_data     = copy.deepcopy(reconstructed.get('spec_data'))
+    product.revision_data = copy.deepcopy(reconstructed.get('revision_data'))
+    product.workflow_stage = reconstructed.get('workflow_stage') or product.workflow_stage
     db.session.commit()
-    log_event(product.id, get_current_username(), 'Rolled Back to Previous Version',
-              f'The product was rolled back to version {version.version_num} ({version.label}).', 'action')
+
+    log_event(
+        product.id, get_current_username(),
+        'Rolled Back to Previous Version',
+        f'The product was rolled back to version {version.version_num} ({version.label}).',
+        'action',
+        version_id=pre_restore_version.id if pre_restore_version else None,
+    )
     return jsonify({"ok": True, "message": f"Restored to version {version.version_num}"})
+
+
+# ── PHASE 3: read-only preview at a past version ─────────────────────────────
+
+@api_bp.route('/api/product/<int:product_id>/versions/<int:version_id>/compare')
+def api_compare_version(product_id, version_id):
+    """Diff CURRENT product data against a past version. Returns a flat
+    list of fields that differ, each with human-readable name, section,
+    current value, and target-version value — ready for a comparison
+    table UI. Empty `fields` array means the version is identical to
+    the current state (nothing would change on restore)."""
+    product = Product.query.get_or_404(product_id)
+    version = ProductVersion.query.get_or_404(version_id)
+    if version.product_id != product_id:
+        return jsonify({"error": "Version does not belong to this product"}), 400
+
+    from utils.version_reconstruction import reconstruct_version_data
+    target = reconstruct_version_data(product_id, version.version_num)
+    if target is None:
+        return jsonify({"error": "Could not reconstruct version data"}), 500
+
+    from helpers import _clean_field_name, _format_value, _get_field_section
+
+    fields: list[dict] = []
+    seen_paths: set[str] = set()
+
+    def _push(path, cur_val, tgt_val):
+        if path in seen_paths:
+            return
+        seen_paths.add(path)
+        # Skip internal keys (prefixed with _) so the UI doesn't show
+        # noise like `_field_origins`, `_bulk_*`, `_price_meta`, etc.
+        last_seg = path.split('.')[-1]
+        if last_seg.startswith('_'):
+            return
+        name = _clean_field_name(path)
+        section = _get_field_section(name)
+        cur_str = _format_value(cur_val)
+        tgt_str = _format_value(tgt_val)
+        if (cur_str or '') == (tgt_str or ''):
+            return  # normalised form is identical → not a real diff
+        fields.append({
+            'path': path,
+            'field_name': name,
+            'section': section,
+            'current_value': cur_str,
+            'target_value':  tgt_str,
+        })
+
+    def _walk(prefix, cur, tgt):
+        if isinstance(cur, dict) or isinstance(tgt, dict):
+            cur_d = cur if isinstance(cur, dict) else {}
+            tgt_d = tgt if isinstance(tgt, dict) else {}
+            for key in sorted(set(list(cur_d.keys()) + list(tgt_d.keys()))):
+                path = f"{prefix}.{key}" if prefix else key
+                _walk(path, cur_d.get(key), tgt_d.get(key))
+            return
+        if cur != tgt:
+            _push(prefix, cur, tgt)
+
+    _walk('pis_data',  product.pis_data or {},  target.get('pis_data') or {})
+    _walk('spec_data', product.spec_data or {}, target.get('spec_data') or {})
+
+    return jsonify({
+        'version_num': version.version_num,
+        'label':       version.label,
+        'is_major':    version.is_major,
+        'workflow_stage': target.get('workflow_stage'),
+        'created_at':  version.created_at.strftime('%d %b %Y, %H:%M') if version.created_at else None,
+        'created_by':  version.created_by.display_name if version.created_by else 'System',
+        'fields':      fields,
+    })
+
+
+@api_bp.route('/api/product/<int:product_id>/versions/<int:version_id>/preview')
+def api_preview_version(product_id, version_id):
+    """View the product state at a past version without applying it.
+    Reconstructs from the nearest major snapshot + forward-applied diffs.
+    Returns pis_data + spec_data the UI can render in a read-only view."""
+    product = Product.query.get_or_404(product_id)
+    version = ProductVersion.query.get_or_404(version_id)
+    if version.product_id != product_id:
+        return jsonify({"error": "Version does not belong to this product"}), 400
+
+    from utils.version_reconstruction import reconstruct_version_data
+    data = reconstruct_version_data(product_id, version.version_num)
+    if data is None:
+        return jsonify({"error": "Could not reconstruct version data"}), 500
+
+    return jsonify({
+        "version_num": version.version_num,
+        "label": version.label,
+        "workflow_stage": data.get('workflow_stage'),
+        "pis_data": data.get('pis_data'),
+        "spec_data": data.get('spec_data'),
+        "revision_data": data.get('revision_data'),
+        "created_at": version.created_at.strftime('%d %b %Y, %H:%M') if version.created_at else None,
+        "created_by": version.created_by.display_name if version.created_by else 'System',
+        "is_major": version.is_major,
+    })
+
+
+# ── PHASE 5: TIMELINE (grouped by date, with stage + role + snapshot flag) ──
+
+# Maps internal workflow_stage values onto the 5 high-level "swim lanes"
+# the timeline UI groups by. Any unknown value falls into 'other'.
+_STAGE_SWIM_LANE = {
+    None: 'proforma',
+    '': 'proforma',
+    'marketing_draft': 'marketing',
+    'marketing_in_progress': 'marketing',
+    'marketing_changes_requested': 'marketing',
+    'pending_director_pis': 'director_pis',
+    'ready_for_web': 'web',
+    'specsheet_draft': 'web',
+    'web_changes_requested': 'web',
+    'pending_director_spec': 'director_spec',
+    'finalized': 'finalized',
+}
+
+
+def _swim_lane(stage):
+    if stage in _STAGE_SWIM_LANE:
+        return _STAGE_SWIM_LANE[stage]
+    return 'other'
+
+
+@api_bp.route('/api/product/<int:product_id>/timeline')
+def api_product_timeline(product_id):
+    """Phase 5 — restructured history endpoint.
+
+    Returns events for one product, grouped by calendar date, each event
+    enriched with workflow_stage / swim_lane / actor_role and flags
+    indicating whether a snapshot + field changes exist at that point.
+
+    Query params:
+      ?stage=marketing | director_pis | web | director_spec | finalized | proforma
+            Filter to one swim lane.
+      ?from=YYYY-MM-DD  ?to=YYYY-MM-DD
+            Inclusive date range.
+      ?page=1  ?per_page=50
+            Pagination. Pagination is applied AFTER grouping so each
+            page is a complete set of date buckets.
+
+    Response shape:
+      {
+        "product_id": int,
+        "page": int, "per_page": int, "total_events": int,
+        "groups": [
+          { "date": "2026-05-11",
+            "events": [ {id, time, action, description, type, stage,
+                         swim_lane, actor, actor_role, version_id,
+                         version_num, has_field_changes, field_change_count
+                        }, ... ] },
+          ...
+        ]
+      }
+    """
+    # 1. Pull events (apply DB-level filters first)
+    q = ProductHistory.query.filter_by(product_id=product_id)
+
+    swim_filter = (request.args.get('stage') or '').strip().lower()
+    if swim_filter:
+        # Reverse-map the swim_lane to the underlying workflow_stage values.
+        matching_stages = [k for k, v in _STAGE_SWIM_LANE.items() if v == swim_filter]
+        if matching_stages:
+            q = q.filter(ProductHistory.workflow_stage.in_(matching_stages))
+
+    def _parse_date(s):
+        try:
+            return datetime.strptime(s, '%Y-%m-%d')
+        except (TypeError, ValueError):
+            return None
+
+    d_from = _parse_date(request.args.get('from'))
+    d_to = _parse_date(request.args.get('to'))
+    if d_from:
+        q = q.filter(ProductHistory.timestamp >= d_from)
+    if d_to:
+        q = q.filter(ProductHistory.timestamp < d_to + timedelta(days=1))
+
+    events = q.order_by(ProductHistory.timestamp.desc()).all()
+
+    # 2. Pre-fetch field-change counts per version so the UI can show
+    #    "5 fields changed" badges without per-event subqueries.
+    version_ids = {e.version_id for e in events if e.version_id}
+    field_change_counts: dict[int, int] = {}
+    if version_ids:
+        rows = db.session.query(
+            ProductVersion.id,
+            db.func.count(FieldChangeLog.id),
+        ).join(
+            FieldChangeLog,
+            FieldChangeLog.version_num == ProductVersion.version_num,
+        ).filter(
+            ProductVersion.id.in_(version_ids),
+            FieldChangeLog.product_id == product_id,
+        ).group_by(ProductVersion.id).all()
+        field_change_counts = {vid: cnt for vid, cnt in rows}
+
+    # Pre-fetch version_num for each linked version so UI can render
+    # "v12" labels without N round-trips.
+    version_nums: dict[int, int] = {}
+    if version_ids:
+        for v in ProductVersion.query.filter(ProductVersion.id.in_(version_ids)).all():
+            version_nums[v.id] = v.version_num
+
+    # 3. Group events by calendar date.
+    groups: list[dict] = []
+    bucket: dict | None = None
+    for e in events:
+        date_str = e.timestamp.strftime('%Y-%m-%d')
+        if bucket is None or bucket['date'] != date_str:
+            bucket = {'date': date_str, 'events': []}
+            groups.append(bucket)
+        bucket['events'].append({
+            'id':                  e.id,
+            'time':                e.timestamp.strftime('%H:%M'),
+            'timestamp':           e.timestamp.isoformat(),
+            'action':              e.action_title,
+            'description':         e.description or '',
+            'type':                e.action_type or 'neutral',
+            'stage':               e.workflow_stage,
+            'swim_lane':           _swim_lane(e.workflow_stage),
+            'actor':               e.actor,
+            'actor_role':          e.actor_role,
+            'version_id':          e.version_id,
+            'version_num':         version_nums.get(e.version_id),
+            'has_snapshot':        e.version_id is not None,
+            'has_field_changes':   field_change_counts.get(e.version_id, 0) > 0,
+            'field_change_count':  field_change_counts.get(e.version_id, 0),
+        })
+
+    # 4. Pagination — pages are full date buckets (so a single date never
+    #    splits across pages).
+    try:
+        page = max(1, int(request.args.get('page', 1)))
+        per_page = max(1, min(200, int(request.args.get('per_page', 50))))
+    except (TypeError, ValueError):
+        page, per_page = 1, 50
+
+    # Flatten -> count events for `total_events`, then slice by date bucket.
+    total_events = sum(len(g['events']) for g in groups)
+    start = (page - 1) * per_page
+    end = start + per_page
+
+    paginated_groups: list[dict] = []
+    flat_index = 0
+    for g in groups:
+        bucket_start = flat_index
+        bucket_end = flat_index + len(g['events'])
+        flat_index = bucket_end
+        if bucket_end <= start or bucket_start >= end:
+            continue
+        sliced = g['events'][max(0, start - bucket_start): max(0, end - bucket_start)]
+        if sliced:
+            paginated_groups.append({'date': g['date'], 'events': sliced})
+
+    # 5. Summary bar — created/updated timestamps, total versions, current stage.
+    product = Product.query.get(product_id)
+    summary = None
+    if product:
+        latest_version = ProductVersion.query.filter_by(
+            product_id=product_id
+        ).order_by(ProductVersion.version_num.desc()).first()
+        version_count = ProductVersion.query.filter_by(product_id=product_id).count()
+        summary = {
+            'created_at':  product.created_at.strftime('%d %b %Y') if product.created_at else None,
+            'last_event':  events[0].timestamp.strftime('%d %b %Y, %H:%M') if events else None,
+            'version_count': version_count,
+            'current_stage': product.workflow_stage,
+            'current_swim_lane': _swim_lane(product.workflow_stage),
+            'latest_version_num': latest_version.version_num if latest_version else None,
+        }
+
+    return jsonify({
+        'product_id':   product_id,
+        'page':         page,
+        'per_page':     per_page,
+        'total_events': total_events,
+        'summary':      summary,
+        'groups':       paginated_groups,
+    })
 
 
 # ── FIELD CHANGELOG ───────────────────────────────────────────────────────────
@@ -1106,9 +1410,10 @@ def _proforma_extract_worker(app, job_id, ai_filepaths, supplier_url,
             # payload — committed-later products run through proforma_to_pis_data
             # with this same text so origins (verified vs discrepancy) are
             # consistent regardless of when commit happens.
+            # Strict-fact rule: only the uploaded Proforma counts as the
+            # verification source — supplier-page scrapes don't qualify as
+            # Proforma facts.
             raw_doc_text = extract_raw_text_from_files(ai_filepaths) or ""
-            if site_data and site_data.get('text'):
-                raw_doc_text = (raw_doc_text + "\n" + site_data['text']) if raw_doc_text else site_data['text']
 
             ai_filepath = ai_filepaths[0] if ai_filepaths else None
             total = len(products)

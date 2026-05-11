@@ -15,6 +15,14 @@
             products: [],
             filterOptions: ['ALL', 'DRAFT PIS', 'CHANGE REQUESTED', 'NEED REVIEW', 'IN PROCESS', 'PIS APPROVED'],
 
+            // Per-column filter state. Empty string = no filter on that
+            // column. Combined with `activeFilter` (the pills above) and
+            // `searchQuery` (global) — all are AND-ed in filteredProducts.
+            colProduct: '',
+            colActor: '',
+            colEvent: '',
+            colStatus: 'ALL',
+
             changesModalOpen: false,
             changesLoading: false,
             changesData: [],
@@ -29,11 +37,37 @@
             init() {
                 this.products = window.__productsData || [];
             },
+
+            // Unique values for the per-column dropdowns — derived from
+            // the dataset so we never offer a filter for a value that
+            // doesn't exist.
+            get uniqueActors() {
+                return [...new Set(this.products.map(p => p.latest_actor).filter(Boolean))].sort();
+            },
+            get uniqueEvents() {
+                return [...new Set(this.products.map(p => p.latest_event).filter(Boolean))].sort();
+            },
+
+            clearAllColumnFilters() {
+                this.colProduct = '';
+                this.colActor = '';
+                this.colEvent = '';
+                this.colStatus = 'ALL';
+            },
+
+            get hasColumnFilters() {
+                return !!(this.colProduct || this.colActor || this.colEvent || this.colStatus !== 'ALL');
+            },
+
             get filteredProducts() {
                 let list = this.products;
+
+                // Pills filter (top of page).
                 if (this.activeFilter !== 'ALL') {
                     list = list.filter(p => p.filter_status === this.activeFilter);
                 }
+
+                // Global search (top bar).
                 if (this.searchQuery.trim()) {
                     const q = this.searchQuery.trim().toLowerCase();
                     list = list.filter(p =>
@@ -43,6 +77,24 @@
                         (p.latest_event || '').toLowerCase().includes(q)
                     );
                 }
+
+                // Per-column filters.
+                if (this.colProduct.trim()) {
+                    const q = this.colProduct.trim().toLowerCase();
+                    list = list.filter(p =>
+                        p.model_name.toLowerCase().includes(q) ||
+                        (p.brand || '').toLowerCase().includes(q));
+                }
+                if (this.colActor && this.colActor !== '') {
+                    list = list.filter(p => p.latest_actor === this.colActor);
+                }
+                if (this.colEvent && this.colEvent !== '') {
+                    list = list.filter(p => p.latest_event === this.colEvent);
+                }
+                if (this.colStatus !== 'ALL') {
+                    list = list.filter(p => p.filter_status === this.colStatus);
+                }
+
                 return list;
             },
             getFilterCount(filter) {
@@ -230,14 +282,27 @@
 </script>
 <div class="max-w-7xl mx-auto" x-data="historyPage">
 
-    <!-- HEADER -->
-    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-        <div>
-            <h2 class="text-3xl font-extrabold text-gray-900 tracking-tight">PIS Journey History</h2>
-            <p class="text-gray-500 mt-1">Detailed audit log — see who did what at a glance.</p>
-        </div>
-        <div class="flex items-center gap-3">
-            <span class="text-xs font-bold text-gray-400 uppercase tracking-wider" x-text="filteredProducts.length + ' of ' + products.length + ' products'"></span>
+    <!-- HEADER — matches Marketing PDF Archive hero style -->
+    <div class="mb-6 relative rounded-3xl bg-gradient-to-br from-white via-white to-red-50/40 border border-gray-100 p-8 shadow-sm overflow-hidden">
+        <div class="absolute inset-0 bg-[radial-gradient(#fee2e2_1px,transparent_1px)] [background-size:18px_18px] opacity-40 pointer-events-none"></div>
+        {# Decorative red accent orbs #}
+        <div class="absolute -top-12 -right-12 w-48 h-48 bg-red-100/40 rounded-full blur-3xl pointer-events-none"></div>
+        <div class="absolute -bottom-12 -left-12 w-40 h-40 bg-red-100/30 rounded-full blur-3xl pointer-events-none"></div>
+
+        <div class="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+            <div>
+                <p class="text-[10px] font-bold text-red-600 uppercase tracking-widest mb-1">Audit Log</p>
+                <h2 class="text-3xl font-extrabold text-slate-900 tracking-tight">PIS Journey History</h2>
+                <p class="text-slate-500 text-sm mt-1.5">Detailed audit log — see who did what at a glance.</p>
+            </div>
+            <div class="flex items-center gap-3">
+                <span class="text-xs font-bold text-gray-400 uppercase tracking-wider"
+                      x-text="filteredProducts.length + ' of ' + products.length + ' products'"></span>
+                <button type="button" x-show="hasColumnFilters" @click="clearAllColumnFilters()"
+                    class="text-[10px] font-bold uppercase tracking-widest text-red-600 hover:text-red-800 border border-red-200 hover:border-red-400 rounded-lg px-2.5 py-1.5 transition-colors">
+                    Clear filters
+                </button>
+            </div>
         </div>
     </div>
 
@@ -249,23 +314,23 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
             </svg>
             <input x-model="searchQuery" type="text" placeholder="Search by product, brand, or user..."
-                class="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-100 focus:border-gray-300 focus:bg-white rounded-xl text-sm font-medium transition-all outline-none placeholder-gray-400">
+                class="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-100 focus:border-red-300 focus:bg-white focus:ring-2 focus:ring-red-100 rounded-xl text-sm font-medium transition-all outline-none placeholder-gray-400">
         </div>
         
         <!-- Quick Filter Pills -->
         <div class="flex flex-wrap gap-2">
             <template x-for="filter in filterOptions" :key="filter">
                 <button @click="activeFilter = filter"
-                    class="px-3.5 py-1.5 rounded-full text-[11px] font-bold transition-all flex items-center gap-1.5 border"
-                    :class="activeFilter === filter 
-                        ? (filter === 'ALL' ? 'bg-slate-800 text-white border-slate-800 shadow-sm' :
+                    class="px-3.5 py-1.5 rounded-full text-[11px] font-bold transition-all flex items-center gap-1.5 border transform hover:-translate-y-0.5"
+                    :class="activeFilter === filter
+                        ? (filter === 'ALL' ? 'bg-red-600 text-white border-red-600 shadow-sm shadow-red-200' :
                            filter === 'DRAFT PIS' ? 'bg-gray-700 text-white border-gray-700 shadow-sm' :
-                           filter === 'CHANGE REQUESTED' ? 'bg-red-600 text-white border-red-600 shadow-sm' :
-                           filter === 'NEED REVIEW' ? 'bg-purple-600 text-white border-purple-600 shadow-sm' :
+                           filter === 'CHANGE REQUESTED' ? 'bg-red-600 text-white border-red-600 shadow-sm shadow-red-200' :
+                           filter === 'NEED REVIEW' ? 'bg-violet-600 text-white border-violet-600 shadow-sm' :
                            filter === 'IN PROCESS' ? 'bg-blue-600 text-white border-blue-600 shadow-sm' :
                            filter === 'PIS APPROVED' ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm' :
-                           'bg-slate-800 text-white border-slate-800 shadow-sm')
-                        : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50 hover:border-gray-300'">
+                           'bg-red-600 text-white border-red-600 shadow-sm shadow-red-200')
+                        : 'bg-white text-gray-500 border-gray-200 hover:bg-red-50/40 hover:border-red-200 hover:text-gray-700'">
                     <span x-text="filter"></span>
                     <span class="px-1.5 py-0.5 rounded text-[9px] font-black"
                         :class="activeFilter === filter ? 'bg-white/20' : 'bg-gray-100'"
@@ -287,10 +352,51 @@
                         <th class="px-5 py-3.5 text-xs font-bold text-gray-400 uppercase tracking-wider">Status</th>
                         <th class="px-5 py-3.5 text-xs font-bold text-gray-400 uppercase tracking-wider text-right">Details</th>
                     </tr>
+                    {# Per-column filter row — each field narrows the table
+                       independently of the global search/pills above. #}
+                    <tr class="bg-white border-t border-gray-100">
+                        <th class="px-5 py-2.5">
+                            <input type="text" x-model="colProduct" placeholder="Filter product or brand…"
+                                class="w-full text-xs font-medium border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-red-200 focus:border-red-400 placeholder-gray-300 transition-colors">
+                        </th>
+                        <th class="px-5 py-2.5">
+                            <select x-model="colActor"
+                                class="w-full text-xs font-medium border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-red-200 focus:border-red-400 transition-colors cursor-pointer bg-white">
+                                <option value="">All actors</option>
+                                <template x-for="actor in uniqueActors" :key="actor">
+                                    <option :value="actor" x-text="actor"></option>
+                                </template>
+                            </select>
+                        </th>
+                        <th class="px-5 py-2.5">
+                            <select x-model="colEvent"
+                                class="w-full text-xs font-medium border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-red-200 focus:border-red-400 transition-colors cursor-pointer bg-white">
+                                <option value="">All events</option>
+                                <template x-for="ev in uniqueEvents" :key="ev">
+                                    <option :value="ev" x-text="ev"></option>
+                                </template>
+                            </select>
+                        </th>
+                        <th class="px-5 py-2.5">
+                            <select x-model="colStatus"
+                                class="w-full text-xs font-medium border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-red-200 focus:border-red-400 transition-colors cursor-pointer bg-white">
+                                <template x-for="s in filterOptions" :key="s">
+                                    <option :value="s" x-text="s"></option>
+                                </template>
+                            </select>
+                        </th>
+                        <th class="px-5 py-2.5 text-right">
+                            <button type="button" x-show="hasColumnFilters" @click="clearAllColumnFilters()"
+                                class="text-[10px] font-bold uppercase tracking-widest text-red-600 hover:text-red-800 transition-colors">
+                                Clear ↻
+                            </button>
+                        </th>
+                    </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-50">
                     <template x-for="p in filteredProducts" :key="p.id">
-                    <tr class="hover:bg-gray-50/80 transition-colors group cursor-pointer" @click="openTimeline(p)">
+                    <tr class="hover:bg-red-50/30 transition-all group cursor-pointer hover:shadow-[inset_4px_0_0_0_#dc2626]"
+                        @click="openTimeline(p)">
                         <!-- Product Info -->
                         <td class="px-5 py-3.5">
                             <div class="flex items-center gap-3">
@@ -349,12 +455,16 @@
                             </span>
                         </td>
 
-                        <!-- View Details Arrow -->
+                        <!-- View → opens the per-product audit / restore page -->
                         <td class="px-5 py-3.5 text-right">
-                            <div class="inline-flex items-center gap-1 text-gray-400 group-hover:text-blue-600 transition-colors text-xs font-bold">
-                                <span class="hidden sm:inline">View</span>
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-                            </div>
+                            <a :href="'/product/' + p.id + '/history'"
+                               @click.stop
+                               class="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-widest text-gray-500 group-hover:text-red-600 group-hover:bg-red-50 px-3 py-1.5 rounded-lg border border-transparent group-hover:border-red-200 transition-all">
+                                <span>View</span>
+                                <svg class="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+                                </svg>
+                            </a>
                         </td>
                     </tr>
                     </template>
@@ -363,11 +473,16 @@
                     <template x-if="filteredProducts.length === 0">
                         <tr>
                             <td colspan="5" class="px-6 py-16 text-center text-gray-400">
-                                <div class="w-14 h-14 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
-                                    <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                                <div class="w-14 h-14 bg-red-50 rounded-2xl flex items-center justify-center mx-auto mb-3 text-red-300">
+                                    <svg class="w-7 h-7" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                                 </div>
-                                <p class="text-sm font-bold">No products match your filters</p>
+                                <p class="text-sm font-bold text-gray-600">No products match your filters</p>
                                 <p class="text-xs mt-1">Try changing the filter or search term.</p>
+                                <button type="button" x-show="hasColumnFilters || searchQuery || activeFilter !== 'ALL'"
+                                    @click="clearAllColumnFilters(); searchQuery=''; activeFilter='ALL'"
+                                    class="mt-4 text-[10px] font-bold uppercase tracking-widest text-red-600 hover:text-red-800 border border-red-200 hover:border-red-400 rounded-lg px-3 py-1.5 transition-colors">
+                                    Clear all filters
+                                </button>
                             </td>
                         </tr>
                     </template>

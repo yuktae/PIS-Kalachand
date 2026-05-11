@@ -4,17 +4,13 @@
 <div x-data="statsPanel()" x-init="init()" class="page-fade-in">
 
     <!-- Hero Section -->
-    <div class="mb-6 relative rounded-2xl bg-white border border-gray-100 p-8 shadow-sm overflow-hidden">
-        <div class="absolute inset-0 bg-[radial-gradient(#f1f5f9_1px,transparent_1px)] [background-size:16px_16px] opacity-50"></div>
-        <div class="absolute right-0 top-0 w-64 h-64 bg-emerald-100 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 opacity-40"></div>
+    <div class="mb-6 relative rounded-2xl bg-gradient-to-br from-white via-white to-emerald-50/70 border border-gray-100 p-8 shadow-sm overflow-hidden">
+        <div class="absolute inset-0 bg-[radial-gradient(#d1fae5_1px,transparent_1px)] [background-size:16px_16px] opacity-50"></div>
+        <div class="absolute right-0 top-0 w-72 h-72 bg-emerald-200 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 opacity-60"></div>
+        <div class="absolute -bottom-16 -left-16 w-48 h-48 bg-teal-100 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
         <div class="relative z-10 flex flex-col md:flex-row justify-between items-center gap-6">
             <div>
-                <h2 class="text-3xl font-bold text-slate-800 mb-2 flex items-center gap-3">
-                    <div class="w-10 h-10 bg-gradient-to-br from-emerald-600 to-teal-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-emerald-200">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                        </svg>
-                    </div>
+                <h2 class="text-3xl font-bold text-slate-800 mb-2">
                     Stats &amp; Analytics
                 </h2>
                 <p class="text-slate-500 text-sm">Live snapshot of platform activity, AI usage, and team contribution.</p>

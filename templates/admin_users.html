@@ -4,17 +4,13 @@
 <div x-data="adminPanel()" x-init="init()" class="page-fade-in">
 
     <!-- Hero Section -->
-    <div class="mb-8 relative rounded-2xl bg-white border border-gray-100 p-8 shadow-sm overflow-hidden">
-        <div class="absolute inset-0 bg-[radial-gradient(#f1f5f9_1px,transparent_1px)] [background-size:16px_16px] opacity-50"></div>
-        <div class="absolute right-0 top-0 w-64 h-64 bg-slate-100 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 opacity-50"></div>
+    <div class="mb-8 relative rounded-2xl bg-gradient-to-br from-white via-white to-slate-100/60 border border-gray-100 p-8 shadow-sm overflow-hidden">
+        <div class="absolute inset-0 bg-[radial-gradient(#e2e8f0_1px,transparent_1px)] [background-size:16px_16px] opacity-50"></div>
+        <div class="absolute right-0 top-0 w-72 h-72 bg-slate-200 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 opacity-70"></div>
+        <div class="absolute -bottom-16 -left-16 w-48 h-48 bg-slate-100 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
         <div class="relative z-10 flex flex-col md:flex-row justify-between items-center gap-6">
             <div>
-                <h2 class="text-3xl font-bold text-slate-800 mb-2 flex items-center gap-3">
-                    <div class="w-10 h-10 bg-slate-900 rounded-xl flex items-center justify-center text-white">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
-                        </svg>
-                    </div>
+                <h2 class="text-3xl font-bold text-slate-800 mb-2">
                     User Management
                 </h2>
                 <p class="text-slate-500 text-sm">Create and manage user accounts for each team section.</p>
@@ -403,6 +399,91 @@
             </div>
         </div>
     </div>
+
+    {# ── PHASE 4: History cleanup tile ────────────────────────── #}
+    <div x-data="historyCleanup()" x-init="load()"
+         class="mt-8 max-w-5xl mx-auto bg-white border border-slate-200 rounded-2xl p-6">
+        <div class="flex items-baseline justify-between gap-4 flex-wrap mb-4">
+            <div>
+                <h3 class="text-lg font-bold text-slate-900">History cleanup</h3>
+                <p class="text-xs text-slate-500 mt-1">
+                    Removes audit-trail rows older than 6 months. The most-recent
+                    major snapshot per product is always preserved.
+                </p>
+            </div>
+            <div class="flex items-center gap-2">
+                <button type="button" @click="run(true)" :disabled="busy"
+                    class="text-[11px] font-bold uppercase tracking-widest text-slate-700 border border-slate-300 hover:border-slate-500 rounded-lg px-3 py-1.5 disabled:opacity-40">
+                    Dry run
+                </button>
+                <button type="button" @click="run(false)" :disabled="busy"
+                    class="text-[11px] font-bold uppercase tracking-widest bg-red-600 hover:bg-red-700 text-white rounded-lg px-3 py-1.5 disabled:opacity-40">
+                    Run cleanup
+                </button>
+            </div>
+        </div>
+
+        <div x-show="busy" class="text-xs text-slate-500">Working…</div>
+
+        <div x-show="!busy && lastRun" class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+            <div>
+                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Last run</p>
+                <p class="text-xs text-slate-900 font-bold mt-1" x-text="lastRun?.ran_at?.slice(0, 19).replace('T', ' ') || '—'"></p>
+                <p class="text-[10px] text-slate-400 mt-0.5" x-show="lastRun?.dry_run">(dry-run)</p>
+            </div>
+            <div>
+                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">History</p>
+                <p class="text-lg font-bold text-slate-900 mt-1" x-text="lastRun?.history ?? 0"></p>
+            </div>
+            <div>
+                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Field changes</p>
+                <p class="text-lg font-bold text-slate-900 mt-1" x-text="lastRun?.field_changes ?? 0"></p>
+            </div>
+            <div>
+                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Versions</p>
+                <p class="text-lg font-bold text-slate-900 mt-1" x-text="lastRun?.versions ?? 0"></p>
+                <p class="text-[10px] text-emerald-600 mt-0.5"
+                   x-text="(lastRun?.anchors_preserved ?? 0) + ' anchor(s) kept'"></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    function historyCleanup() {
+        return {
+            busy: false,
+            lastRun: null,
+            async load() {
+                try {
+                    const r = await fetch('/api/admin/history_cleanup/status');
+                    const j = await r.json();
+                    if (j && j.ran_at) this.lastRun = j;
+                } catch (e) { console.error(e); }
+            },
+            async run(dryRun) {
+                this.busy = true;
+                try {
+                    const r = await fetch('/api/admin/history_cleanup/run', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({dry_run: !!dryRun}),
+                    });
+                    const j = await r.json();
+                    if (j.error) {
+                        alert(j.error);
+                    } else {
+                        this.lastRun = j;
+                    }
+                } catch (e) {
+                    alert('Network error.');
+                    console.error(e);
+                } finally {
+                    this.busy = false;
+                }
+            },
+        };
+    }
+    </script>
 
     <!-- DELETE CONFIRMATION MODAL -->
     <div x-show="showDeleteModal"

@@ -260,6 +260,125 @@ def quick_scan_for_name(file_paths: list[str]) -> dict:
         return {"product_name": stem, "brand": "", "model_number": ""}
 
 
+# ── Image triage: does the proforma actually have product photos? ───────────
+
+_TRIAGE_HAS_IMAGES_PROMPT = """You are scanning a supplier proforma / spec sheet.
+Examine ALL pages. Decide whether it contains product photographs.
+
+Reply with strict JSON:
+{ "has_images": "all" | "partial" | "none" }
+
+Definitions:
+- "all"     — every line item / SKU has a product photo next to it.
+- "partial" — some items have photos, some don't (mixed catalog).
+- "none"    — no product photos at all (text-only invoice, line-item
+              table, plain spec sheet without imagery).
+
+Logos, header banners, decorative icons, and tiny thumbnails of UI
+elements do NOT count as product photos. Reply with JSON only, no prose.
+"""
+
+
+def triage_has_images(file_paths: list[str]) -> str:
+    """Quick Gemini triage — does the uploaded proforma carry product
+    photos? Returns one of 'all' | 'partial' | 'none'. On any failure
+    returns 'partial' (conservative: keeps doc-side extraction enabled).
+
+    Used by the wizard's image-extraction step to decide whether to run
+    PDF bbox/embedded scraping at all. When the doc is text-only ('none')
+    we skip straight to the web pipeline — saves 5-10s and prevents
+    nano-banana from hallucinating a product from a blank page.
+    """
+    if not file_paths:
+        return 'none'
+
+    fp = file_paths[0]
+    if not fp or not os.path.exists(fp):
+        return 'none'
+
+    try:
+        uploaded = _get_client().files.upload(file=fp)
+        for _ in range(30):
+            if uploaded.state.name != "PROCESSING":
+                break
+            time.sleep(0.5)
+            uploaded = _get_client().files.get(name=uploaded.name)
+
+        response = _get_client().models.generate_content(
+            model=_MODEL,
+            contents=[_TRIAGE_HAS_IMAGES_PROMPT, uploaded],
+            config=types.GenerateContentConfig(response_mime_type="application/json"),
+        )
+        parsed = json.loads(response.text or "{}")
+        val = str(parsed.get("has_images") or "").strip().lower()
+        if val in ('all', 'partial', 'none'):
+            return val
+        return 'partial'
+    except Exception as e:
+        print(f"⚠ triage_has_images failed: {e}")
+        return 'partial'
+
+
+# ── User-supplied URL image extraction ──────────────────────────────────────
+
+def extract_images_from_user_url(suggested_url: str,
+                                  model_name: str,
+                                  upload_folder: str,
+                                  max_results: int = 3,
+                                  log_cb=None) -> list[dict]:
+    """Pull images from a URL the user pasted in (e.g. they found the
+    exact product page themselves). Reuses the same scrape + download
+    primitives as the auto-discovered supplier URL path so validation,
+    dimension/size checks, and de-bad-domain filtering stay consistent.
+
+    Returns the same shape as `extract_image_candidates_from_web`:
+    `[{"path": "uploads/...", "page_url": <suggested_url>}, ...]`.
+    """
+    def _emit(msg: str) -> None:
+        if log_cb:
+            try: log_cb(msg)
+            except Exception: pass
+
+    if not suggested_url or not suggested_url.strip():
+        return []
+    suggested_url = suggested_url.strip()
+    if not (suggested_url.startswith('http://') or suggested_url.startswith('https://')):
+        _emit(f"Ignoring non-HTTP URL: {suggested_url}")
+        return []
+
+    try:
+        scraped = scrape_images_from_url(suggested_url) or []
+        _emit(f"Scraped {len(scraped)} image URL(s) from suggested page.")
+    except Exception as e:
+        _emit(f"Suggested-URL scrape failed: {e}")
+        return []
+
+    seen: set[str] = set()
+    queue: list[str] = []
+    for u in scraped:
+        if not u or u in seen:
+            continue
+        if is_bad_image_url(u):
+            continue
+        seen.add(u)
+        queue.append(u)
+
+    if not queue:
+        _emit("No usable image URLs on the suggested page.")
+        return []
+
+    results: list[dict] = []
+    for url in queue[:max_results * 4]:
+        if len(results) >= max_results:
+            break
+        rel_path = download_web_image(url, model_name or 'product', upload_folder)
+        if rel_path:
+            _emit(f"Downloaded → {rel_path}")
+            results.append({"path": rel_path, "page_url": suggested_url})
+
+    return results
+
+
 # ── Step 3: supplier URL discovery ──────────────────────────────────────────
 
 # Hosts we never want to land on as the "supplier URL" — search engines,
@@ -454,6 +573,105 @@ def extract_image_from_document(file_paths: list[str], target_model: str,
     return deduped
 
 
+# ── Top-3 pages helper: search the web, scrape each result page ─────────────
+
+def extract_images_from_top_pages(model_name: str,
+                                    brand: str | None,
+                                    upload_folder: str,
+                                    max_pages: int = 3,
+                                    max_per_page: int = 1,
+                                    exclude_urls: list[str] | None = None,
+                                    log_cb=None,
+                                    cancel_event=None) -> list[dict]:
+    """Web-search by KEYWORD → take top N organic page URLs → scrape each
+    page's gallery / OG tags → download up to `max_per_page` images per page.
+
+    This mirrors the user's manual workflow ("Extract from URL" but
+    automated): we search Google web (NOT Google Image Search), pick the
+    top product pages, and fetch images from each page directly. Images
+    download more reliably this way because the supplier CDN sees a
+    request that looks like a real browser visit, so hot-link protection
+    on `cdn.supplier.com/image.jpg` rarely fires.
+
+    `exclude_urls`: page URLs to skip (e.g. the supplier_url already
+    scraped by the caller, to avoid duplicate work).
+
+    Returns `[{"path": "uploads/...", "page_url": "https://..."}]`.
+    """
+    def _emit(msg: str) -> None:
+        if log_cb:
+            try: log_cb(msg)
+            except Exception: pass
+
+    def _cancelled() -> bool:
+        return cancel_event is not None and cancel_event.is_set()
+
+    if not model_name or _cancelled():
+        return []
+
+    # Reuse the existing discovery cascade — same 3-pass query strategy
+    # (brand+name, name verbatim, name+site:brand-domain) and engine
+    # cascade (Google API → Google scrape → Bing → DDG).
+    try:
+        discovery = discover_supplier_url(model_name, brand) or {}
+    except Exception as e:
+        _emit(f"Top-pages discovery failed: {e}")
+        return []
+
+    candidates = discovery.get('candidates') or []
+    excl = {u.strip().rstrip('/') for u in (exclude_urls or []) if u}
+    pages: list[str] = []
+    for u in candidates:
+        if not u:
+            continue
+        key = u.strip().rstrip('/')
+        if key in excl:
+            continue
+        pages.append(u)
+        if len(pages) >= max_pages:
+            break
+
+    if not pages:
+        _emit("Top-pages: no usable page URLs from web search")
+        return []
+
+    _emit(f"Top-pages: scraping {len(pages)} page(s)")
+    results: list[dict] = []
+    for page_url in pages:
+        if _cancelled():
+            break
+        try:
+            img_urls = scrape_images_from_url(page_url) or []
+        except Exception as e:
+            _emit(f"  · scrape failed for {page_url}: {e}")
+            continue
+        if not img_urls:
+            continue
+
+        # Filter known-bad domains + dedupe across pages.
+        seen_in_page: set[str] = set()
+        page_results = 0
+        for img_url in img_urls:
+            if _cancelled() or page_results >= max_per_page:
+                break
+            if not img_url or img_url in seen_in_page:
+                continue
+            if is_bad_image_url(img_url):
+                continue
+            seen_in_page.add(img_url)
+            try:
+                rel_path = download_web_image(img_url, model_name, upload_folder)
+            except Exception as e:
+                _emit(f"  · download {img_url} failed: {e}")
+                continue
+            if rel_path:
+                results.append({"path": rel_path, "page_url": page_url})
+                page_results += 1
+        _emit(f"  · {page_url} → {page_results} image(s)")
+
+    return results
+
+
 # ── Step 4 helper: web fallback returning up to 3 candidates ────────────────
 
 def extract_image_candidates_from_web(model_name: str,
@@ -463,14 +681,23 @@ def extract_image_candidates_from_web(model_name: str,
                                        max_results: int = 3,
                                        log_cb=None,
                                        cancel_event=None) -> list[dict]:
-    """Phase 2.4 — fast image discovery for the wizard.
+    """Phase 2.4 — image discovery for the wizard, with a page-scrape-first
+    strategy that beats the old image-API-only path on hot-link-protected
+    sites (which is most supplier sites).
 
-    Order (most → least effective; cheapest first):
+    Order (most → least effective):
       1. Scrape the supplier URL HTML — most accurate when the URL is
-         actually the product page.
-      2. Google Custom Search Image API (brand-locked → unrestricted).
-      3. DuckDuckGo Image search.
-      4. Playwright SERP screenshot+crop — last resort, slow and brittle.
+         actually the product page (galleries / OG tags).
+      2. NEW: Top-3 web-search page URLs → scrape each. Mirrors the
+         "Extract from URL" workflow, automated. Page scrape downloads
+         with proper Referer chain so anti-hotlink rarely blocks.
+      3. Google Custom Search Image API (brand-locked → unrestricted).
+      4. DuckDuckGo Image search.
+      5. Playwright SERP screenshot+crop — last resort, slow and brittle.
+
+    Early-return: as soon as we have `max_results` successful downloads
+    from tiers 1–2 we skip the image-API path entirely (it costs API
+    quota and the results are usually lower-quality thumbnails).
 
     `cancel_event`: optional `threading.Event` checked between every engine
     call. When set, the function returns whatever it has so far instead of
@@ -499,6 +726,7 @@ def extract_image_candidates_from_web(model_name: str,
     photo_q = f"{clean} official photo"
     brand_domain = resolve_brand_domain(brand)
     candidate_urls: list[str] = []
+    results: list[dict] = []   # direct {path, page_url} from page-scrape tiers
 
     # 1. Direct scrape of supplier URL — most relevant if URL is the actual
     #    product page. Pulls images from product galleries / OG tags.
@@ -510,19 +738,39 @@ def extract_image_candidates_from_web(model_name: str,
         except Exception as e:
             _emit(f"Supplier scrape failed: {e}")
 
-    # 2. Google Image Search API — brand-locked first.
+    # 2. NEW — Top-3 web-search pages. This is what "Extract from URL"
+    #    does, just automated: search Google web for the keyword, take
+    #    the top organic product-page URLs, scrape images from each.
+    #    Downloads use the page's referer context so hot-link protection
+    #    on supplier CDNs rarely blocks them.
+    if not _cancelled():
+        top_pages = extract_images_from_top_pages(
+            model_name, brand, upload_folder,
+            max_pages=3, max_per_page=1,
+            exclude_urls=[supplier_url] if supplier_url else None,
+            log_cb=log_cb, cancel_event=cancel_event,
+        )
+        if top_pages:
+            results.extend(top_pages)
+            _emit(f"Top-pages tier returned {len(top_pages)} candidate(s)")
+
+    # Early-return: tiers 1–2 already filled our quota → skip image-API.
+    if len(results) >= max_results:
+        return results[:max_results]
+
+    # 3. Google Image Search API — brand-locked first.
     if brand_domain and len(candidate_urls) < max_results * 3 and not _cancelled():
         urls = search_google_api(photo_q, domain=brand_domain) or []
         _emit(f"Google Image API (brand-locked): {len(urls)} results")
         candidate_urls.extend(urls)
 
-    # 3. Google Image Search API — unrestricted.
+    # 4. Google Image Search API — unrestricted.
     if len(candidate_urls) < max_results * 3 and not _cancelled():
         urls = search_google_api(photo_q) or []
         _emit(f"Google Image API: {len(urls)} results")
         candidate_urls.extend(urls)
 
-    # 4. DuckDuckGo Image Search.
+    # 5. DuckDuckGo Image Search.
     if len(candidate_urls) < max_results * 3 and not _cancelled():
         urls = search_duckduckgo(photo_q, max_results=10) or []
         _emit(f"DuckDuckGo Images: {len(urls)} results")
@@ -530,7 +778,7 @@ def extract_image_candidates_from_web(model_name: str,
 
     if _cancelled():
         _emit("Web pipeline cancelled by client — bailing before download")
-        return []
+        return results   # keep whatever top-pages already produced
 
     # Dedupe & filter known-bad domains.
     seen: set[str] = set()
@@ -544,6 +792,11 @@ def extract_image_candidates_from_web(model_name: str,
         queue.append(u)
 
     if not queue:
+        # Image-API path returned nothing usable. If top-pages already
+        # gave us at least one candidate, return that — don't waste time
+        # on the Playwright fallback for marginal improvement.
+        if results:
+            return results
         _emit("No candidate URLs from any engine — falling back to screenshot pipeline")
         return find_multi_images_via_screenshot(
             target_label=model_name, supplier_url=supplier_url,
@@ -552,9 +805,9 @@ def extract_image_candidates_from_web(model_name: str,
             cancel_event=cancel_event,
         )
 
-    # Try downloads until we have `max_results` successes.
+    # Try downloads until we have `max_results` TOTAL successes (counting
+    # whatever top-pages already collected into `results`).
     _emit(f"Trying {min(len(queue), max_results * 4)} candidate(s) for download...")
-    results: list[dict] = []
     for url in queue[:max_results * 4]:
         if _cancelled():
             _emit("Download loop cancelled by client — bailing")

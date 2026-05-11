@@ -93,15 +93,37 @@ class ProductHistory(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     product_id = db.Column(db.Integer, db.ForeignKey('product.id'), nullable=False, index=True)
-    
+
     actor = db.Column(db.String(50))
     action_title = db.Column(db.String(100))
     description = db.Column(db.Text)
-    action_type = db.Column(db.String(20), default='neutral') 
-    
+    action_type = db.Column(db.String(20), default='neutral')
+
     timestamp = db.Column(db.DateTime, default=_utcnow_naive, index=True)
 
+    # Phase History v2 — audit trail context.
+    # workflow_stage: which workflow stage the event happened in
+    #   (proforma / marketing / director_pis / web / director_spec /
+    #    finalized). Indexed for the stage-filter timeline view.
+    # actor_role: role of the user at log-time (marketing / director /
+    #   web / admin / system). Stored separately from `actor` so the UI
+    #   can colour-code rows even when the user's role later changes.
+    # version_id: FK to ProductVersion.id when a snapshot was captured
+    #   at this moment — lets the UI render a "View at this point" /
+    #   "Restore to this version" button.
+    # expires_at: timestamp + 180 days. Phase 4 cleanup removes rows
+    #   where now() > expires_at (with snapshot-preservation guards).
+    workflow_stage = db.Column(db.String(50), index=True, nullable=True)
+    actor_role = db.Column(db.String(20), nullable=True)
+    version_id = db.Column(
+        db.Integer,
+        db.ForeignKey('product_version.id', ondelete='SET NULL'),
+        index=True, nullable=True,
+    )
+    expires_at = db.Column(db.DateTime, index=True, nullable=True)
+
     product = db.relationship('Product', backref=db.backref('history', lazy=True, cascade="all, delete"))
+    version = db.relationship('ProductVersion', backref='history_events')
 
 
 # ================= VERSION SNAPSHOTS =================
@@ -128,6 +150,11 @@ class ProductVersion(db.Model):
     created_at = db.Column(db.DateTime, default=_utcnow_naive)
     label = db.Column(db.String(100))  # e.g. "Before Director Review"
 
+    # Phase History v2 — created_at + 180 days. Phase 4 cleanup uses this
+    # for retention, with a guard that always preserves the most-recent
+    # major snapshot per product so restore-from-history has an anchor.
+    expires_at = db.Column(db.DateTime, index=True, nullable=True)
+
     product = db.relationship('Product', backref=db.backref('versions', lazy=True, cascade="all, delete"))
     created_by = db.relationship('User', backref='versions')
 
@@ -146,9 +173,13 @@ class FieldChangeLog(db.Model):
     old_value = db.Column(db.Text)           # Human-readable
     new_value = db.Column(db.Text)           # Human-readable
     version_num = db.Column(db.Integer)      # Which version this change belongs to
-    
+
     timestamp = db.Column(db.DateTime, default=_utcnow_naive, index=True)
-    
+
+    # Phase History v2 — stage the edit happened in, and TTL for cleanup.
+    workflow_stage = db.Column(db.String(50), nullable=True)
+    expires_at = db.Column(db.DateTime, index=True, nullable=True)
+
     product = db.relationship('Product', backref=db.backref('field_changes', lazy=True, cascade="all, delete"))
     user = db.relationship('User', backref='field_changes')
 

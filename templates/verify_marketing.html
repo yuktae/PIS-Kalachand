@@ -20,9 +20,14 @@
           title="The AI claimed this value came from the source document, but it can't be found in the raw text. Re-check before saving.">
         ⚠
     </span>
-    {% elif _o in ['ai', 'inferred'] %}
-    <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-blue-50 text-blue-500 text-[11px] border border-blue-100"
-          title="AI-deduced — verify against the source document.">
+    {% elif _o == 'verified' %}
+    <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-yellow-50 text-yellow-600 text-[11px] border border-yellow-200 font-bold"
+          title="Fact — extracted directly from the Proforma.">
+        ✔
+    </span>
+    {% elif _o in ['ai', 'inferred', 'source'] %}
+    <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-50 text-red-500 text-[11px] border border-red-100"
+          title="AI-generated — verify against the source document.">
         ✨
     </span>
     {% endif %}
@@ -60,12 +65,16 @@
     <form id="verifyForm" method="POST">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
-        <div class="sticky top-0 z-50 backdrop-blur-md bg-white/90 border-b border-gray-100 transition-all">
+        <div class="sticky top-0 z-50 backdrop-blur-md bg-gradient-to-br from-white/95 via-white/90 to-red-50/60 border-b border-gray-100 transition-all">
+            {# Subtle red dot texture so the sticky header reads as part
+               of the red-themed family (Dashboard / Archive / History). #}
+            <div class="absolute inset-0 bg-[radial-gradient(#fee2e2_1px,transparent_1px)] [background-size:18px_18px] opacity-30 pointer-events-none"></div>
 
-            <div class="px-8 py-4 flex items-center justify-between flex-wrap gap-4">
+            <div class="relative z-10 px-8 py-4 flex items-center justify-between flex-wrap gap-4">
                 <div>
+                    <p class="text-[10px] font-bold text-red-600 uppercase tracking-widest mb-0.5">Edit PIS</p>
                     <div class="flex items-center gap-3 flex-wrap">
-                        <h2 class="text-xl font-semibold text-gray-900">Edit PIS</h2>
+                        <h2 class="text-xl font-extrabold text-slate-900 tracking-tight">{{ product.model_name }}</h2>
                         {% if batch_id and batch_size > 1 %}
                         {# Bulk-batch navigation — prev/next arrows submit the
                            form so the current edits autosave before the jump.
@@ -93,8 +102,6 @@
                         {% endif %}
                     </div>
                     <div class="flex items-center gap-2 text-xs text-gray-500 mt-1 flex-wrap">
-                        <span class="font-medium text-gray-900">{{ product.model_name }}</span>
-                        <span>·</span>
                         {% if product.workflow_stage == 'marketing_draft' %}
                         <span
                             class="px-2 py-0.5 rounded text-[10px] font-bold bg-yellow-50 text-yellow-700 border border-yellow-100 whitespace-nowrap">Draft PIS</span>
@@ -136,7 +143,7 @@
                            back to the workspace (where every batch member is
                            visible) instead of the global dashboard. #}
                         <a href="{% if batch_id %}{{ url_for('marketing.import_proforma_bulk_workspace', batch_id=batch_id) }}{% else %}{{ url_for('marketing.dashboard_marketing') }}{% endif %}"
-                            class="px-4 py-2 rounded-lg bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 text-indigo-700 text-sm font-semibold shadow-sm transition-colors inline-flex items-center gap-1.5 group">
+                            class="px-4 py-2 rounded-lg bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm font-semibold shadow-sm transition-colors inline-flex items-center gap-1.5 group">
                             <svg class="w-4 h-4 transition-transform group-hover:-translate-x-0.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
                             </svg>
@@ -153,7 +160,7 @@
                         <button type="button" id="needReviewBtn" onclick="openSubmitModal()"
                             data-batch-size="{{ batch_size if batch_id and batch_size > 1 else 0 }}"
                             class="px-5 py-2 rounded-lg text-sm font-semibold shadow-sm transition-colors flex items-center gap-2
-                            {% if pis_approved %}bg-gray-300 text-gray-500 cursor-not-allowed{% else %}bg-indigo-600 hover:bg-indigo-700 text-white{% endif %}"
+                            {% if pis_approved %}bg-gray-300 text-gray-500 cursor-not-allowed{% else %}bg-red-600 hover:bg-red-700 text-white shadow-red-100{% endif %}"
                             {% if pis_approved %}disabled{% endif %}>
                             <span>Need Review{% if batch_id and batch_size > 1 %} ({{ batch_size }}){% endif %}</span>
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -190,13 +197,22 @@
 
 
         {% if _has_any_ai %}
-        <div class="mt-6 mx-8 flex items-start gap-3 p-4 rounded-2xl bg-blue-50/70 border border-blue-100">
-            <div class="w-8 h-8 rounded-xl bg-white border border-blue-100 flex items-center justify-center text-blue-500 shrink-0 mt-0.5">
-                <span class="text-sm">✨</span>
-            </div>
-            <div class="text-xs text-blue-900 leading-relaxed">
-                <p class="font-bold mb-0.5">Verify AI-generated fields</p>
-                <p class="text-blue-800/80">Fields marked <span class="font-bold">✨</span> are AI-generated — not from your source document. Review before sending.</p>
+        <div class="mt-6 mx-8 flex items-start gap-3 p-4 rounded-2xl bg-gray-50 border border-gray-200">
+            <div class="text-xs text-gray-700 leading-relaxed flex flex-wrap items-center gap-x-6 gap-y-2">
+                <span class="inline-flex items-center gap-2">
+                    <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-yellow-50 text-yellow-600 text-[11px] border border-yellow-200 font-bold">✔</span>
+                    <span><span class="font-bold">Fact</span> — extracted from the Proforma.</span>
+                </span>
+                <span class="inline-flex items-center gap-2">
+                    <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-50 text-red-500 text-[11px] border border-red-100">✨</span>
+                    <span><span class="font-bold">AI-generated</span> — verify before sending.</span>
+                </span>
+                {% if _has_discrepancy %}
+                <span class="inline-flex items-center gap-2">
+                    <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-50 text-red-600 text-[11px] border border-red-200 font-bold">⚠</span>
+                    <span><span class="font-bold">Discrepancy</span> — claimed value not found in source.</span>
+                </span>
+                {% endif %}
             </div>
         </div>
         {% endif %}
@@ -390,7 +406,7 @@
                         {% for arg in data.sales_arguments %}
                         <div class="row group">
                             <div
-                                class="w-6 h-6 rounded-full bg-gray-200 text-gray-500 flex items-center justify-center text-xs font-bold flex-shrink-0 group-hover:bg-indigo-100 group-hover:text-indigo-600 transition-colors">
+                                class="w-6 h-6 rounded-full bg-gray-200 text-gray-500 flex items-center justify-center text-xs font-bold flex-shrink-0 group-hover:bg-red-100 group-hover:text-red-600 transition-colors">
                                 {{ loop.index }}</div>
                             <input name="sales_arguments" value="{{ arg }}" class="row-input">
                             <button type="button" onclick="this.closest('.row').remove()" class="remove">
@@ -414,7 +430,7 @@
                     <div class="flex justify-between items-center border-b border-gray-100 p-6">
                         <h3 class="section-title mb-0">Specs Specifications</h3>
                         <button type="button" onclick="addSpec()"
-                            class="add-btn text-xs bg-indigo-50 px-3 py-1.5 rounded-lg hover:bg-indigo-100">
+                            class="add-btn text-xs bg-red-50 text-red-700 px-3 py-1.5 rounded-lg hover:bg-red-100">
                             + Add Row
                         </button>
                     </div>
@@ -490,8 +506,9 @@
                             {% for k,v in data.technical_specifications.items() %}
                             {% set _spec_o = _spec_origins.get(k) %}
                             {% set _is_disc_spec = _spec_o == 'discrepancy' %}
-                            {% set _is_ai_spec = _spec_o in ['ai', 'inferred'] %}
-                            <tr class="border-b border-gray-50 group hover:bg-gray-50 transition-colors {% if _is_disc_spec %}bg-red-50/40{% elif _is_ai_spec %}bg-blue-50/30{% endif %}">
+                            {% set _is_fact_spec = _spec_o == 'verified' %}
+                            {% set _is_ai_spec = _spec_o in ['ai', 'inferred', 'source'] %}
+                            <tr class="border-b border-gray-50 group hover:bg-gray-50 transition-colors {% if _is_disc_spec %}bg-red-50/40{% elif _is_ai_spec %}bg-red-50/20{% elif _is_fact_spec %}bg-yellow-50/30{% endif %}">
                                 <td class="px-6 py-3 font-semibold w-1/3">
                                     <div class="flex items-center gap-2">
                                         <input name="spec_name" value="{{ k }}"
@@ -500,8 +517,11 @@
                                         <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-50 text-red-600 text-[11px] border border-red-200 shrink-0 font-bold"
                                               title="Claimed as documented but the value can't be found in the source text. Re-check.">⚠</span>
                                         {% elif _is_ai_spec %}
-                                        <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-blue-50 text-blue-500 text-[11px] border border-blue-100 shrink-0"
-                                              title="Inferred — not printed on the source document.">✨</span>
+                                        <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-50 text-red-500 text-[11px] border border-red-100 shrink-0"
+                                              title="AI-generated — not printed on the source document.">✨</span>
+                                        {% elif _is_fact_spec %}
+                                        <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-yellow-50 text-yellow-600 text-[11px] border border-yellow-200 shrink-0 font-bold"
+                                              title="Fact — extracted directly from the Proforma.">✔</span>
                                         {% endif %}
                                     </div>
                                 </td>
@@ -569,7 +589,7 @@
 
             <div class="lg:col-span-6 space-y-6"
                  x-data="{
-                     activeTab: '{{ 'source' if _source_files else 'preview' }}',
+                     activeTab: 'preview',
                      activeSrc: 0,
                      previewBust: Date.now(),
                      refreshPreview() { this.previewBust = Date.now(); }
@@ -590,26 +610,26 @@
 
                     {# Tab strip #}
                     <div class="border-b border-gray-100 flex bg-gradient-to-r from-slate-50 to-gray-50 shrink-0">
-                        {% if _source_files %}
-                        <button type="button" @click="activeTab = 'source'"
-                            :class="activeTab === 'source' ? 'border-indigo-500 text-indigo-700 bg-white' : 'border-transparent text-slate-500 hover:text-slate-800'"
-                            class="flex-1 px-3 py-3 text-[11px] font-bold uppercase tracking-wider border-b-2 transition-colors flex items-center justify-center gap-1.5">
-                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                            Source
-                        </button>
-                        {% endif %}
                         <button type="button" @click="activeTab = 'preview'"
-                            :class="activeTab === 'preview' ? 'border-indigo-500 text-indigo-700 bg-white' : 'border-transparent text-slate-500 hover:text-slate-800'"
+                            :class="activeTab === 'preview' ? 'border-red-500 text-red-700 bg-white' : 'border-transparent text-slate-500 hover:text-slate-800'"
                             class="flex-1 px-3 py-3 text-[11px] font-bold uppercase tracking-wider border-b-2 transition-colors flex items-center justify-center gap-1.5">
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
                             Live Preview
                         </button>
                         <button type="button" @click="activeTab = 'gallery'"
-                            :class="activeTab === 'gallery' ? 'border-indigo-500 text-indigo-700 bg-white' : 'border-transparent text-slate-500 hover:text-slate-800'"
+                            :class="activeTab === 'gallery' ? 'border-red-500 text-red-700 bg-white' : 'border-transparent text-slate-500 hover:text-slate-800'"
                             class="flex-1 px-3 py-3 text-[11px] font-bold uppercase tracking-wider border-b-2 transition-colors flex items-center justify-center gap-1.5">
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                             Gallery
                         </button>
+                        {% if _source_files %}
+                        <button type="button" @click="activeTab = 'source'"
+                            :class="activeTab === 'source' ? 'border-red-500 text-red-700 bg-white' : 'border-transparent text-slate-500 hover:text-slate-800'"
+                            class="flex-1 px-3 py-3 text-[11px] font-bold uppercase tracking-wider border-b-2 transition-colors flex items-center justify-center gap-1.5">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                            Source
+                        </button>
+                        {% endif %}
                     </div>
 
                     {# ─── SOURCE tab ─── #}
@@ -620,7 +640,7 @@
                             {% for src in _source_files %}
                             <button type="button" @click="activeSrc = {{ loop.index0 }}"
                                 class="px-3 py-2 text-[10px] font-semibold border-b-2 whitespace-nowrap transition-colors"
-                                :class="activeSrc === {{ loop.index0 }} ? 'border-indigo-500 text-indigo-700 bg-white' : 'border-transparent text-slate-500 hover:text-slate-800'">
+                                :class="activeSrc === {{ loop.index0 }} ? 'border-red-500 text-red-700 bg-white' : 'border-transparent text-slate-500 hover:text-slate-800'">
                                 {{ loop.index }}. {{ src.split('/')[-1] | truncate(20, True, '…') }}
                             </button>
                             {% endfor %}
@@ -640,7 +660,7 @@
                                 {% else %}
                                 <div class="h-full flex flex-col items-center justify-center p-6 text-center">
                                     <p class="text-xs text-slate-500 mb-3">Inline preview not supported.</p>
-                                    <a href="{{ url_for('static', filename=src) }}" target="_blank" class="text-xs font-bold text-indigo-600 hover:text-indigo-800 underline">Open in new tab →</a>
+                                    <a href="{{ url_for('static', filename=src) }}" target="_blank" class="text-xs font-bold text-red-600 hover:text-red-800 underline">Open in new tab →</a>
                                 </div>
                                 {% endif %}
                             </div>
@@ -704,7 +724,7 @@
                         <div class="flex items-center justify-between">
                             <div class="flex items-center gap-2.5">
                                 <div class="w-8 h-8 rounded-lg bg-white shadow-sm border border-gray-200 flex items-center justify-center">
-                                    <svg class="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <svg class="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                                     </svg>
                                 </div>
@@ -764,7 +784,7 @@
                         {% if product.additional_images %}
                         <div class="grid grid-cols-2 gap-2">
                             {% for img_path in product.additional_images %}
-                            <div class="aspect-square bg-white rounded-xl flex items-center justify-center overflow-hidden border border-gray-100 relative group cursor-pointer hover:border-indigo-200 hover:shadow-sm transition-all">
+                            <div class="aspect-square bg-white rounded-xl flex items-center justify-center overflow-hidden border border-gray-100 relative group cursor-pointer hover:border-red-200 hover:shadow-sm transition-all">
                                 <img src="{{ url_for('static', filename=img_path) }}" class="object-cover w-full h-full hover:scale-105 transition-transform duration-300 gallery-clickable"
                                     onclick="event.stopPropagation(); openLightbox(this.src, galleryImagesMarketing)">
                                 {# Action overlay — pointer-events-none on the container so the
@@ -949,12 +969,18 @@
     }
 </style>
 
+{# Gallery list is rendered as a JSON data island below so the JS parser
+   in editors doesn't choke on Jinja directives inside a JS array literal. #}
+{% set _ns_gallery = namespace(items=[]) %}
+{% if product.image_path %}{% set _ = _ns_gallery.items.append(url_for('static', filename=product.image_path)) %}{% endif %}
+{% for _img in (product.additional_images or []) %}{% set _ = _ns_gallery.items.append(url_for('static', filename=_img)) %}{% endfor %}
+<script id="gallery-data-marketing" type="application/json">{{ _ns_gallery.items | tojson }}</script>
+
 <script>
-    /* Gallery images for lightbox */
-    const galleryImagesMarketing = [
-        {% if product.image_path %}'{{ url_for('static', filename=product.image_path) }}',{% endif %}
-        {% if product.additional_images %}{% for img in product.additional_images %}'{{ url_for('static', filename=img) }}',{% endfor %}{% endif %}
-    ];
+    /* Gallery images for lightbox — read from the JSON island above. */
+    const galleryImagesMarketing = JSON.parse(
+        document.getElementById('gallery-data-marketing').textContent
+    );
 
     // --- Image Logic ---
     async function handleImageUpload(input) {
@@ -1206,7 +1232,7 @@
         const count = container.children.length + 1;
         container.insertAdjacentHTML("beforeend", `
     <div class="row group animate-fade-in">
-        <div class="w-6 h-6 rounded-full bg-gray-200 text-gray-400 flex items-center justify-center text-xs font-bold flex-shrink-0 group-hover:bg-indigo-100 group-hover:text-indigo-600 transition-colors">${count}</div>
+        <div class="w-6 h-6 rounded-full bg-gray-200 text-gray-400 flex items-center justify-center text-xs font-bold flex-shrink-0 group-hover:bg-red-100 group-hover:text-red-600 transition-colors">${count}</div>
         <input name="sales_arguments" placeholder="New selling point" class="row-input">
         <button type="button" onclick="this.closest('.row').remove()" class="remove">✕</button>
     </div>`);
@@ -1349,7 +1375,7 @@
         function enableNeedReview() {
             btn.disabled = false;
             btn.classList.remove('bg-gray-300', 'text-gray-500', 'cursor-not-allowed');
-            btn.classList.add('bg-indigo-600', 'hover:bg-indigo-700', 'text-white');
+            btn.classList.add('bg-red-600', 'hover:bg-red-700', 'text-white');
             // Remove listeners after first activation
             form.removeEventListener('input', enableNeedReview);
         }
@@ -1577,7 +1603,7 @@
     <div
         class="bg-white rounded-3xl w-full max-w-md p-8 shadow-2xl transform scale-100 transition-all text-center mx-4">
         <div
-            class="w-20 h-20 bg-indigo-50 text-indigo-600 rounded-3xl flex items-center justify-center mb-6 mx-auto shadow-sm ring-4 ring-indigo-50/50">
+            class="w-20 h-20 bg-red-50 text-red-600 rounded-3xl flex items-center justify-center mb-6 mx-auto shadow-sm ring-4 ring-red-50/50">
             <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                     d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -1605,7 +1631,7 @@
                 Go Back
             </button>
             <button type="button" onclick="confirmSubmit(event)"
-                class="flex-1 px-6 py-3.5 bg-indigo-600 text-white rounded-2xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200 active:scale-95 flex items-center justify-center gap-2">
+                class="flex-1 px-6 py-3.5 bg-red-600 text-white rounded-2xl font-bold hover:bg-red-700 transition-all shadow-lg shadow-red-200 active:scale-95 flex items-center justify-center gap-2">
                 <span>Submit Now</span>
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -1646,16 +1672,25 @@
 </div>
 
 <!-- Auto-poll for background AI revision generation -->
+{# JSON island so the JS parser doesn't see a Jinja expression inline. #}
+<script id="ai-gen-state" type="application/json">{{
+    {'hasGenerating': (product.revision_data is mapping
+                       and (product.revision_data.values()
+                            | selectattr('status', 'equalto', 'generating')
+                            | list | length) > 0)} | tojson
+}}</script>
 <script>
 (function() {
-    const hasGenerating = {{ 'true' if product.revision_data and product.revision_data.values()|selectattr('status', 'equalto', 'generating')|list|length > 0 else 'false' }};
+    const hasGenerating = JSON.parse(
+        document.getElementById('ai-gen-state').textContent
+    ).hasGenerating;
     if (!hasGenerating) return;
     
     // Show generating banner
     const banner = document.createElement('div');
     banner.id = 'ai-gen-banner';
     banner.innerHTML = `
-        <div class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-indigo-600 text-white px-6 py-3 rounded-xl shadow-2xl flex items-center gap-3 animate-bounce-once">
+        <div class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-red-600 text-white px-6 py-3 rounded-xl shadow-2xl flex items-center gap-3 animate-bounce-once">
             <svg class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
@@ -1676,7 +1711,7 @@
             textarea.classList.add('opacity-50', 'animate-pulse');
         }
         if (display && !display.innerHTML.trim()) {
-            display.innerHTML = '<div class="text-center py-4 text-indigo-500 font-medium text-sm animate-pulse">AI is generating suggestion...</div>';
+            display.innerHTML = '<div class="text-center py-4 text-red-500 font-medium text-sm animate-pulse">AI is generating suggestion...</div>';
         }
     });
     

@@ -122,46 +122,127 @@
                         <button type="button" @click="regenViaWeb('supplier')"
                             class="w-full px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-2"
                             title="Locks the search to the brand's official site — best for internal SKUs">
-                            🏷️ <span>Search supplier site</span>
+                            <svg class="w-3.5 h-3.5 text-red-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9"/></svg>
+                            <span>Search supplier site</span>
                         </button>
                         <button type="button" @click="regenViaWeb('general')"
                             class="w-full px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-2"
                             title="Broad web search — best for products with wide presence">
-                            🔍 <span>Search the web</span>
+                            <svg class="w-3.5 h-3.5 text-red-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                            <span>Search the web</span>
                         </button>
                         <button type="button" @click="regenViaAI()"
                             class="w-full px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-2">
-                            🍌 <span>Generate via AI</span>
+                            <svg class="w-3.5 h-3.5 text-red-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+                            <span>Generate via AI</span>
                         </button>
                         <button type="button" @click="openCropModal()"
                             class="w-full px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-2">
-                            ✂️ <span>Crop from proforma</span>
+                            <svg class="w-3.5 h-3.5 text-red-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/><rect x="6" y="2" width="4" height="4" rx="1" stroke-width="2"/><rect x="14" y="2" width="4" height="4" rx="1" stroke-width="2"/></svg>
+                            <span>Crop from proforma</span>
                         </button>
                         <label class="w-full px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-2 cursor-pointer">
-                            ⬆️ <span>Upload from device</span>
+                            <svg class="w-3.5 h-3.5 text-red-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                            <span>Upload from device</span>
                             <input type="file" accept="image/jpeg,image/png,image/webp"
                                 class="hidden" @change="uploadImage($event)">
                         </label>
+                        <!-- Extract from a URL the user pastes (e.g. they
+                             found the exact product page themselves). Click
+                             to expand the inline URL input. -->
+                        <div class="border-t border-slate-100">
+                            <button type="button" @click="showUrlInput = !showUrlInput"
+                                class="w-full px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                                title="Paste a product page URL — we'll pull images from it">
+                                <svg class="w-3.5 h-3.5 text-red-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+                                <span>Extract from URL</span>
+                            </button>
+                            <div x-show="showUrlInput" x-cloak class="px-3 pb-2 flex gap-1.5">
+                                <input type="url" x-model="suggestUrl"
+                                    placeholder="https://…"
+                                    @keydown.enter.prevent="extractFromUrl()"
+                                    class="flex-1 text-[11px] border border-slate-200 rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-red-200 focus:border-red-400">
+                                <button type="button" @click="extractFromUrl()"
+                                    :disabled="imageBusy || !suggestUrl.trim()"
+                                    class="text-[10px] font-bold uppercase tracking-widest bg-slate-900 hover:bg-red-600 disabled:bg-slate-300 text-white rounded-md px-2.5 py-1">
+                                    Fetch
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
                 <!-- Image picker dropdown (selecting from existing candidates) -->
-                <div x-show="showPicker" x-transition.opacity x-cloak @click.outside="showPicker = false"
-                    class="absolute inset-0 bg-white/95 backdrop-blur p-3 grid grid-cols-3 gap-2 overflow-auto z-10">
+                <!-- Note: no backdrop-blur here — backdrop-filter traps position:fixed children in Chromium -->
+                <div x-show="showPicker" x-transition.opacity x-cloak
+                    @click="assignOpenPath = null"
+                    @click.outside="showPicker = false"
+                    class="absolute inset-0 bg-white/97 p-3 grid grid-cols-3 gap-2 overflow-auto z-10">
                     <template x-for="c in candidates" :key="c.path">
-                        <button type="button" @click="pickImage(c.path); showPicker = false"
-                            class="aspect-square rounded-lg border-2 overflow-hidden bg-white hover:border-red-400 relative"
-                            :class="imagePath === c.path ? 'border-red-500 ring-2 ring-red-100' : 'border-slate-200'">
-                            <img :src="'/static/' + c.path" class="w-full h-full object-contain" loading="lazy">
-                            <span class="absolute top-1 left-1 text-[8px] font-bold uppercase tracking-widest px-1 rounded"
-                                :class="c.source === 'document' ? 'bg-emerald-100 text-emerald-700'
-                                      : c.source === 'web' ? 'bg-blue-100 text-blue-700'
-                                      : c.source === 'ai' ? 'bg-amber-100 text-amber-700'
-                                      : c.source === 'upload' ? 'bg-slate-100 text-slate-700'
-                                      : c.source === 'crop' ? 'bg-purple-100 text-purple-700'
-                                      : 'bg-slate-100 text-slate-700'"
-                                x-text="c.source || 'src'"></span>
-                        </button>
+                        <div class="relative aspect-square">
+                            <button type="button" @click="pickImage(c.path); showPicker = false"
+                                class="w-full h-full rounded-lg border-2 overflow-hidden bg-white hover:border-red-400 relative block"
+                                :class="imagePath === c.path ? 'border-red-500 ring-2 ring-red-100' : 'border-slate-200'">
+                                <img :src="'/static/' + c.path" class="w-full h-full object-contain" loading="lazy">
+                                <!-- Source badge — top-left -->
+                                <span class="absolute top-1 left-1 text-[8px] font-bold uppercase tracking-widest px-1 rounded"
+                                    :class="c.source === 'document' ? 'bg-emerald-100 text-emerald-700'
+                                          : c.source === 'web' ? 'bg-blue-100 text-blue-700'
+                                          : c.source === 'ai' ? 'bg-amber-100 text-amber-700'
+                                          : c.source === 'upload' ? 'bg-slate-100 text-slate-700'
+                                          : c.source === 'crop' ? 'bg-purple-100 text-purple-700'
+                                          : 'bg-slate-100 text-slate-700'"
+                                    x-text="c.source || 'src'"></span>
+                                <!-- Confidence badge — top-right; silent for high/medium -->
+                                <span x-show="c.confidence === 'review' || c.confidence === 'low'"
+                                    class="absolute top-1 right-1 text-[8px] font-bold uppercase tracking-widest px-1 rounded"
+                                    :class="c.confidence === 'review' ? 'bg-amber-100 text-amber-700'
+                                          : 'bg-red-100 text-red-700'"
+                                    x-text="c.confidence === 'review' ? '⚠ tie' : '? weak'"></span>
+                            </button>
+                            <!-- Assign-to pill — bottom-right corner; only for variant clusters -->
+                            <template x-if="clusterKind === 'variants' && variants.length > 0">
+                                <div class="absolute bottom-1.5 right-1.5 z-20">
+                                    <button type="button"
+                                        @click.stop="
+                                            if (assignOpenPath === c.path) {
+                                                assignOpenPath = null;
+                                            } else {
+                                                const r = $el.getBoundingClientRect();
+                                                assignOpenStyle = {
+                                                    position: 'fixed',
+                                                    bottom: (window.innerHeight - r.top + 6) + 'px',
+                                                    left: r.left + 'px',
+                                                };
+                                                assignOpenPath = c.path;
+                                            }"
+                                        class="flex items-center gap-1 bg-white border border-slate-200 text-[9px] font-bold text-slate-500 px-2 py-0.5 rounded-full shadow-sm hover:border-red-300 hover:text-red-600 transition-all">
+                                        <span>Assign to</span>
+                                        <span class="text-[8px] leading-none" x-text="assignOpenPath === c.path ? '▴' : '▾'"></span>
+                                    </button>
+                                    <!-- Dropdown — rendered fixed so it escapes overflow/stacking-context clipping -->
+                                    <div x-show="assignOpenPath === c.path"
+                                        x-transition.opacity
+                                        :style="assignOpenStyle"
+                                        @click.stop
+                                        class="min-w-[150px] max-w-[230px] bg-white rounded-xl shadow-2xl border border-slate-200 py-1 z-[9999]">
+                                        <p class="px-3 pt-1 pb-1 text-[9px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">Assign image to</p>
+                                        <template x-for="v in variants" :key="v.model_number || v.label">
+                                            <button type="button"
+                                                @click="reassignCandidate(c.path, (v.model_number || '').trim()); assignOpenPath = null"
+                                                class="w-full text-left px-3 py-1.5 text-[11px] hover:bg-slate-50 flex items-center justify-between gap-2"
+                                                :class="c.variant_sku === (v.model_number || '').trim()
+                                                    ? 'font-bold text-red-600 bg-red-50'
+                                                    : 'text-slate-700'">
+                                                <span class="truncate" x-text="v.label || v.model_number || '(unnamed)'"></span>
+                                                <span x-show="c.variant_sku === (v.model_number || '').trim()"
+                                                    class="text-red-500 text-[10px] shrink-0">✓</span>
+                                            </button>
+                                        </template>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
                     </template>
                 </div>
             </div>
@@ -502,21 +583,34 @@
     <p x-show="errorMsg" class="mt-6 text-sm text-red-600 text-center" x-text="errorMsg"></p>
 </div>
 
+<!-- Bootstrap values for the JS below are passed via data attributes. -->
+<div id="bulk-workspace-bootstrap" hidden
+     data-batch-id="{{ batch_id }}"
+     data-dashboard-url="{{ url_for('marketing.dashboard_marketing') }}"></div>
 <script>
-const BATCH_ID = {{ batch_id|tojson }};
+const __BULK_BOOT = (() => {
+    const el = document.getElementById('bulk-workspace-bootstrap');
+    return {
+        batch_id:      el?.dataset.batchId      || '',
+        dashboard_url: el?.dataset.dashboardUrl || '/',
+    };
+})();
+const BATCH_ID = __BULK_BOOT.batch_id;
 const URL_ENRICH    = (id) => `/import_proforma/bulk/workspace/${BATCH_ID}/${id}/enrich`;
 const URL_SAVE      = (id) => `/import_proforma/bulk/workspace/${BATCH_ID}/${id}/save`;
 const URL_DISCARD   = `/import_proforma/bulk/workspace/${BATCH_ID}/discard`;
 const URL_EXTRACT_IMAGES = `/import_proforma/bulk/workspace/${BATCH_ID}/extract_images`;
 const URL_IMAGE_WEB     = (id) => `/import_proforma/bulk/workspace/${BATCH_ID}/${id}/image/web`;
 const URL_IMAGE_AI      = (id) => `/import_proforma/bulk/workspace/${BATCH_ID}/${id}/image/ai`;
+const URL_IMAGE_URL     = (id) => `/import_proforma/bulk/workspace/${BATCH_ID}/${id}/image/extract_from_url`;
 const URL_IMAGE_UPLOAD  = (id) => `/import_proforma/bulk/workspace/${BATCH_ID}/${id}/image/upload`;
 const URL_IMAGE_CROP    = (id) => `/import_proforma/bulk/workspace/${BATCH_ID}/${id}/image/crop`;
 const URL_IMAGE_CROP_PREVIEW = (id) => `/import_proforma/bulk/workspace/${BATCH_ID}/${id}/image/crop?preview=1`;
 const URL_IMAGE_CROP_COMMIT  = (id) => `/import_proforma/bulk/workspace/${BATCH_ID}/${id}/image/crop_commit`;
 const URL_IMAGE_CROP_DISCARD = (id) => `/import_proforma/bulk/workspace/${BATCH_ID}/${id}/image/crop_discard`;
-const URL_IMAGE_PREVIEW = (id) => `/import_proforma/bulk/workspace/${BATCH_ID}/${id}/image/page_preview`;
-const URL_DASHBOARD = {{ url_for('marketing.dashboard_marketing')|tojson }};
+const URL_IMAGE_PREVIEW  = (id) => `/import_proforma/bulk/workspace/${BATCH_ID}/${id}/image/page_preview`;
+const URL_IMAGE_REASSIGN = (id) => `/import_proforma/bulk/workspace/${BATCH_ID}/${id}/image/reassign`;
+const URL_DASHBOARD = __BULK_BOOT.dashboard_url;
 
 // Lightweight worker-pool — runs `tasks` with at most `limit` concurrent.
 async function runWithConcurrency(items, limit, fn) {
@@ -538,6 +632,8 @@ function bulkWorkspace() {
         autoStarted: false,
         imageBusy: false,
         imageMsg: '',
+        logLines: [],    // accumulated extraction log lines [{type, text}]
+        showLog: false,  // log-lens panel open/closed
 
         init() {
             // Auto-trigger enrichment for any draft still in 'pending'
@@ -693,7 +789,9 @@ function bulkWorkspace() {
                         } else if (evt.step === 'error') {
                             this.errorMsg = evt.error || 'Image extraction failed';
                         } else if (evt.log?.text) {
-                            // Surface only warn/err lines into busyMsg.
+                            // Accumulate every line in the log lens; surface
+                            // only warn/err into the transient busyMsg.
+                            this.logLines.push(evt.log);
                             if (evt.log.type === 'warn' || evt.log.type === 'err') {
                                 this.imageMsg = evt.log.text;
                             }
@@ -745,6 +843,12 @@ function draftCard() {
         showImageMenu: false,
         imageBusy:    false,
         imageMenuMsg: '',
+        // Inline URL input inside the menu — toggled by the "Extract from
+        // URL" row, sends to /image/extract_from_url.
+        showUrlInput: false,
+        suggestUrl:   '',
+        assignOpenPath:  null,
+        assignOpenStyle: {},
         showCropModal: false,
         cropPagePath: '',     // static-relative path to the rendered proforma page
         cropPageNum:  0,
@@ -916,6 +1020,23 @@ function draftCard() {
             });
         },
 
+        async extractFromUrl() {
+            const url = (this.suggestUrl || '').trim();
+            if (!url || this.imageBusy) return;
+            await this._runImageAction(`Fetching from ${new URL(url).hostname}…`, async () => {
+                const r = await fetch(URL_IMAGE_URL(this.productId), {
+                    method: 'POST',
+                    headers: {'Content-Type':'application/json'},
+                    body: JSON.stringify({ url }),
+                });
+                return r.json();
+            });
+            this.suggestUrl = '';
+            this.showUrlInput = false;
+            // Pop the picker so the user sees the new candidates.
+            if (this.candidates.length > 1) this.showPicker = true;
+        },
+
         async uploadImage(event) {
             const file = event.target?.files?.[0];
             if (!file) return;
@@ -932,23 +1053,15 @@ function draftCard() {
 
         async openCropModal() {
             console.debug('[crop] openCropModal()', {productId: this.productId});
-            // Hard-fail early when the card never bound a productId — that's
-            // a signal the data-card-config blob failed to parse, and every
-            // downstream call would 404. Surfacing this here saves the user
-            // staring at an empty modal wondering what happened.
             if (!this.productId) {
                 this.showImageMenu = false;
                 this.imageMenuMsg = 'Card did not load — refresh the page';
                 return;
             }
             this.showImageMenu = false;
-            // Reset every modal-scoped field BEFORE the fetch so Alpine
-            // can't render the modal with a stale cropPagePath from a
-            // previous open/close cycle.
             this.cropPagePath    = '';
             this.cropImageError  = '';
             this.cropPageLoading = true;
-            this.cropPageNum     = 0;
             this.cropRect        = null;
             this.cropStep        = 'select';
             this.cropPreviewPath = '';
@@ -956,7 +1069,26 @@ function draftCard() {
             this.cropMessage     = '';
             this.imageMenuMsg    = 'Loading proforma page…';
             this.showCropModal   = true;
-            await this._loadCropPage(0);
+
+            // If the current thumbnail came from document extraction and has a
+            // Gemini-detected bounding box, jump straight to that page and
+            // prefill the crop rectangle so the user can fine-tune rather
+            // than redraw from scratch.
+            const activeCand = this.candidates.find(c => c.path === this.imagePath);
+            const startPage  = (activeCand && typeof activeCand.page_index === 'number')
+                               ? activeCand.page_index : 0;
+            this.cropPageNum  = startPage;
+            await this._loadCropPage(startPage);
+
+            if (activeCand && Array.isArray(activeCand.box_2d) && activeCand.box_2d.length === 4) {
+                const [ymin, xmin, ymax, xmax] = activeCand.box_2d;
+                this.cropRect = {
+                    x: xmin / 1000,
+                    y: ymin / 1000,
+                    w: Math.max(0.02, (xmax - xmin) / 1000),
+                    h: Math.max(0.02, (ymax - ymin) / 1000),
+                };
+            }
         },
 
         /** Fetch one page preview from /image/page_preview, set cropPagePath,
@@ -1237,6 +1369,25 @@ function draftCard() {
             };
             document.addEventListener('mousemove', onMove);
             document.addEventListener('mouseup', onUp);
+        },
+
+        /** Reassign a candidate image to a specific variant SKU.
+         *  Calls /image/reassign and applies the returned candidates +
+         *  variants back onto the card without a full reload. */
+        async reassignCandidate(path, variantSku) {
+            if (!this.productId || !path) return;
+            try {
+                const r = await fetch(URL_IMAGE_REASSIGN(this.productId), {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({path, variant_sku: variantSku}),
+                });
+                const j = await r.json().catch(() => ({}));
+                if (j.candidates) this.candidates = j.candidates;
+                if (Array.isArray(j.variants))    this.variants  = j.variants;
+            } catch (e) {
+                console.error('[reassign] failed', e);
+            }
         },
 
         async enrichSelf() {

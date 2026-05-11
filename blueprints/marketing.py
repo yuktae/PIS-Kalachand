@@ -61,6 +61,16 @@ def dashboard_marketing():
     return render_template('dashboard_marketing.html', products=active_pipeline, metrics=metrics)
 
 
+@marketing_bp.route('/product/<int:product_id>/history')
+def product_history_timeline(product_id):
+    """Phase 6 — per-product audit timeline. Renders the new timeline_v2
+    partial that consumes /api/product/<id>/timeline."""
+    if not session.get('role'):
+        return redirect(url_for('auth.login'))
+    product = Product.query.get_or_404(product_id)
+    return render_template('product_history.html', product=product)
+
+
 @marketing_bp.route('/dashboard/history')
 @marketing_bp.route('/dashboard/marketing/history')
 def history_marketing():
@@ -172,7 +182,9 @@ def history_marketing():
 
 @marketing_bp.route('/dashboard/marketing/archive')
 def marketing_archive():
-    if session.get('role') != 'marketing':
+    # Marketing + Admin can view the archive. Admin needs read access for
+    # oversight; the archive itself is read-only so there's no risk.
+    if session.get('role') not in ('marketing', 'admin'):
         return redirect(url_for('auth.login'))
     approved_stages = ['finalized', 'ready_for_web', 'specsheet_draft', 'pending_director_spec', 'web_changes_requested']
     archived_products = Product.query.filter(
@@ -361,11 +373,12 @@ def import_proforma():
             # Phase 2.4: pull raw text out of every uploaded document so
             # proforma_to_pis_data can grep-verify each claimed source_facts
             # value. PDF/DOCX go through real parsers; images and unsupported
-            # types return "" and we fall back to the legacy 2-state origins.
+            # types return "" — under the strict-fact rule those fields then
+            # render as AI-generated rather than facts.
+            # Strict-fact rule: only the uploaded Proforma counts as the
+            # verification source. A value that only appears on the scraped
+            # supplier site is "from search", not a Proforma fact.
             raw_doc_text = extract_raw_text_from_files(ai_filepaths) or ""
-            if site_data and site_data.get('text'):
-                # Treat the scraped supplier page as another verifiable source.
-                raw_doc_text = (raw_doc_text + "\n" + site_data['text']) if raw_doc_text else site_data['text']
 
             # Convert each proforma object into the legacy pis_data shape (with
             # `_field_origins` and `_spec_origins` so the verify UI can mark
@@ -1090,15 +1103,9 @@ def import_proforma_bulk_extract_images(batch_id: str):
             log_buffer.append({"log": {"type": level, "text": msg}})
 
         try:
-            import os as _os
-            if _os.getenv("USE_UNIFIED_EXTRACT", "1") == "1":
-                results = ip.unified_extract(
-                    drafts_meta, file_paths, upload_folder, log_cb=_capture,
-                )
-            else:
-                results = ip.run_image_pipeline(
-                    drafts_meta, file_paths, upload_folder, log_cb=_capture,
-                )
+            results = ip.unified_extract(
+                drafts_meta, file_paths, upload_folder, log_cb=_capture,
+            )
         except Exception as e:
             yield json.dumps({"step": "error", "error": f"pipeline failed: {e}"}) + "\n"
             return
@@ -1134,6 +1141,84 @@ def import_proforma_bulk_extract_images(batch_id: str):
                 "candidates":   bucket.get("candidates") or [],
                 "variant_paths": bucket.get("variant_paths") or {},
             }) + "\n"
+
+        # ── Phase 2: web + AI fallback for drafts with no image ─────────────
+        # Only runs under USE_UNIFIED_EXTRACT=1 (i.e. the new pipeline).
+        # The old slice-based pipeline has its own routing and doesn't need this.
+        empty_ids = [
+            did for did in draft_ids
+            if not results.get(did, {}).get("image_path")
+        ]
+        if empty_ids:
+            yield json.dumps({"log": {"type": "info",
+                "text": f"Fallback pass: {len(empty_ids)} draft(s) with no document image — trying web + AI"}}) + "\n"
+
+            from utils.single_wizard import extract_image_candidates_from_web
+
+            for did in empty_ids:
+                d = Product.query.get(did)
+                if not d:
+                    continue
+                meta        = _draft_to_routing_meta(d)
+                model_name  = (meta.get("name") or meta.get("model_number") or "").strip()
+                brand       = (meta.get("brand") or "").strip()
+                pis_snap    = dict(d.pis_data or {})
+                supplier_url = pis_snap.get("_supplier_url")
+
+                fb_cands: list[dict] = []
+
+                # Web fallback only. Auto nano-banana was removed — it now
+                # runs ONLY when the user clicks "Generate via AI" on a card,
+                # so we never burn a Gemini call on a draft the user might
+                # discard. Cap=2 keeps latency reasonable across a batch.
+                if model_name:
+                    try:
+                        web_hits = extract_image_candidates_from_web(
+                            model_name, supplier_url, upload_folder,
+                            brand=brand, max_results=2,
+                        )
+                        for wh in (web_hits or []):
+                            path = wh.get("path")
+                            if path:
+                                fb_cands.append({
+                                    "path":          path,
+                                    "source":        "web",
+                                    "page_url":      wh.get("page_url"),
+                                    "variant_sku":   "",
+                                    "matched_label": "",
+                                    "confidence":    "medium",
+                                })
+                    except Exception as exc:
+                        yield json.dumps({"log": {"type": "warn",
+                            "text": f"Draft #{did} web fallback: {exc}"}}) + "\n"
+
+                if not fb_cands:
+                    continue
+
+                fallback_bucket: dict = {
+                    "image_path":    fb_cands[0]["path"],
+                    "variant_paths": {},
+                    "candidates":    fb_cands,
+                    "status":        "done",
+                }
+                try:
+                    ip.save_images_to_variant_gallery(d, fallback_bucket)
+                    db.session.commit()
+                except Exception as exc:
+                    db.session.rollback()
+                    yield json.dumps({"log": {"type": "warn",
+                        "text": f"Draft #{did} fallback persist failed: {exc}"}}) + "\n"
+                    continue
+
+                pis_after = dict(d.pis_data or {})
+                yield json.dumps({
+                    "step":          "draft",
+                    "draft_id":      did,
+                    "status":        "done",
+                    "image_path":    d.image_path or "",
+                    "candidates":    pis_after.get("_bulk_image_candidates") or [],
+                    "variant_paths": {},
+                }) + "\n"
 
         yield json.dumps({"step": "done"}) + "\n"
 
@@ -1197,6 +1282,80 @@ def import_proforma_bulk_image_web(batch_id: str, product_id: int):
         if first:
             pis['_image_path'] = first
             product.image_path = first
+    product.pis_data = pis
+    flag_modified(product, 'pis_data')
+    db.session.commit()
+
+    return {
+        "image_path": pis.get('_image_path') or '',
+        "candidates": pis.get('_bulk_image_candidates') or [],
+    }
+
+
+@marketing_bp.route(
+    '/import_proforma/bulk/workspace/<batch_id>/<int:product_id>/image/extract_from_url',
+    methods=['POST'])
+@limiter.limit("20 per minute")
+def import_proforma_bulk_image_extract_from_url(batch_id: str, product_id: int):
+    """Per-draft on-demand: user pastes a URL (e.g. they found the exact
+    product page) and we scrape + download up to 3 images from it. Same
+    primitives as the auto web pipeline, just rooted at a user URL
+    instead of the discovered supplier URL.
+    """
+    if session.get('role') != 'marketing':
+        return {"error": "unauthorized"}, 401
+    product = _bulk_load_draft(batch_id, product_id)
+    if not product:
+        return {"error": "draft not found in this batch"}, 404
+
+    payload = request.get_json(silent=True) or {}
+    suggested_url = (payload.get('url') or '').strip()
+    if not suggested_url:
+        return {"error": "url required"}, 400
+
+    upload_folder = current_app.config['UPLOAD_FOLDER']
+    if not os.path.isabs(upload_folder):
+        upload_folder = os.path.join(current_app.root_path, upload_folder)
+
+    from utils.single_wizard import extract_images_from_user_url
+    meta = _draft_to_routing_meta(product)
+    model_name = (meta.get('name') or meta.get('model_number') or 'product').strip()
+
+    try:
+        results = extract_images_from_user_url(
+            suggested_url, model_name, upload_folder, max_results=3,
+        ) or []
+    except Exception as e:
+        return {"error": f"Suggested-URL fetch failed: {e}"}, 502
+
+    if not results:
+        return {"candidates": [],
+                "error": "no usable images on the suggested page"}, 200
+
+    pis = dict(product.pis_data or {})
+    existing = pis.get('_bulk_image_candidates') or []
+    seen = {c.get('path') for c in existing if isinstance(c, dict)}
+    appended: list[dict] = []
+    for r in results:
+        path = r.get('path')
+        if not path or path in seen:
+            continue
+        entry = {
+            'path':          path,
+            'source':        'user_url',
+            'page_url':      suggested_url,
+            'variant_sku':   '',
+            'matched_label': '',
+            'confidence':    'medium',
+        }
+        existing.append(entry)
+        appended.append(entry)
+        seen.add(path)
+    pis['_bulk_image_candidates'] = existing
+    if not pis.get('_image_path') and appended:
+        first = appended[0]['path']
+        pis['_image_path'] = first
+        product.image_path = first
     product.pis_data = pis
     flag_modified(product, 'pis_data')
     db.session.commit()
@@ -1296,6 +1455,80 @@ def import_proforma_bulk_image_upload(batch_id: str, product_id: int):
     flag_modified(product, 'pis_data')
     db.session.commit()
     return {"image_path": rel, "candidates": candidates}
+
+
+@marketing_bp.route(
+    '/import_proforma/bulk/workspace/<batch_id>/<int:product_id>/image/reassign',
+    methods=['POST'])
+@limiter.limit("60 per minute")
+def import_proforma_bulk_image_reassign(batch_id: str, product_id: int):
+    """Reassign an existing candidate image to a specific variant SKU.
+
+    Body: {"path": "uploads/...", "variant_sku": "MODEL-SKU"}
+
+    Updates:
+      • `_bulk_image_candidates[i].variant_sku` for the matching candidate
+      • Removes `path` from every variant's image_paths to avoid duplicates
+      • Assigns `path` as the first image for `variant_sku`
+
+    Returns updated `candidates` + `variants` so the card can re-render.
+    """
+    if session.get('role') != 'marketing':
+        return {"error": "unauthorized"}, 401
+    product = _bulk_load_draft(batch_id, product_id)
+    if not product:
+        return {"error": "draft not found in this batch"}, 404
+
+    payload     = request.get_json(silent=True) or {}
+    path        = (payload.get("path") or "").strip()
+    variant_sku = (payload.get("variant_sku") or "").strip()
+    if not path:
+        return {"error": "path is required"}, 400
+
+    pis = dict(product.pis_data or {})
+
+    # Update the candidate's variant_sku tag
+    candidates = pis.get("_bulk_image_candidates") or []
+    for c in candidates:
+        if isinstance(c, dict) and c.get("path") == path:
+            c["variant_sku"] = variant_sku
+            break
+
+    # Re-assign variant image_paths: strip path from all, then prepend to target
+    variants = pis.get("variants") or []
+    for v in variants:
+        if not isinstance(v, dict):
+            continue
+        existing = list(v.get("image_paths") or [])
+        if v.get("image_path") == path:
+            v.pop("image_path", None)
+        if path in existing:
+            existing.remove(path)
+        v["image_paths"] = existing
+        # Re-derive image_path from first remaining path after removal
+        if not v.get("image_path") and existing:
+            v["image_path"] = existing[0]
+
+    # Add path to the target variant
+    if variant_sku:
+        for v in variants:
+            if not isinstance(v, dict):
+                continue
+            if (v.get("model_number") or "").strip() == variant_sku:
+                paths = list(v.get("image_paths") or [])
+                if path not in paths:
+                    paths.insert(0, path)
+                v["image_paths"] = paths
+                v["image_path"]  = paths[0]
+                break
+
+    pis["_bulk_image_candidates"] = candidates
+    pis["variants"]               = variants
+    product.pis_data = pis
+    flag_modified(product, "pis_data")
+    db.session.commit()
+
+    return {"candidates": candidates, "variants": variants}
 
 
 @marketing_bp.route(
@@ -1961,20 +2194,30 @@ def import_proforma_single_extract_images():
                         status=400, mimetype='application/x-ndjson')
 
     def stream():
-        yield sw.log_step("Step 4 — Image extraction (doc + web in parallel)")
-        yield sw.log_progress(65, "Scanning uploaded document & web in parallel...")
+        yield sw.log_step("Step 4 — Image extraction")
+        yield sw.log_progress(60, "Triaging document for product photos...")
 
-        # Three-way parallel — bbox/embedded crop, nano-banana isolation,
-        # and the web pipeline run as INDEPENDENT futures so each can
-        # stream its candidates the moment it finishes. Previously they
-        # were joined inside `extract_image_from_document` before a single
-        # batch return, so nano-banana sat idle for 60-90 s waiting on the
-        # web pipeline before the user saw it.
+        # ── Triage: does the proforma actually carry product photos? ──
+        # Cached on the session so re-extract / re-run reuses the same
+        # decision instead of paying the Gemini call twice.
+        has_images = (sess.get('has_images') or '').strip().lower()
+        if has_images not in ('all', 'partial', 'none'):
+            has_images = sw.triage_has_images(file_paths)
+            sw.update_session(token, has_images=has_images)
+        yield sw.log_payload(has_images=has_images)
+        if has_images == 'none':
+            yield sw.log_info("Proforma is text-only — skipping document-side extraction.")
+        else:
+            yield sw.log_info(f"Proforma carries product photos ({has_images}) — running doc + web in parallel.")
+
+        # Doc-side (bbox/embedded) runs ONLY when the proforma has images.
+        # Nano-banana is no longer automatic — the user triggers it via
+        # the "✨ Clean up" button per candidate (saves a Gemini call per
+        # import and lets the user pick when to spend it).
         import threading
         from concurrent.futures import ThreadPoolExecutor, as_completed
         from utils.pdf_processing import (
             extract_specific_image, extract_product_from_image,
-            extract_isolated_product_with_nano_banana,
         )
 
         # Cancellation: shared event the web pipeline checks between every
@@ -2025,16 +2268,15 @@ def import_proforma_single_extract_images():
         pool = ThreadPoolExecutor(max_workers=4)
         try:
             futures: dict = {}
-            for fp in file_paths:
-                if not fp:
-                    continue
-                futures[pool.submit(_bbox_for, fp)] = ('bbox', fp)
-                futures[pool.submit(
-                    extract_isolated_product_with_nano_banana,
-                    fp, model_name, upload_folder,
-                )] = ('nano', fp)
-            # Web pipeline gets the cancel_event so it can early-exit
-            # between SERP engines / Playwright captures.
+            # Doc-side extraction skipped entirely for text-only proformas.
+            if has_images != 'none':
+                for fp in file_paths:
+                    if not fp:
+                        continue
+                    futures[pool.submit(_bbox_for, fp)] = ('bbox', fp)
+            # Web pipeline always runs (with or without doc photos). It
+            # gets the cancel_event so it can early-exit between SERP
+            # engines / Playwright captures.
             web_future = pool.submit(
                 sw.extract_image_candidates_from_web,
                 model_name, supplier_url, upload_folder, brand, 3, _web_cb,
@@ -2072,15 +2314,14 @@ def import_proforma_single_extract_images():
                     paths = result if isinstance(result, list) else (
                         [result] if result else []
                     )
-                    label = "Doc bbox" if kind == 'bbox' else "Nano-banana"
                     for p in paths:
                         line = _emit_candidate(p, "document")
                         if line:
                             yield line
                     if paths:
-                        yield sw.log_ok(f"{label} → {len(paths)} candidate(s).")
+                        yield sw.log_ok(f"Doc bbox → {len(paths)} candidate(s).")
                     else:
-                        yield sw.log_warn(f"{label} produced nothing.")
+                        yield sw.log_warn("Doc bbox produced nothing.")
 
             sw.update_session(token, image_candidates=candidates)
             yield sw.log_progress(88, f"{len(candidates)} candidate(s) ready for review.")
@@ -2213,6 +2454,118 @@ def import_proforma_single_crop():
         return {"error": f"Crop failed: {e}"}, 500
 
 
+@marketing_bp.route('/import_proforma/single/extract_from_url', methods=['POST'])
+@limiter.limit("15 per minute")
+def import_proforma_single_extract_from_url():
+    """On-demand: user pastes a specific URL they want images extracted
+    from (e.g. they found the exact product page themselves). We scrape
+    + download up to 3 images and stream them back as new candidates,
+    same shape as the auto-discovered web pipeline.
+    """
+    if session.get('role') != 'marketing':
+        return Response('{"error":"unauthorized"}\n', status=401, mimetype='application/x-ndjson')
+
+    payload = request.get_json(silent=True) or {}
+    token = (payload.get('session_token') or '').strip()
+    suggested_url = (payload.get('url') or '').strip()
+
+    sess = sw.get_session(token)
+    if not sess:
+        return Response('{"error":"Wizard session expired"}\n', status=400, mimetype='application/x-ndjson')
+
+    if not suggested_url:
+        return Response('{"error":"url required"}\n', status=400, mimetype='application/x-ndjson')
+
+    model_name = sess.get('model_name') or 'product'
+    existing_candidates = list(sess.get('image_candidates') or [])
+    upload_folder = current_app.config['UPLOAD_FOLDER']
+
+    def stream():
+        yield sw.log_info(f"Fetching images from suggested URL: {suggested_url}")
+        log_lines: list[str] = []
+        def _cb(msg: str) -> None:
+            log_lines.append(msg)
+
+        try:
+            results = sw.extract_images_from_user_url(
+                suggested_url, model_name, upload_folder, 3, _cb,
+            ) or []
+        except Exception as e:
+            yield sw.log_err(f"Suggested-URL fetch failed: {e}")
+            yield sw.log_payload(error=str(e))
+            return
+
+        for line in log_lines:
+            yield sw.log_info(line)
+
+        # Merge new candidates into the session so finalize can persist
+        # them to the gallery if the user keeps them.
+        new_candidates: list[dict] = []
+        for r in results:
+            cand = {"path": r["path"], "page_url": r.get("page_url"),
+                    "source": "user_url"}
+            new_candidates.append(cand)
+            yield sw.log_payload(candidate=cand)
+
+        if new_candidates:
+            sw.update_session(token,
+                              image_candidates=existing_candidates + new_candidates)
+            yield sw.log_ok(f"Suggested-URL → {len(new_candidates)} candidate(s).")
+        else:
+            yield sw.log_warn("Suggested-URL produced no usable images.")
+
+        yield sw.log_payload(candidates=new_candidates, done=True)
+
+    return Response(stream_with_context(stream()), mimetype='application/x-ndjson')  # type: ignore[arg-type]
+
+
+@marketing_bp.route('/import_proforma/single/nano_isolate', methods=['POST'])
+@limiter.limit("10 per minute")
+def import_proforma_single_nano_isolate():
+    """On-demand nano-banana isolation. Runs Gemini's image-out model on
+    the uploaded proforma (or first file) to produce a clean isolated
+    product render. Returns the new candidate path. Costs one Gemini
+    call per click, which is why it's user-triggered now instead of
+    running automatically in Step 4.
+    """
+    if session.get('role') != 'marketing':
+        return {"error": "unauthorized"}, 401
+
+    payload = request.get_json(silent=True) or {}
+    token = (payload.get('session_token') or '').strip()
+
+    sess = sw.get_session(token)
+    if not sess:
+        return {"error": "Wizard session expired"}, 400
+
+    file_paths = sess.get('file_paths') or []
+    model_name = sess.get('model_name') or ''
+    brand = sess.get('brand') or ''
+    model_number = sess.get('model_number') or ''
+    upload_folder = current_app.config['UPLOAD_FOLDER']
+
+    if not file_paths:
+        return {"error": "no source file in session"}, 400
+    if not model_name:
+        return {"error": "model_name missing — re-run step 2"}, 400
+
+    try:
+        from utils.pdf_processing import extract_isolated_product_with_nano_banana
+        rel = extract_isolated_product_with_nano_banana(
+            file_paths[0], model_name, upload_folder,
+            brand=brand or None, sku=model_number or None,
+        )
+        if not rel:
+            return {"error": "Nano-banana returned no image"}, 502
+
+        cand = {"path": rel, "page_url": None, "source": "nano"}
+        existing = sess.get('image_candidates') or []
+        sw.update_session(token, image_candidates=existing + [cand])
+        return {"candidate": cand}
+    except Exception as e:
+        return {"error": f"Nano-banana failed: {e}"}, 500
+
+
 @marketing_bp.route('/import_proforma/single/finalize', methods=['POST'])
 @limiter.limit("10 per minute")
 def import_proforma_single_finalize():
@@ -2226,6 +2579,25 @@ def import_proforma_single_finalize():
     token = (payload.get('session_token') or '').strip()
     selected_image = (payload.get('selected_image') or '').strip() or None
     model_name = (payload.get('model_name') or '').strip()
+    # Gallery: client sends every candidate it still has on screen. The
+    # selected_image becomes Product.image_path; the rest become
+    # Product.additional_images (gallery). Accepts a list of relative
+    # `uploads/...` paths OR a list of {path, ...} dicts (the same shape
+    # the cascade emits). De-duped and filtered against selected_image.
+    raw_gallery = payload.get('gallery_images') or []
+    gallery_paths: list[str] = []
+    seen_gallery: set[str] = set()
+    for item in raw_gallery:
+        if isinstance(item, str):
+            p = item.strip()
+        elif isinstance(item, dict):
+            p = str(item.get('path') or '').strip()
+        else:
+            p = ''
+        if not p or p == selected_image or p in seen_gallery:
+            continue
+        seen_gallery.add(p)
+        gallery_paths.append(p)
 
     sess = sw.get_session(token)
     if not sess:
@@ -2272,9 +2644,9 @@ def import_proforma_single_finalize():
             yield sw.log_payload(error=f"AI extraction failed: {e}")
             return
 
+        # Strict-fact rule: only the uploaded Proforma counts as verification
+        # source (see the bulk path above for rationale).
         raw_doc_text = extract_raw_text_from_files(file_paths) or ""
-        if site_data.get('text'):
-            raw_doc_text = (raw_doc_text + "\n" + site_data['text']) if raw_doc_text else site_data['text']
 
         raw = extracted[0]
         pis = proforma_to_pis_data(raw, raw_text=raw_doc_text, source_files=file_paths) or {}
@@ -2291,6 +2663,7 @@ def import_proforma_single_finalize():
                     model_name=model_name,
                     pis_data=pis,
                     image_path=selected_image,
+                    additional_images=gallery_paths,
                     seo_keywords=(pis or {}).get('seo_data', {}).get('generated_keywords', ''),
                     workflow_stage='marketing_draft',
                 )

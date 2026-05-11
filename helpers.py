@@ -37,6 +37,16 @@ def save_version_snapshot(product, label='Auto-save', is_major=False):
 
     Major snapshots (stage transitions) store full data.
     Minor snapshots store a compact diff against the previous version.
+
+    Phase History v2 — every snapshot is tagged with expires_at = created_at
+    + HISTORY_TTL_DAYS so the Phase 4 cleanup can prune old snapshots
+    safely. The cleanup guards the most-recent major snapshot per product
+    regardless of expiry, so a row's expires_at being in the past does not
+    automatically mean it will be deleted.
+
+    Returns the created ProductVersion on success (so callers can pass
+    version.id into log_event), or None on failure. Previously returned
+    None unconditionally — additive change, no caller breaks.
     """
     try:
         # Validate JSONB structure and log any schema warnings (non-blocking)
@@ -59,6 +69,13 @@ def save_version_snapshot(product, label='Auto-save', is_major=False):
         except RuntimeError:
             user_id = None
 
+        # Centralize the TTL definition. Imported here (not at module top)
+        # so this module stays import-cycle-free with utils.history.
+        from utils.history import expiry_from
+        from datetime import datetime, timezone
+        created_at = datetime.now(timezone.utc).replace(tzinfo=None)
+        expires_at = expiry_from(created_at)
+
         if is_major or last_version is None:
             # Full snapshot for major changes or the very first save
             version = ProductVersion(
@@ -69,6 +86,8 @@ def save_version_snapshot(product, label='Auto-save', is_major=False):
                 revision_data=copy.deepcopy(product.revision_data) if product.revision_data else None,
                 workflow_stage=product.workflow_stage,
                 created_by_id=user_id,
+                created_at=created_at,
+                expires_at=expires_at,
                 label=label,
                 is_major=True,
             )
@@ -86,6 +105,8 @@ def save_version_snapshot(product, label='Auto-save', is_major=False):
                 revision_data=copy.deepcopy(product.revision_data) if product.revision_data else None,
                 workflow_stage=product.workflow_stage,
                 created_by_id=user_id,
+                created_at=created_at,
+                expires_at=expires_at,
                 label=label,
                 is_major=False,
             )
@@ -93,9 +114,11 @@ def save_version_snapshot(product, label='Auto-save', is_major=False):
         db.session.add(version)
         db.session.commit()
         print(f"📸 Version {next_num} ({'major' if version.is_major else 'minor'}) saved for product {product.id}: {label}")
+        return version
     except Exception as e:
         db.session.rollback()
         print(f"❌ Failed to save version: {e}")
+        return None
 
 
 def _compute_shallow_diff(old: dict, new: dict) -> dict:
@@ -207,13 +230,52 @@ def _is_empty(val):
     return val is None or val == '' or val == [] or val == {}
 
 
-def diff_and_log(product_id, old_data, new_data, prefix='', _version_num=None):
-    """Compare two dicts recursively and log only actual field edits."""
+def _make_field_change(*, product_id, user_id, field_name, old_value,
+                        new_value, version_num, workflow_stage):
+    """Construct a FieldChangeLog row with workflow_stage + expires_at
+    populated. Centralizing this keeps the Phase History v2 tagging
+    consistent across the 6 insert sites in diff_and_log /
+    _diff_and_log_changes. Caller resolves `workflow_stage` once per
+    diff so we don't re-query the product row per field."""
+    from utils.history import expiry_from
+    from datetime import datetime, timezone
+    ts = datetime.now(timezone.utc).replace(tzinfo=None)
+    return FieldChangeLog(
+        product_id=product_id, user_id=user_id, field_name=field_name,
+        old_value=old_value, new_value=new_value,
+        version_num=version_num,
+        workflow_stage=workflow_stage,
+        timestamp=ts, expires_at=expiry_from(ts),
+    )
+
+
+def _resolve_stage_for_diff(product_id):
+    """Read the product's current workflow_stage once per diff call.
+    Returns None on any failure — FieldChangeLog.workflow_stage is
+    nullable so the diff still records correctly."""
+    try:
+        p = Product.query.get(product_id)
+        return p.workflow_stage if p else None
+    except Exception:
+        return None
+
+
+def diff_and_log(product_id, old_data, new_data, prefix='', _version_num=None,
+                  _workflow_stage=None):
+    """Compare two dicts recursively and log only actual field edits.
+
+    `_workflow_stage` is resolved once at the top of the public call and
+    threaded through recursion so every emitted FieldChangeLog row gets
+    the same stage tag.
+    """
     user_id = session.get('user_id')
 
     if _version_num is None:
         latest = ProductVersion.query.filter_by(product_id=product_id).order_by(ProductVersion.version_num.desc()).first()
         _version_num = latest.version_num if latest else 1
+
+    if _workflow_stage is None:
+        _workflow_stage = _resolve_stage_for_diff(product_id)
 
     if old_data is None: old_data = {}
     if new_data is None: new_data = {}
@@ -231,17 +293,19 @@ def diff_and_log(product_id, old_data, new_data, prefix='', _version_num=None):
             field_name = _clean_field_name(prefix or 'root')
             try:
                 if added:
-                    db.session.add(FieldChangeLog(
+                    db.session.add(_make_field_change(
                         product_id=product_id, user_id=user_id, field_name=field_name,
                         old_value=None,
                         new_value=('Added: ' + '; '.join(str(a) for a in added))[:2000],
-                        version_num=_version_num
+                        version_num=_version_num,
+                        workflow_stage=_workflow_stage,
                     ))
                 if removed:
-                    db.session.add(FieldChangeLog(
+                    db.session.add(_make_field_change(
                         product_id=product_id, user_id=user_id, field_name=field_name,
                         old_value=('Removed: ' + '; '.join(str(r) for r in removed))[:2000],
-                        new_value=None, version_num=_version_num
+                        new_value=None, version_num=_version_num,
+                        workflow_stage=_workflow_stage,
                     ))
             except Exception as e:
                 print(f"Diff log error: {e}")
@@ -249,12 +313,13 @@ def diff_and_log(product_id, old_data, new_data, prefix='', _version_num=None):
         if _normalize(old_data) == _normalize(new_data):
             return
         try:
-            db.session.add(FieldChangeLog(
+            db.session.add(_make_field_change(
                 product_id=product_id, user_id=user_id,
                 field_name=_clean_field_name(prefix or 'root'),
                 old_value=_format_value(old_data)[:2000] if _format_value(old_data) else None,
                 new_value=_format_value(new_data)[:2000] if _format_value(new_data) else None,
-                version_num=_version_num
+                version_num=_version_num,
+                workflow_stage=_workflow_stage,
             ))
         except Exception as e:
             print(f"Diff log error: {e}")
@@ -266,23 +331,28 @@ def diff_and_log(product_id, old_data, new_data, prefix='', _version_num=None):
         old_val = old_data.get(key)
         new_val = new_data.get(key)
         if isinstance(old_val, dict) and isinstance(new_val, dict):
-            diff_and_log(product_id, old_val, new_val, prefix=field, _version_num=_version_num)
+            diff_and_log(product_id, old_val, new_val, prefix=field,
+                          _version_num=_version_num,
+                          _workflow_stage=_workflow_stage)
         elif isinstance(old_val, list) or isinstance(new_val, list):
             if _is_empty(old_val):
                 continue
-            diff_and_log(product_id, old_val or [], new_val or [], prefix=field, _version_num=_version_num)
+            diff_and_log(product_id, old_val or [], new_val or [], prefix=field,
+                          _version_num=_version_num,
+                          _workflow_stage=_workflow_stage)
         elif old_val != new_val:
             if _is_empty(old_val):
                 continue
             if _normalize(old_val) == _normalize(new_val):
                 continue
             try:
-                db.session.add(FieldChangeLog(
+                db.session.add(_make_field_change(
                     product_id=product_id, user_id=user_id,
                     field_name=_clean_field_name(field),
                     old_value=_format_value(old_val)[:2000] if _format_value(old_val) else None,
                     new_value=_format_value(new_val)[:2000] if _format_value(new_val) else None,
-                    version_num=_version_num
+                    version_num=_version_num,
+                    workflow_stage=_workflow_stage,
                 ))
             except Exception as e:
                 print(f"Diff log error: {e}")
@@ -293,6 +363,9 @@ def _diff_and_log_changes(product_id, old_data, new_data, prefix=''):
     user_id = session.get('user_id')
     latest = ProductVersion.query.filter_by(product_id=product_id).order_by(ProductVersion.version_num.desc()).first()
     version_num = latest.version_num if latest else 1
+
+    # Phase History v2 — resolve once, capture via closure in _recurse.
+    workflow_stage = _resolve_stage_for_diff(product_id)
 
     if old_data is None: old_data = {}
     if new_data is None: new_data = {}
@@ -310,18 +383,20 @@ def _diff_and_log_changes(product_id, old_data, new_data, prefix=''):
                     field_name = _clean_field_name(path)
                     try:
                         if added:
-                            db.session.add(FieldChangeLog(
+                            db.session.add(_make_field_change(
                                 product_id=product_id, user_id=user_id,
                                 field_name=field_name, old_value=None,
                                 new_value=('Added: ' + '; '.join(str(a) for a in added))[:2000],
-                                version_num=version_num
+                                version_num=version_num,
+                                workflow_stage=workflow_stage,
                             ))
                         if removed:
-                            db.session.add(FieldChangeLog(
+                            db.session.add(_make_field_change(
                                 product_id=product_id, user_id=user_id,
                                 field_name=field_name,
                                 old_value=('Removed: ' + '; '.join(str(r) for r in removed))[:2000],
-                                new_value=None, version_num=version_num
+                                new_value=None, version_num=version_num,
+                                workflow_stage=workflow_stage,
                             ))
                     except Exception as e:
                         print(f"Diff log error: {e}")
@@ -331,12 +406,13 @@ def _diff_and_log_changes(product_id, old_data, new_data, prefix=''):
             try:
                 old_str = _format_value(old)
                 new_str = _format_value(new)
-                db.session.add(FieldChangeLog(
+                db.session.add(_make_field_change(
                     product_id=product_id, user_id=user_id,
                     field_name=_clean_field_name(path),
                     old_value=old_str[:2000] if old_str else None,
                     new_value=new_str[:2000] if new_str else None,
-                    version_num=version_num
+                    version_num=version_num,
+                    workflow_stage=workflow_stage,
                 ))
             except Exception as e:
                 print(f"Diff log error: {e}")
@@ -356,12 +432,13 @@ def _diff_and_log_changes(product_id, old_data, new_data, prefix=''):
                 try:
                     old_str = _format_value(old_val)
                     new_str = _format_value(new_val)
-                    db.session.add(FieldChangeLog(
+                    db.session.add(_make_field_change(
                         product_id=product_id, user_id=user_id,
                         field_name=_clean_field_name(child_path),
                         old_value=old_str[:2000] if old_str else None,
                         new_value=new_str[:2000] if new_str else None,
-                        version_num=version_num
+                        version_num=version_num,
+                        workflow_stage=workflow_stage,
                     ))
                 except Exception as e:
                     print(f"Diff log error: {e}")
@@ -585,11 +662,16 @@ def proforma_to_pis_data(product_obj: dict, raw_text: str | None = None,
     have_text = bool(raw_lower)
 
     def _classify_source(value) -> str:
-        """For a field claimed in source_facts: did the value appear on the page?"""
-        if not have_text:
-            return 'source'  # legacy fallback when we couldn't extract raw text
+        """For a field claimed in source_facts: did the value appear on the page?
+
+        Strict-fact rule: only values literally present in the Proforma's raw
+        text qualify as facts. If we couldn't extract raw text (image-only
+        PDF, etc.), the AI's source claim is unverifiable, so it falls into
+        the AI-generated bucket rather than a presumed fact."""
         if not value:
             return 'ai'      # empty source value = no claim, treat as ai
+        if not have_text:
+            return 'ai'      # no raw text to verify against → not a fact
         return 'verified' if _value_appears_in_text(value, raw_lower) else 'discrepancy'
 
     origins = {
@@ -611,7 +693,10 @@ def proforma_to_pis_data(product_obj: dict, raw_text: str | None = None,
     for k, v in merged_specs.items():
         is_documented = k in documented_specs
         if not have_text:
-            spec_origins[k] = 'source' if is_documented else 'inferred'
+            # Strict-fact rule: without raw text we can't grep-verify the
+            # spec, so it doesn't qualify as a fact. Treat as inferred (which
+            # renders as AI-generated on the UI).
+            spec_origins[k] = 'inferred'
         elif not is_documented:
             spec_origins[k] = 'inferred'
         # A documented spec is "verified" if EITHER the spec key OR its
@@ -658,6 +743,67 @@ def proforma_to_pis_data(product_obj: dict, raw_text: str | None = None,
             pis['_source_files'] = rel
 
     return pis
+
+
+def classify_flat_pis_origins(pis_data: dict, raw_text: str | None) -> tuple[dict, dict]:
+    """Produce (_field_origins, _spec_origins) maps for a FLAT pis_data shape
+    — the one the bulk wizard's content task fills in via generate_pis_data,
+    which doesn't split into source_facts / ai_enriched_details.
+
+    Same strict-fact rule as proforma_to_pis_data: only values literally
+    present in the uploaded Proforma's raw text become 'verified'. Without
+    raw text, nothing can be a fact — every field collapses to 'ai' (header/
+    warranty) or 'inferred' (specs).
+
+    No 'discrepancy' state here: in the flat shape the AI never explicitly
+    cited the Proforma per-field, so there's nothing to flag as a lied-about
+    source claim. The verify_marketing.html template already treats both
+    'ai' and 'inferred' as the AI-generated bucket.
+    """
+    if not isinstance(pis_data, dict):
+        return ({}, {})
+
+    raw_lower = (raw_text or '').lower()
+    have_text = bool(raw_lower)
+
+    def _fact_or_ai(value) -> str:
+        if not value:
+            return 'ai'
+        if not have_text:
+            return 'ai'
+        return 'verified' if _value_appears_in_text(value, raw_lower) else 'ai'
+
+    header = pis_data.get('header_info') or {}
+    warranty = pis_data.get('warranty_service') or {}
+    specs = pis_data.get('technical_specifications') or {}
+
+    field_origins = {
+        'header_info.product_name':   _fact_or_ai(header.get('product_name')),
+        'header_info.model_number':   _fact_or_ai(header.get('model_number')),
+        'header_info.brand':          _fact_or_ai(header.get('brand')),
+        'header_info.price_estimate': _fact_or_ai(header.get('price_estimate')),
+        'warranty_service.period':    _fact_or_ai(warranty.get('period')),
+        'warranty_service.coverage':  _fact_or_ai(warranty.get('coverage')),
+        # Narrative fields the AI always composes — never facts.
+        'range_overview':             'ai',
+        'sales_arguments':            'ai',
+        'seo_data.generated_keywords':   'ai',
+        'seo_data.meta_title':           'ai',
+        'seo_data.meta_description':     'ai',
+        'seo_data.seo_long_description': 'ai',
+    }
+
+    spec_origins = {}
+    if isinstance(specs, dict):
+        for k, v in specs.items():
+            if not have_text:
+                spec_origins[k] = 'inferred'
+            elif _value_appears_in_text(v, raw_lower) or _value_appears_in_text(k, raw_lower):
+                spec_origins[k] = 'verified'
+            else:
+                spec_origins[k] = 'inferred'
+
+    return (field_origins, spec_origins)
 
 
 # ================= FORBIDDEN WORDS =================

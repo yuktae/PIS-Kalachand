@@ -7,8 +7,7 @@
     <div class="text-center mb-12 animate-fade-in">
         <h2 class="text-4xl font-extrabold text-slate-900 tracking-tight mb-4">Import Proforma</h2>
         <p class="text-slate-500 max-w-xl mx-auto leading-relaxed">
-            Upload a brochure, invoice, or supplier URL — pick a processing mode and let the AI engine extract one or
-            many products into draft PIS records.
+            Upload a supplier proforma, pick a processing mode, and let the AI extract products into draft PIS records.
         </p>
     </div>
 
@@ -43,8 +42,8 @@
 
         <div class="p-10 space-y-6">
             <div>
-                <h3 class="font-extrabold text-2xl text-slate-900 tracking-tight">Drop a proforma to begin</h3>
-                <p class="text-sm text-slate-500 mt-1">The AI will analyse the document and route you to the right flow — single product or bulk import. No other settings to fill in.</p>
+                <h3 class="font-extrabold text-2xl text-slate-900 tracking-tight">Proforma Auto Detection</h3>
+                <p class="text-sm text-slate-500 mt-1">Upload your proforma and the AI will classify it and send you to the right flow automatically.</p>
             </div>
 
             <!-- Idle drop zone (hidden once analysis starts) -->
@@ -543,23 +542,53 @@
                 <div class="flex items-baseline justify-between gap-3 flex-wrap">
                     <h3 class="font-extrabold text-xl text-slate-900">Product image</h3>
                     <div class="flex items-center gap-3">
+                        <!-- Doc-side affordances only when proforma actually
+                             has product photos. Hidden for text-only docs. -->
                         <button type="button"
-                            x-show="proformaPreviewUrl"
+                            x-show="proformaPreviewUrl && hasImages !== 'none'"
                             @click="openProformaCropModal()"
                             :disabled="cropping"
                             class="text-[10px] font-bold text-red-600 hover:text-red-800 uppercase tracking-widest disabled:text-slate-300"
                             title="Manually crop the original proforma">
                             ✂ Crop from proforma
                         </button>
+                        <button type="button"
+                            @click="runNanoIsolate()"
+                            :disabled="nanoBusy || running"
+                            class="text-[10px] font-bold text-amber-600 hover:text-amber-800 uppercase tracking-widest disabled:text-slate-300"
+                            :title="hasImages === 'none' ? 'AI-generated reference render (no source photo in doc)' : 'AI-isolated cutout from the proforma'">
+                            <span x-show="!nanoBusy">✨ AI isolate</span>
+                            <span x-show="nanoBusy">Generating…</span>
+                        </button>
                         <button type="button" @click="rerunFromImages()" :disabled="running"
                             class="text-[10px] font-bold text-slate-500 hover:text-red-600 uppercase tracking-widest disabled:text-slate-300">↻ Re-extract</button>
                     </div>
                 </div>
+
+                <!-- Triage hint: tell the user when we've skipped doc-side. -->
+                <p x-show="hasImages === 'none'" class="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                    Proforma is text-only — searching the web for product images. You can also suggest a URL below.
+                </p>
+
                 <p x-show="running && runningStage" class="text-xs text-slate-500" x-text="'AI is searching: ' + runningStage"></p>
+
+                <!-- Suggest URL: user pastes a page they think has the right
+                     product image; we scrape + download up to 3 candidates. -->
+                <div class="flex items-stretch gap-2 max-w-xl">
+                    <input type="url" x-model="suggestUrl" placeholder="https://… paste a product page to pull images from"
+                           class="flex-1 text-xs border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-200 focus:border-red-400">
+                    <button type="button" @click="runSuggestUrl()"
+                            :disabled="urlBusy || !suggestUrl.trim()"
+                            class="text-[10px] font-bold uppercase tracking-widest bg-slate-900 hover:bg-red-600 disabled:bg-slate-300 text-white rounded-lg px-4 py-2 transition-colors">
+                        <span x-show="!urlBusy">Fetch</span>
+                        <span x-show="urlBusy">Fetching…</span>
+                    </button>
+                </div>
+                <p x-show="urlError" class="text-xs text-red-600" x-text="urlError"></p>
 
                 <p class="text-xs text-slate-500" x-show="imageCandidates.length === 0 && !running">No image candidates were extracted. You can save without an image.</p>
                 <p class="text-xs text-slate-500" x-show="imageCandidates.length === 1">Confident match — confirm or skip.</p>
-                <p class="text-xs text-slate-500" x-show="imageCandidates.length > 1">Multiple candidates — pick the best.</p>
+                <p class="text-xs text-slate-500" x-show="imageCandidates.length > 1">Multiple candidates — pick the best. All kept candidates are saved to the gallery.</p>
 
                 <div x-show="imageCandidates.length > 0" class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <template x-for="(c, i) in imageCandidates" :key="c.path + '_' + i">
@@ -572,15 +601,20 @@
                             <div class="px-3 py-2 bg-slate-50 border-t border-slate-100 text-left flex items-center justify-between gap-2">
                                 <div class="min-w-0">
                                     <p class="text-[10px] font-bold uppercase tracking-widest"
-                                        :class="c.source === 'document' ? 'text-emerald-600' : (c.source === 'manual' ? 'text-red-600' : 'text-blue-600')"
-                                        x-text="c.source === 'document' ? 'From document' : (c.source === 'manual' ? 'Manual crop' : 'Web crop')"></p>
+                                        :class="c.source === 'document' ? 'text-emerald-600' : (c.source === 'manual' ? 'text-red-600' : (c.source === 'nano' ? 'text-amber-600' : (c.source === 'user_url' ? 'text-purple-600' : 'text-blue-600')))"
+                                        x-text="c.source === 'document' ? 'From document' : (c.source === 'manual' ? 'Manual crop' : (c.source === 'nano' ? 'AI isolate' : (c.source === 'user_url' ? 'Suggested URL' : 'Web crop')))"></p>
                                     <a x-show="c.page_url" :href="c.page_url" target="_blank" rel="noopener"
                                         class="text-[10px] text-slate-400 hover:text-red-600 truncate block" x-text="c.page_url"></a>
                                 </div>
-                                <button type="button" @click.stop="openCropModal(i)"
-                                    :disabled="cropping"
-                                    class="shrink-0 text-[10px] font-bold text-slate-500 hover:text-red-600 uppercase tracking-widest border border-slate-200 hover:border-red-300 rounded-lg px-2 py-1 transition-all disabled:opacity-50"
-                                    title="Open manual crop tool">✂ Crop</button>
+                                <div class="shrink-0 flex items-center gap-1">
+                                    <button type="button" @click.stop="openCropModal(i)"
+                                        :disabled="cropping"
+                                        class="text-[10px] font-bold text-slate-500 hover:text-red-600 uppercase tracking-widest border border-slate-200 hover:border-red-300 rounded-lg px-2 py-1 transition-all disabled:opacity-50"
+                                        title="Open manual crop tool">✂ Crop</button>
+                                    <button type="button" @click.stop="removeImageCandidate(i)"
+                                        class="text-[10px] font-bold text-slate-400 hover:text-red-600 uppercase tracking-widest border border-slate-200 hover:border-red-300 rounded-lg px-2 py-1 transition-all"
+                                        title="Drop this candidate (won't be saved to the gallery)">✕</button>
+                                </div>
                             </div>
                         </div>
                     </template>
@@ -804,6 +838,17 @@
             imageCandidates: [],
             manualUrl: '',
             proformaPreviewUrl: '',   // relative "uploads/..." path of the proforma render
+
+            // Triage / on-demand controls (mirrors bulk's `has_images` signal):
+            //   'all' | 'partial' | 'none' | ''  (empty = not yet triaged)
+            // When 'none' the doc-side affordances (Crop from proforma) hide.
+            hasImages: '',
+            // Suggest URL — user pastes a page they want images pulled from.
+            suggestUrl: '',
+            urlBusy: false,
+            urlError: '',
+            // Nano-banana is on-demand now. One Gemini call per click.
+            nanoBusy: false,
 
             // Crop modal state
             // cropTarget: number → replaces imageCandidates[idx] in place.
@@ -1200,6 +1245,11 @@
                 this.imageCandidates = [];
                 this.manualUrl = '';
                 this.proformaPreviewUrl = '';
+                this.hasImages = '';
+                this.suggestUrl = '';
+                this.urlBusy = false;
+                this.urlError = '';
+                this.nanoBusy = false;
             },
 
             addManualUrl() {
@@ -1397,10 +1447,16 @@
 
                         if (typeof evt.progress === 'number') this.progress = evt.progress;
                         if (evt.error) { this.errorMsg = evt.error; }
+                        // Triage signal — tells the UI whether to show or
+                        // hide doc-side affordances (Crop from proforma).
+                        if (typeof evt.has_images === 'string') {
+                            this.hasImages = evt.has_images;
+                        }
 
                         // Per-candidate event — the new streaming path. We
-                        // append immediately so the user sees nano-banana
-                        // pop in around 10 s instead of waiting for web.
+                        // append immediately so the user sees web/doc
+                        // candidates pop in as they finish, instead of
+                        // waiting for everything to complete.
                         if (evt.candidate && evt.candidate.path
                             && !seen.has(evt.candidate.path)) {
                             seen.add(evt.candidate.path);
@@ -1673,11 +1729,114 @@
                             this.form.selected_image = json.path;
                         }
                     }
-                    this.cancelCrop();
+                    // Close the modal immediately on success — do NOT call
+                    // cancelCrop() here because this.cropping is still true
+                    // and the guard at the top of cancelCrop() would block it.
+                    this.cropTarget = null;
+                    this.cropMode = 'replace';
+                    this.cropSourcePath = '';
+                    this.cropImageSrc = '';
+                    this._resetCropModalState();
                 } catch (e) {
                     this.cropError = 'Network error: ' + e.message;
                 } finally {
                     this.cropping = false;
+                }
+            },
+
+            // On-demand: fetch images from a URL the user pasted in.
+            // Streams candidates back via the same NDJSON shape used by
+            // /single/extract_images, so we reuse the same parsing logic.
+            async runSuggestUrl() {
+                const url = this.suggestUrl.trim();
+                if (!url || this.urlBusy) return;
+                this.urlBusy = true;
+                this.urlError = '';
+                try {
+                    const resp = await fetch("{{ url_for('marketing.import_proforma_single_extract_from_url') }}", {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({
+                            session_token: this.sessionToken,
+                            url: url,
+                        })
+                    });
+                    if (!resp.body) {
+                        this.urlError = 'No streaming body';
+                        return;
+                    }
+                    const reader = resp.body.getReader();
+                    const decoder = new TextDecoder();
+                    const seen = new Set(this.imageCandidates.map(c => c.path));
+                    let buffer = '';
+                    while (true) {
+                        const { done, value } = await reader.read();
+                        if (done) break;
+                        buffer += decoder.decode(value, { stream: true });
+                        let nl;
+                        while ((nl = buffer.indexOf('\n')) !== -1) {
+                            const line = buffer.slice(0, nl).trim();
+                            buffer = buffer.slice(nl + 1);
+                            if (!line) continue;
+                            let evt; try { evt = JSON.parse(line); } catch (_) { continue; }
+                            if (evt.error) this.urlError = evt.error;
+                            if (evt.candidate && evt.candidate.path && !seen.has(evt.candidate.path)) {
+                                seen.add(evt.candidate.path);
+                                this.imageCandidates.push(evt.candidate);
+                                if (!this.form.selected_image) {
+                                    this.form.selected_image = evt.candidate.path;
+                                }
+                            }
+                        }
+                    }
+                    this.suggestUrl = '';
+                } catch (e) {
+                    this.urlError = 'Network error: ' + (e.message || String(e));
+                } finally {
+                    this.urlBusy = false;
+                }
+            },
+
+            // On-demand: run nano-banana on the uploaded proforma to
+            // produce a clean isolated render. Costs one Gemini call.
+            async runNanoIsolate() {
+                if (this.nanoBusy || !this.sessionToken) return;
+                this.nanoBusy = true;
+                try {
+                    const resp = await fetch("{{ url_for('marketing.import_proforma_single_nano_isolate') }}", {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ session_token: this.sessionToken })
+                    });
+                    const j = await resp.json().catch(() => ({}));
+                    if (!resp.ok || j.error) {
+                        this.errorMsg = j.error || `Nano-banana failed (HTTP ${resp.status})`;
+                        return;
+                    }
+                    const cand = j.candidate;
+                    if (cand && cand.path && !this.imageCandidates.some(c => c.path === cand.path)) {
+                        this.imageCandidates.push(cand);
+                        if (!this.form.selected_image) {
+                            this.form.selected_image = cand.path;
+                        }
+                    }
+                } catch (e) {
+                    this.errorMsg = 'Network error: ' + (e.message || String(e));
+                } finally {
+                    this.nanoBusy = false;
+                }
+            },
+
+            // Drop a candidate from the grid. Splices imageCandidates and
+            // clears selected_image if the dropped one was selected. The
+            // backend only sees what we send on finalize, so removing
+            // here = excluded from the gallery.
+            removeImageCandidate(idx) {
+                if (idx < 0 || idx >= this.imageCandidates.length) return;
+                const removed = this.imageCandidates[idx];
+                this.imageCandidates.splice(idx, 1);
+                if (removed && this.form.selected_image === removed.path) {
+                    this.form.selected_image = this.imageCandidates[0]?.path || '';
                 }
             },
 
@@ -1701,7 +1860,11 @@
                         body: JSON.stringify({
                             session_token: this.sessionToken,
                             selected_image: this.form.selected_image || '',
-                            model_name: this.form.model_name.trim()
+                            model_name: this.form.model_name.trim(),
+                            // Gallery: every candidate the user still has on
+                            // screen becomes Product.additional_images. The
+                            // backend de-dupes and excludes selected_image.
+                            gallery_images: this.imageCandidates.map(c => c.path).filter(Boolean)
                         })
                     });
                     const payload = await this.consumeStream(resp);

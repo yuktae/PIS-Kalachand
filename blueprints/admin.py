@@ -364,3 +364,27 @@ def purge_all_data():
         flash(f"Error purging data: {str(e)}", "error")
     referrer = request.referrer or url_for('auth.login')
     return redirect(referrer)
+
+
+# ── PHASE 4: HISTORY CLEANUP ─────────────────────────────────────────────────
+
+@admin_bp.route('/api/admin/history_cleanup/status')
+def admin_history_cleanup_status():
+    """Return the last-run summary for the cleanup job."""
+    if session.get('role') != 'admin':
+        return jsonify({"error": "Unauthorized"}), 403
+    from utils.history_cleanup import read_cleanup_status
+    return jsonify(read_cleanup_status())
+
+
+@admin_bp.route('/api/admin/history_cleanup/run', methods=['POST'])
+def admin_history_cleanup_run():
+    """Run the 6-month cleanup. POST {"dry_run": true} to preview without
+    deleting. Returns the counts of rows affected."""
+    if session.get('role') != 'admin':
+        return jsonify({"error": "Unauthorized"}), 403
+    body = request.get_json(silent=True) or {}
+    dry_run = bool(body.get('dry_run'))
+    from utils.history_cleanup import cleanup_expired_history
+    result = cleanup_expired_history(dry_run=dry_run)
+    return jsonify(result)

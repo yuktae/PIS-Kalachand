@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="max-w-7xl mx-auto pb-32">
+
+    {# ── HERO SECTION — matches Archive / Dashboard / History style ── #}
+    <div class="mx-8 mt-6 mb-6 relative rounded-3xl bg-gradient-to-br from-white via-white to-red-50/40 border border-gray-100 p-8 shadow-sm overflow-hidden">
+        <div class="absolute inset-0 bg-[radial-gradient(#fee2e2_1px,transparent_1px)] [background-size:18px_18px] opacity-40 pointer-events-none"></div>
+        {# Decorative red accent orbs #}
+        <div class="absolute -top-12 -right-12 w-48 h-48 bg-red-100/40 rounded-full blur-3xl pointer-events-none"></div>
+        <div class="absolute -bottom-12 -left-12 w-40 h-40 bg-red-100/30 rounded-full blur-3xl pointer-events-none"></div>
+
+        <div class="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+            <div>
+                <p class="text-[10px] font-bold text-red-600 uppercase tracking-widest mb-1">Audit Trail</p>
+                <h2 class="text-3xl font-extrabold text-slate-900 tracking-tight">{{ product.model_name }}</h2>
+                <div class="flex items-center gap-2 text-sm text-slate-500 mt-1.5 flex-wrap">
+                    <span>Product #{{ product.id }}</span>
+                    <span>·</span>
+                    {% set stage = product.workflow_stage or 'marketing_draft' %}
+                    {% if stage == 'finalized' %}
+                    <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-100 whitespace-nowrap">FINALIZED</span>
+                    {% elif stage in ('ready_for_web', 'specsheet_draft', 'pending_director_spec', 'web_changes_requested') %}
+                    <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-100 whitespace-nowrap">WEB</span>
+                    {% elif stage == 'pending_director_pis' %}
+                    <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-violet-50 text-violet-700 border border-violet-100 whitespace-nowrap">DIRECTOR REVIEW</span>
+                    {% elif stage == 'marketing_changes_requested' %}
+                    <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-red-50 text-red-700 border border-red-100 whitespace-nowrap">CHANGES REQUESTED</span>
+                    {% else %}
+                    <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-100 whitespace-nowrap">{{ stage|replace('_', ' ')|upper }}</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="flex items-center gap-3 flex-wrap">
+                {% if product.workflow_stage in ('marketing_draft', 'marketing_in_progress', 'marketing_changes_requested', 'pending_director_pis') %}
+                <a href="{{ url_for('marketing.review_pis_marketing', product_id=product.id) }}"
+                   class="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-sm font-bold shadow-sm shadow-red-100 transition-colors flex items-center gap-2">
+                    Edit PIS
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+                    </svg>
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    {% include 'partials/timeline_v2.html' %}
+
+</div>
+
+{% endblock %}

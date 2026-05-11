@@ -535,14 +535,67 @@ def _resolve_source_paths(filenames: list[str], upload_folder: str) -> list[str]
     return resolved
 
 
+def _derive_product_type_query(out: dict, brand: str) -> str:
+    """Build a generic product-type search query for the case where the
+    exact model-name search returns nothing — typical for SKU-style
+    proforma rows like "00438 POB ARIETE CREAM/BLINT" that no SERP knows.
+
+    Pulls product type from category_data (if the classifier has run),
+    then from the AI-deduced range_overview, falling back to a brand-only
+    query. Color/finish hints come from the first variant label when the
+    cluster is variant-shaped.
+
+    Example outputs:
+      "Ariete electric kettle cream"   (brand + type + color)
+      "Sunon wardrobe oak"             (brand + type + finish)
+      "Ariete electric kettle"         (no color hint available)
+      ""                               (no signal at all → caller skips)
+    """
+    parts: list[str] = []
+    if brand:
+        parts.append(brand)
+
+    # Product type from the category classifier (most reliable signal).
+    cat = out.get('category_data') or {}
+    if isinstance(cat, dict):
+        for key in ('product_type', 'subcategory', 'category'):
+            v = (cat.get(key) or '').strip()
+            if v:
+                parts.append(v)
+                break
+
+    # Fallback: first noun-phrase of the range_overview narrative.
+    if len(parts) < 2:
+        narrative = (out.get('range_overview') or '').strip()
+        if narrative:
+            # Take the first 6 words, drop common filler.
+            stop = {'the', 'a', 'an', 'this', 'these', 'with', 'for', 'of'}
+            tokens = [w for w in narrative.split()[:6]
+                      if w.lower() not in stop]
+            if tokens:
+                parts.append(' '.join(tokens[:3]))
+
+    # Color/finish from the first variant label (helps narrow visual search).
+    variants = out.get('variants') or []
+    if isinstance(variants, list) and variants:
+        v0 = variants[0] if isinstance(variants[0], dict) else {}
+        label = (v0.get('label') or '').strip()
+        if label and label.lower() not in ' '.join(parts).lower():
+            parts.append(label)
+
+    return ' '.join(parts).strip() if len(parts) >= 2 else ''
+
+
 def enrich_product(pis_data: dict, upload_folder: str,
                    tasks: list[str] | None = None) -> dict:
     """Phase D — fill in the rich PIS fields for ONE bulk-import draft.
 
-    Runs three independent enrichment tasks (image, content, category) and
-    merges their outputs into a copy of `pis_data`. Each task updates its
-    own slot in `_enrichment_tasks` ('done' | 'failed' | 'skipped') so the
-    workspace UI can render per-task status.
+    Runs three enrichment tasks in order so the image search can lean on
+    content + category data when it runs:
+        content  → category  → image
+
+    Each task updates its own slot in `_enrichment_tasks` ('done' |
+    'failed' | 'skipped') so the workspace UI can render per-task status.
 
     `tasks` filters which jobs to run (defaults to all three). The caller
     persists the returned dict back to `Product.pis_data`. The function is
@@ -554,7 +607,6 @@ def enrich_product(pis_data: dict, upload_folder: str,
     diff cleanly).
     """
     import copy
-    from concurrent.futures import ThreadPoolExecutor
 
     out = copy.deepcopy(pis_data or {})
     out.setdefault('_enrichment_tasks', {'image': 'pending',
@@ -579,12 +631,26 @@ def enrich_product(pis_data: dict, upload_folder: str,
             if label and label.lower() != target_name.lower():
                 variant_names.append(label)
 
-    # ── Task 1: image — extracts for primary AND every variant ──────────
+    # ── Task: image — extracts for primary AND every variant ──────────
+    # Runs LAST (after content + category) so the product-type fallback
+    # query can use category_data when the SKU-style model name fails.
+    #
+    # Routing by triage signal:
+    #   has_images in ('all', 'partial')  — doc-side bbox/embedded
+    #     extraction is the primary source; web is a backup.
+    #   has_images == 'none'              — text-only proforma. NO doc
+    #     extraction, NO auto-AI. Two-tier web only:
+    #       Tier 1: supplier URL discovery + scrape via the discovered
+    #               URL (same multi-engine cascade single uses).
+    #       Tier 2: product-type search ("Brand + category + color"),
+    #               only fires when Tier 1 returns nothing.
+    #     Capped at 2 candidates per variant.
     def _image_task() -> dict:
         # Late imports — image_processing has heavy deps (Playwright,
         # PIL, etc.) so we don't pay for them when only content is enriched.
         from utils.single_wizard import (
             extract_image_from_document, extract_image_candidates_from_web,
+            discover_supplier_url,
         )
         result = {'image_path': None, 'image_candidates': []}
         seen_paths: set[str] = set()
@@ -603,6 +669,24 @@ def enrich_product(pis_data: dict, upload_folder: str,
         all_targets = [target_name] + variant_names if target_name else variant_names
 
         try:
+            # For text-only proformas, discover a supplier URL ONCE
+            # (per draft) and reuse it for every variant search. The
+            # single wizard does this the same way.
+            supplier_url: str | None = None
+            if has_images == 'none' and target_name:
+                try:
+                    sup = discover_supplier_url(target_name, brand or None) or {}
+                    supplier_url = sup.get('url')
+                except Exception as e:
+                    print(f"⚠ supplier URL discovery for '{target_name}' failed: {e}")
+
+            # Tier-2 fallback query (product type) — derived once from the
+            # already-populated content + category data in `out`. Empty
+            # when neither signal exists; caller skips that tier.
+            product_type_query = (
+                _derive_product_type_query(out, brand) if has_images == 'none' else ''
+            )
+
             for tgt in all_targets:
                 if not tgt:
                     continue
@@ -624,7 +708,7 @@ def enrich_product(pis_data: dict, upload_folder: str,
                 cap = 2 if tgt == target_name else 1
                 try:
                     web = extract_image_candidates_from_web(
-                        model_name=tgt, supplier_url=None,
+                        model_name=tgt, supplier_url=supplier_url,
                         upload_folder=upload_folder, brand=brand or None,
                         max_results=cap, log_cb=None,
                     ) or []
@@ -634,6 +718,24 @@ def enrich_product(pis_data: dict, upload_folder: str,
                 for r in web:
                     _push(r['path'], 'web', r.get('page_url'),
                           tgt if tgt != target_name else None)
+
+                # Tier 2 — product-type fallback. Only fires when:
+                #   • this is a text-only proforma (has_images='none'), AND
+                #   • Tier 1 (above) returned nothing for THIS target, AND
+                #   • we have a usable type query.
+                if (has_images == 'none' and not web and product_type_query):
+                    try:
+                        web2 = extract_image_candidates_from_web(
+                            model_name=product_type_query, supplier_url=None,
+                            upload_folder=upload_folder, brand=brand or None,
+                            max_results=cap, log_cb=None,
+                        ) or []
+                    except Exception as e:
+                        print(f"⚠ product-type web extract for '{tgt}' failed: {e}")
+                        web2 = []
+                    for r in web2:
+                        _push(r['path'], 'web', r.get('page_url'),
+                              tgt if tgt != target_name else None)
 
             # Pick the first doc-side candidate as the default thumbnail.
             # Variants stay in the candidate list for the workspace picker.
@@ -714,55 +816,65 @@ def enrich_product(pis_data: dict, upload_folder: str,
             result['_error'] = f"Content task failed: {e}"
         return result
 
-    # Run image + content in parallel.
-    with ThreadPoolExecutor(max_workers=2) as pool:
-        image_future = pool.submit(_image_task) if 'image' in wanted else None
-        content_future = pool.submit(_content_task) if 'content' in wanted else None
+    # Sequential pass — content → category → image. Image runs LAST so
+    # the product-type fallback query has access to category_data. The
+    # previous parallel (image + content) layout meant the image task
+    # always ran with empty content, which made the product-type tier
+    # impossible.
+    if 'content' in wanted:
+        r = _content_task() or {}
+        if r.get('_error'):
+            out['_enrichment_tasks']['content'] = 'failed'
+            out.setdefault('_enrichment_errors', {})['content'] = r['_error']
+        else:
+            for key in ('range_overview', 'sales_arguments',
+                        'technical_specifications', 'warranty_service',
+                        'seo_data'):
+                if key in r:
+                    out[key] = r[key]
+            if r.get('_seo_keywords'):
+                out['_seo_keywords_pending'] = r['_seo_keywords']
+            # Apply AI header_info for variant clusters — but only when
+            # the user hasn't manually overridden the header (the save
+            # endpoint sets `_user_edited_header` once anything in
+            # header_info is touched). On first enrich the flag isn't
+            # set, so the family name + concatenated SKUs that the
+            # variant prompt produces win out over the stub.
+            ai_hdr = r.get('_ai_header_info') or {}
+            if ai_hdr and not out.get('_user_edited_header'):
+                cur = out.get('header_info') or {}
+                merged = dict(cur)
+                for hk in ('product_name', 'model_number',
+                           'brand', 'price_estimate'):
+                    v = ai_hdr.get(hk)
+                    if isinstance(v, str) and v.strip():
+                        merged[hk] = v.strip()
+                out['header_info'] = merged
 
-        if image_future:
-            r = image_future.result() or {}
-            if r.get('_error'):
-                out['_enrichment_tasks']['image'] = 'failed'
-                out.setdefault('_enrichment_errors', {})['image'] = r['_error']
-            else:
-                if r.get('image_path'):
-                    out['_image_path'] = r['image_path']
-                if r.get('image_candidates'):
-                    out['_bulk_image_candidates'] = r['image_candidates']
-                out['_enrichment_tasks']['image'] = 'done'
+            # Origin map for the verify-PIS badge UI. Bulk extraction
+            # doesn't split source_facts / ai_enriched_details the way
+            # the single-product proforma flow does, so we grep-verify
+            # each filled-in field against the uploaded Proforma's raw
+            # text. Strict-fact rule applies: only Proforma-confirmed
+            # values become 'verified' (yellow ✔); everything else
+            # lands in the AI bucket (red ✨).
+            try:
+                from helpers import (
+                    extract_raw_text_from_files,
+                    classify_flat_pis_origins,
+                )
+                raw_doc_text = extract_raw_text_from_files(file_paths) or ""
+                field_origins, spec_origins = classify_flat_pis_origins(
+                    out, raw_doc_text
+                )
+                out['_field_origins'] = field_origins
+                out['_spec_origins'] = spec_origins
+            except Exception as e:
+                print(f"⚠ origin classification failed for bulk PIS: {e}")
 
-        if content_future:
-            r = content_future.result() or {}
-            if r.get('_error'):
-                out['_enrichment_tasks']['content'] = 'failed'
-                out.setdefault('_enrichment_errors', {})['content'] = r['_error']
-            else:
-                for key in ('range_overview', 'sales_arguments',
-                            'technical_specifications', 'warranty_service',
-                            'seo_data'):
-                    if key in r:
-                        out[key] = r[key]
-                if r.get('_seo_keywords'):
-                    out['_seo_keywords_pending'] = r['_seo_keywords']
-                # Apply AI header_info for variant clusters — but only when
-                # the user hasn't manually overridden the header (the save
-                # endpoint sets `_user_edited_header` once anything in
-                # header_info is touched). On first enrich the flag isn't
-                # set, so the family name + concatenated SKUs that the
-                # variant prompt produces win out over the stub.
-                ai_hdr = r.get('_ai_header_info') or {}
-                if ai_hdr and not out.get('_user_edited_header'):
-                    cur = out.get('header_info') or {}
-                    merged = dict(cur)
-                    for hk in ('product_name', 'model_number',
-                               'brand', 'price_estimate'):
-                        v = ai_hdr.get(hk)
-                        if isinstance(v, str) and v.strip():
-                            merged[hk] = v.strip()
-                    out['header_info'] = merged
-                out['_enrichment_tasks']['content'] = 'done'
+            out['_enrichment_tasks']['content'] = 'done'
 
-    # ── Task 3: category (depends on content being filled in) ────────────
+    # ── Category (depends on content being filled in) ──────────────────
     if 'category' in wanted:
         try:
             from utils.category_classifier import classify_product_category
@@ -775,6 +887,19 @@ def enrich_product(pis_data: dict, upload_folder: str,
         except Exception as e:
             out['_enrichment_tasks']['category'] = 'failed'
             out.setdefault('_enrichment_errors', {})['category'] = f"Category task failed: {e}"
+
+    # ── Image (runs LAST — needs content + category context) ───────────
+    if 'image' in wanted:
+        r = _image_task() or {}
+        if r.get('_error'):
+            out['_enrichment_tasks']['image'] = 'failed'
+            out.setdefault('_enrichment_errors', {})['image'] = r['_error']
+        else:
+            if r.get('image_path'):
+                out['_image_path'] = r['image_path']
+            if r.get('image_candidates'):
+                out['_bulk_image_candidates'] = r['image_candidates']
+            out['_enrichment_tasks']['image'] = 'done'
 
     # Mark overall status. 'done' if every wanted task finished cleanly,
     # 'partial' when some failed, 'failed' when all wanted tasks failed.

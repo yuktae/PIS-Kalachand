@@ -32,6 +32,7 @@
         /* Base Layout */
         .page {
             padding: 40px;
+            padding-bottom: 40px;
             position: relative;
             min-height: 297mm;
         }
@@ -44,7 +45,7 @@
             justify-content: space-between;
             align-items: flex-start;
             margin-bottom: 30px;
-            gap: 40px;
+            gap: 400px;
         }
 
         .header-left {
@@ -99,6 +100,8 @@
         .main-image {
             width: 100%;
             height: auto;
+            max-height: 200px;
+            object-fit: contain;
             display: block;
             mix-blend-mode: multiply;
             border-bottom: 1px solid #f1f5f9;
@@ -412,15 +415,9 @@
             </div>
         </div>
 
-        <!-- FOOTER -->
-        <footer class="footer">
-            <div>
-                <span class="footer-brand">J. KALACHAND</span> &nbsp;|&nbsp; PRODUCT INTELLIGENCE SYSTEM
-            </div>
-            <div>
-                GENERATED ON {{ date_generated }}
-            </div>
-        </footer>
+        {# Footer is rendered by Playwright via `footer_template` so it
+           sits cleanly below content on every physical page, instead of
+           being painted on top of overflowing tech-spec rows. #}
     </div>
 
 </body>

@@ -1,0 +1,765 @@
+{# Phase 6 — Timeline v2 (red-themed)
+
+   Per-product audit trail. Two coordinated panels:
+     • Timeline panel  (top)    — events grouped by date, stage-coloured
+     • Versions panel  (below)  — every snapshot, always restorable
+
+   Both panels reference the same underlying versions, so a user with no
+   linked events (legacy product, pre-Phase-1 history) still sees a full
+   list of restore points.
+
+   Requires `product.id` in template context.
+#}
+
+<div x-data="timelineV2({{ product.id }})" x-init="load()" class="px-8 mt-8">
+
+    {# ── SUMMARY BAR ──────────────────────────────────────────── #}
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8" x-show="summary" x-cloak>
+        <div class="bg-white border border-gray-100 rounded-2xl px-5 py-4 shadow-sm">
+            <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Created</p>
+            <p class="text-base font-bold text-gray-900 mt-1" x-text="summary?.created_at || '—'"></p>
+        </div>
+        <div class="bg-white border border-gray-100 rounded-2xl px-5 py-4 shadow-sm">
+            <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Last activity</p>
+            <p class="text-base font-bold text-gray-900 mt-1" x-text="summary?.last_event || '—'"></p>
+        </div>
+        <div class="bg-white border border-gray-100 rounded-2xl px-5 py-4 shadow-sm">
+            <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Total versions</p>
+            <p class="text-base font-bold text-gray-900 mt-1">
+                <span x-text="versions.length"></span>
+                <span class="text-xs font-medium text-gray-400 ml-1">snapshots</span>
+            </p>
+        </div>
+        <div class="bg-white border border-gray-100 rounded-2xl px-5 py-4 shadow-sm">
+            <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Current stage</p>
+            <p class="text-base font-bold mt-1 capitalize"
+               :class="laneTextClass(summary?.current_swim_lane)"
+               x-text="(summary?.current_swim_lane || 'proforma').replace(/_/g, ' ')"></p>
+        </div>
+    </div>
+
+    {# ── TIMELINE HEADER + FILTERS ────────────────────────────── #}
+    <div class="flex items-center justify-between gap-4 flex-wrap mb-4">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-2xl bg-gradient-to-br from-red-500 to-red-700 flex items-center justify-center shadow-sm shadow-red-100">
+                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2"/>
+                </svg>
+            </div>
+            <div>
+                <h3 class="text-base font-extrabold text-gray-900">Activity timeline</h3>
+                <p class="text-xs text-gray-500">Every event in chronological order</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-2 text-xs text-gray-500">
+            <span>From</span>
+            <input type="date" x-model="dateFrom" @change="page=1; load()"
+                class="text-xs border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-red-200 focus:border-red-400">
+            <span>to</span>
+            <input type="date" x-model="dateTo" @change="page=1; load()"
+                class="text-xs border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-red-200 focus:border-red-400">
+            <button type="button" @click="dateFrom=''; dateTo=''; page=1; load()"
+                x-show="dateFrom || dateTo"
+                class="text-[10px] font-bold uppercase text-red-600 hover:text-red-800 px-1">clear</button>
+        </div>
+    </div>
+
+    {# Tabs #}
+    <div class="flex items-center gap-1 flex-wrap mb-6 bg-white border border-gray-100 rounded-2xl p-1.5 shadow-sm w-fit max-w-full overflow-x-auto">
+        <template x-for="t in tabs" :key="t.id">
+            <button type="button" @click="setLane(t.id)"
+                :class="lane === t.id
+                    ? 'bg-red-600 text-white shadow-sm shadow-red-100'
+                    : 'bg-transparent text-gray-500 hover:text-gray-900 hover:bg-gray-50'"
+                class="text-[10px] font-bold uppercase tracking-widest px-3 py-2 rounded-xl transition-colors flex items-center gap-1.5 whitespace-nowrap">
+                <span class="w-1.5 h-1.5 rounded-full" :class="laneDotClass(t.id)" x-show="t.id !== 'all'"></span>
+                <span x-text="t.label"></span>
+            </button>
+        </template>
+    </div>
+
+    {# ── TIMELINE BODY ────────────────────────────────────────── #}
+    <div x-show="loadingTimeline" class="bg-white border border-gray-100 rounded-2xl py-16 text-center text-gray-400 text-sm shadow-sm">
+        Loading timeline…
+    </div>
+
+    <div x-show="!loadingTimeline && groups.length === 0"
+         class="bg-white border border-gray-100 rounded-2xl py-16 text-center shadow-sm">
+        <div class="w-12 h-12 bg-red-50 rounded-2xl flex items-center justify-center mx-auto mb-3 text-red-300">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/></svg>
+        </div>
+        <p class="text-sm font-bold text-gray-700">No events match the current filters</p>
+        <p class="text-xs text-gray-400 mt-1" x-show="lane !== 'all' || dateFrom || dateTo">Try clearing the filters above.</p>
+        <p class="text-xs text-gray-400 mt-1" x-show="lane === 'all' && !dateFrom && !dateTo">This product has no recorded events yet.</p>
+    </div>
+
+    <template x-for="g in groups" :key="g.date">
+        <div class="mb-8">
+            <h3 class="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-3 px-2"
+                x-text="formatDateHeader(g.date)"></h3>
+
+            <ol class="relative border-l-2 border-gray-100 ml-3 space-y-3">
+                <template x-for="e in g.events" :key="e.id">
+                    <li class="ml-6">
+                        <span class="absolute -left-[9px] mt-3 w-4 h-4 rounded-full border-4 border-white shadow-sm"
+                              :class="laneDotClass(e.swim_lane)"></span>
+
+                        <div class="bg-white border border-gray-100 rounded-2xl p-5 hover:border-gray-200 hover:shadow-md transition-all group">
+                            <div class="flex items-start justify-between gap-3 flex-wrap">
+                                <div class="min-w-0 flex-1">
+                                    <div class="flex items-center gap-2 mb-1.5 flex-wrap">
+                                        <span class="px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider"
+                                              :class="laneBadgeClass(e.swim_lane)"
+                                              x-text="laneLabel(e.swim_lane)"></span>
+                                        <span class="text-sm font-bold text-gray-900" x-text="e.action"></span>
+                                        <span x-show="e.version_num"
+                                              class="text-[10px] text-gray-400 font-mono"
+                                              x-text="'v' + e.version_num"></span>
+                                        <span x-show="e.type === 'success'"
+                                              class="px-1.5 py-0.5 bg-emerald-50 text-emerald-700 rounded text-[9px] font-bold uppercase tracking-wider">approved</span>
+                                        <span x-show="e.type === 'action'"
+                                              class="px-1.5 py-0.5 bg-red-50 text-red-700 rounded text-[9px] font-bold uppercase tracking-wider">action</span>
+                                        <span x-show="e.type === 'waiting'"
+                                              class="px-1.5 py-0.5 bg-blue-50 text-blue-700 rounded text-[9px] font-bold uppercase tracking-wider">waiting</span>
+                                    </div>
+                                    <p class="text-xs text-gray-600 mb-2 leading-relaxed" x-show="e.description" x-text="e.description"></p>
+                                    <div class="flex items-center gap-3 text-[10px] text-gray-400 flex-wrap">
+                                        <span class="flex items-center gap-1">
+                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3"/><circle cx="12" cy="12" r="9"/></svg>
+                                            <span x-text="e.time"></span>
+                                        </span>
+                                        <span class="flex items-center gap-1">
+                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                                            <span x-text="e.actor || 'System'"></span>
+                                        </span>
+                                        <span x-show="e.actor_role"
+                                              class="uppercase tracking-widest font-bold text-gray-500"
+                                              x-text="e.actor_role"></span>
+                                        <button type="button" x-show="e.has_field_changes"
+                                            @click="toggleChanges(e.id, e.version_num)"
+                                            class="text-red-600 hover:text-red-800 font-bold underline">
+                                            <span x-text="e.field_change_count + ' field change' + (e.field_change_count === 1 ? '' : 's')"></span>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="flex items-center gap-2 shrink-0"
+                                     x-show="e.has_snapshot">
+                                    <button type="button" @click="previewVersion(e.version_id, e.version_num)"
+                                        class="text-[10px] font-bold uppercase tracking-widest text-gray-600 hover:text-gray-900 border border-gray-200 hover:border-gray-400 rounded-lg px-3 py-1.5 transition-colors">
+                                        View
+                                    </button>
+                                    <button type="button" @click="restoreVersion(e.version_id, e.version_num)"
+                                        x-show="canRestore"
+                                        class="text-[10px] font-bold uppercase tracking-widest bg-red-600 hover:bg-red-700 text-white rounded-lg px-3 py-1.5 shadow-sm shadow-red-100 transition-colors">
+                                        Restore
+                                    </button>
+                                </div>
+                            </div>
+
+                            {# Expandable field-change list #}
+                            <div x-show="changesOpen[e.id]" x-cloak
+                                 class="mt-4 pt-4 border-t border-gray-50 space-y-2">
+                                <template x-for="c in (changesCache[e.version_num] || [])" :key="c.id">
+                                    <div class="grid grid-cols-[140px_1fr_1fr] gap-3 text-[11px] items-start">
+                                        <span class="font-bold text-gray-700" x-text="c.field_name"></span>
+                                        <div class="bg-red-50 border border-red-100 rounded-md px-2 py-1 text-red-700 truncate" x-text="c.old_value || '(empty)'"></div>
+                                        <div class="bg-emerald-50 border border-emerald-100 rounded-md px-2 py-1 text-emerald-700 font-medium truncate" x-text="c.new_value || '(empty)'"></div>
+                                    </div>
+                                </template>
+                                <p x-show="!changesCache[e.version_num]" class="text-[10px] text-gray-400">Loading changes…</p>
+                            </div>
+                        </div>
+                    </li>
+                </template>
+            </ol>
+        </div>
+    </template>
+
+    {# ── PAGINATION ───────────────────────────────────────────── #}
+    <div class="flex items-center justify-between gap-3 mt-8 mb-12"
+         x-show="totalEvents > perPage">
+        <button type="button" @click="page--; load()" :disabled="page <= 1"
+            class="text-xs font-bold uppercase tracking-widest text-gray-600 hover:text-gray-900 disabled:opacity-30 disabled:cursor-not-allowed px-4 py-2 border border-gray-200 rounded-xl">← Previous</button>
+        <span class="text-xs text-gray-500" x-text="'Page ' + page + ' · ' + totalEvents + ' events'"></span>
+        <button type="button" @click="page++; load()"
+            :disabled="(page * perPage) >= totalEvents"
+            class="text-xs font-bold uppercase tracking-widest text-gray-600 hover:text-gray-900 disabled:opacity-30 disabled:cursor-not-allowed px-4 py-2 border border-gray-200 rounded-xl">Next →</button>
+    </div>
+
+    {# ── ALL VERSIONS PANEL (below timeline) ──────────────────── #}
+    <div class="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden mt-12">
+        <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-2xl bg-gradient-to-br from-red-500 to-red-700 flex items-center justify-center shadow-sm shadow-red-100">
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                    </svg>
+                </div>
+                <div>
+                    <h3 class="text-base font-extrabold text-gray-900">Restore versions</h3>
+                    <p class="text-xs text-gray-500">Every snapshot — restore any one</p>
+                </div>
+            </div>
+            <button type="button" @click="versionsCollapsed = !versionsCollapsed"
+                class="text-[10px] font-bold uppercase tracking-widest text-gray-500 hover:text-gray-900">
+                <span x-text="versionsCollapsed ? 'Expand ▾' : 'Collapse ▴'"></span>
+            </button>
+        </div>
+
+        <div x-show="!versionsCollapsed" x-transition class="divide-y divide-gray-50">
+            <template x-if="!loadingVersions && versions.length === 0">
+                <div class="px-6 py-12 text-center text-gray-400 text-sm">
+                    No versions yet for this product.
+                </div>
+            </template>
+            <template x-if="loadingVersions">
+                <div class="px-6 py-12 text-center text-gray-400 text-sm">Loading versions…</div>
+            </template>
+
+            <template x-for="(v, i) in versions" :key="v.id">
+                <div class="px-6 py-4 hover:bg-gray-50/80 transition-colors flex items-center justify-between gap-4 group">
+                    <div class="flex items-center gap-4 min-w-0">
+                        <div class="w-10 h-10 rounded-xl flex items-center justify-center text-[11px] font-bold shrink-0"
+                             :class="i === 0 ? 'bg-red-50 text-red-700 border border-red-100' :
+                                     (v.is_major ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
+                                                 : 'bg-gray-50 text-gray-500 border border-gray-100')"
+                             x-text="'v' + v.version_num"></div>
+                        <div class="min-w-0">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <p class="text-sm font-bold text-gray-900 truncate" x-text="v.label"></p>
+                                <span x-show="i === 0"
+                                      class="text-[9px] font-bold uppercase tracking-widest bg-red-50 text-red-700 px-1.5 py-0.5 rounded">Current</span>
+                                <span x-show="v.is_major && i !== 0"
+                                      class="text-[9px] font-bold uppercase tracking-widest bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded">Major</span>
+                                <span x-show="!v.is_major"
+                                      class="text-[9px] font-bold uppercase tracking-widest bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded">Draft</span>
+                                <span x-show="v.workflow_stage"
+                                      class="text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded"
+                                      :class="laneBadgeClass(swimLaneOf(v.workflow_stage))"
+                                      x-text="laneLabel(swimLaneOf(v.workflow_stage))"></span>
+                            </div>
+                            <div class="flex items-center gap-3 mt-1 text-[11px] text-gray-400">
+                                <span class="flex items-center gap-1">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                                    <span x-text="v.created_by || 'System'"></span>
+                                </span>
+                                <span class="flex items-center gap-1">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                    <span x-text="v.created_at"></span>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-2 shrink-0">
+                        <button type="button" @click="previewVersion(v.id, v.version_num)"
+                            class="text-[10px] font-bold uppercase tracking-widest text-gray-600 hover:text-gray-900 border border-gray-200 hover:border-gray-400 rounded-lg px-3 py-1.5 transition-colors flex items-center gap-1.5">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                            View
+                        </button>
+                        <button type="button" x-show="canRestore && i !== 0"
+                            @click="restoreVersion(v.id, v.version_num)"
+                            class="text-[10px] font-bold uppercase tracking-widest bg-red-600 hover:bg-red-700 text-white rounded-lg px-3 py-1.5 shadow-sm shadow-red-100 transition-colors flex items-center gap-1.5">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                            Restore
+                        </button>
+                    </div>
+                </div>
+            </template>
+        </div>
+    </div>
+
+    {# ── COMPARE MODAL ────────────────────────────────────────── #}
+    <div x-show="showCompareModal" x-cloak x-transition
+         class="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+         @keydown.escape.window="showCompareModal = false">
+        <div class="bg-white rounded-3xl w-full max-w-5xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden"
+             @click.outside="showCompareModal = false">
+
+            {# Header #}
+            <div class="px-6 py-5 border-b border-gray-100 flex-shrink-0 bg-gradient-to-r from-red-50/40 to-white">
+                <div class="flex items-center justify-between gap-4">
+                    <div class="flex items-center gap-3 min-w-0">
+                        <div class="w-10 h-10 rounded-2xl bg-gradient-to-br from-red-500 to-red-700 flex items-center justify-center shadow-sm shadow-red-100 shrink-0">
+                            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+                            </svg>
+                        </div>
+                        <div class="min-w-0">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <h4 class="text-base font-extrabold text-gray-900 truncate" x-text="compareData?.label || ('Version ' + compareData?.version_num)"></h4>
+                                <span class="text-[10px] font-mono text-gray-400" x-text="compareData?.version_num ? ('v' + compareData.version_num) : ''"></span>
+                                <span x-show="compareData?.is_major"
+                                      class="px-1.5 py-0.5 bg-emerald-50 text-emerald-700 rounded text-[9px] font-bold uppercase tracking-wider">Major</span>
+                                <span x-show="compareData && !compareData.is_major"
+                                      class="px-1.5 py-0.5 bg-gray-100 text-gray-500 rounded text-[9px] font-bold uppercase tracking-wider">Draft</span>
+                            </div>
+                            <p class="text-[11px] text-gray-500 mt-0.5">
+                                <span x-text="compareData?.created_at || ''"></span>
+                                <span x-show="compareData?.created_by"> · </span>
+                                <span x-text="compareData?.created_by || ''"></span>
+                            </p>
+                        </div>
+                    </div>
+                    <button type="button" @click="showCompareModal = false"
+                        class="text-gray-400 hover:text-gray-700 bg-gray-100 hover:bg-gray-200 p-2 rounded-xl transition-colors shrink-0">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            {# Loading #}
+            <div x-show="compareLoading" class="flex-1 flex items-center justify-center py-20">
+                <div class="text-center text-gray-400">
+                    <div class="w-8 h-8 border-2 border-gray-200 border-t-red-600 rounded-full animate-spin mx-auto mb-3"></div>
+                    <p class="text-xs font-bold">Computing differences…</p>
+                </div>
+            </div>
+
+            {# Empty state — versions are identical #}
+            <div x-show="!compareLoading && compareData && (compareData.fields || []).length === 0"
+                 class="flex-1 flex items-center justify-center py-16 px-6">
+                <div class="text-center">
+                    <div class="w-14 h-14 bg-emerald-50 rounded-2xl flex items-center justify-center mx-auto mb-3 text-emerald-600">
+                        <svg class="w-7 h-7" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </div>
+                    <p class="text-sm font-bold text-gray-700">No differences</p>
+                    <p class="text-xs text-gray-500 mt-1 max-w-md">
+                        This version is identical to the current state. Restoring it would not change anything.
+                    </p>
+                </div>
+            </div>
+
+            {# Comparison table #}
+            <template x-if="!compareLoading && compareData && (compareData.fields || []).length > 0">
+                <div class="flex-1 flex flex-col min-h-0">
+
+                    {# Summary strip #}
+                    <div class="px-6 py-3 bg-gray-50/70 border-b border-gray-100 flex items-center justify-between gap-4 flex-wrap text-xs">
+                        <div class="flex items-center gap-2 text-gray-600">
+                            <svg class="w-4 h-4 text-red-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            <span class="font-bold">
+                                <span x-text="(compareData.fields || []).length"></span>
+                                field<span x-show="(compareData.fields || []).length !== 1">s</span> differ
+                            </span>
+                            <span class="text-gray-400">— restoring this version will apply these changes</span>
+                        </div>
+                        <button type="button" x-show="canRestore"
+                            @click="showCompareModal=false; restoreVersion(compareVersionId, compareData.version_num)"
+                            class="text-[10px] font-bold uppercase tracking-widest bg-red-600 hover:bg-red-700 text-white rounded-lg px-3 py-1.5 shadow-sm shadow-red-100 transition-colors flex items-center gap-1.5">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                            Restore this version
+                        </button>
+                    </div>
+
+                    {# Column headers #}
+                    <div class="px-6 py-2.5 bg-white border-b border-gray-100 flex-shrink-0">
+                        <div class="grid grid-cols-[200px_1fr_1fr] gap-4 items-center">
+                            <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Field</div>
+                            <div class="text-[10px] font-bold text-red-500 uppercase tracking-wider flex items-center gap-1">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/></svg>
+                                Current value
+                            </div>
+                            <div class="text-[10px] font-bold text-emerald-600 uppercase tracking-wider flex items-center gap-1">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                                After restore (v<span x-text="compareData.version_num"></span>)
+                            </div>
+                        </div>
+                    </div>
+
+                    {# Rows #}
+                    <div class="flex-1 overflow-y-auto divide-y divide-gray-50">
+                        <template x-for="(c, ci) in (compareData.fields || [])" :key="ci">
+                            <div class="px-6 py-4 hover:bg-gray-50/60 transition-colors">
+                                <div class="grid grid-cols-[200px_1fr_1fr] gap-4 items-start">
+
+                                    <div class="pt-0.5">
+                                        <p class="text-xs font-bold text-gray-800 leading-tight" x-text="c.field_name"></p>
+                                        <span class="text-[9px] font-bold mt-1 inline-block px-1.5 py-0.5 rounded uppercase tracking-wider"
+                                            :class="sectionBadge(c.section)"
+                                            x-text="c.section"></span>
+                                    </div>
+
+                                    <div class="min-w-0">
+                                        <div class="bg-red-50 border border-red-100 rounded-lg px-3 py-2.5 text-[12px] text-red-700 break-words max-h-40 overflow-y-auto leading-relaxed"
+                                             :class="c.current_value ? '' : 'italic text-red-300'"
+                                             x-html="diffOld(c.current_value, c.target_value)"></div>
+                                    </div>
+
+                                    <div class="min-w-0">
+                                        <div class="bg-emerald-50 border border-emerald-100 rounded-lg px-3 py-2.5 text-[12px] text-emerald-800 break-words max-h-40 overflow-y-auto leading-relaxed"
+                                             :class="c.target_value ? '' : 'italic text-emerald-300'"
+                                             x-html="diffNew(c.current_value, c.target_value)"></div>
+                                    </div>
+
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </template>
+
+            {# Footer (always visible) #}
+            <div class="px-6 py-4 border-t border-gray-100 flex justify-end gap-2 shrink-0 bg-white">
+                <button type="button" @click="showCompareModal = false"
+                    class="px-5 py-2.5 text-xs font-bold uppercase tracking-widest text-gray-600 hover:text-gray-900 border border-gray-200 hover:border-gray-400 rounded-xl transition-colors">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+
+    {# ── RESTORE CONFIRMATION MODAL ───────────────────────────── #}
+    <div x-show="showRestoreModal" x-cloak x-transition
+         class="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm">
+        <div class="bg-white rounded-3xl w-full max-w-sm p-8 shadow-2xl text-center mx-4">
+            <div class="w-14 h-14 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <svg class="w-7 h-7" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+                </svg>
+            </div>
+            <h3 class="text-lg font-bold text-gray-900 mb-2">Restore version <span x-text="pendingVersionNum"></span>?</h3>
+            <p class="text-sm text-gray-500 mb-6 leading-relaxed">
+                This will revert the product data to that version. Your <strong class="text-gray-900">current state will be saved as a new version</strong> first, so you can undo if needed.
+            </p>
+            <div class="flex gap-3">
+                <button type="button" @click="showRestoreModal=false; pendingVersionId=null"
+                    class="flex-1 py-3 bg-gray-100 text-gray-700 rounded-xl font-bold hover:bg-gray-200 transition-colors text-sm">
+                    Cancel
+                </button>
+                <button type="button" @click="confirmRestore()" :disabled="restoring"
+                    class="flex-1 py-3 bg-red-600 hover:bg-red-700 disabled:bg-red-300 text-white rounded-xl font-bold transition-colors text-sm shadow-lg shadow-red-200">
+                    <span x-show="!restoring">Restore</span>
+                    <span x-show="restoring">Restoring…</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<style>
+    /* Word-level diff highlighting inside compare-modal cells. */
+    .diff-del {
+        background: rgba(239, 68, 68, 0.18);
+        text-decoration: line-through;
+        text-decoration-color: rgba(239, 68, 68, 0.55);
+        border-radius: 2px;
+        padding: 0 2px;
+    }
+    .diff-add {
+        background: rgba(16, 185, 129, 0.20);
+        text-decoration: underline;
+        text-decoration-color: rgba(16, 185, 129, 0.65);
+        text-decoration-thickness: 2px;
+        text-underline-offset: 2px;
+        border-radius: 2px;
+        padding: 0 2px;
+        font-weight: 600;
+    }
+</style>
+
+<script>
+function timelineV2(productId) {
+    return {
+        productId,
+        loadingVersions: true,
+        loadingTimeline: true,
+        versions: [],
+        groups: [],
+        summary: null,
+        totalEvents: 0,
+        page: 1,
+        perPage: 50,
+        lane: 'all',
+        dateFrom: '',
+        dateTo: '',
+        changesOpen: {},
+        changesCache: {},
+        versionsCollapsed: false,
+
+        // Restore modal state
+        showRestoreModal: false,
+        pendingVersionId: null,
+        pendingVersionNum: null,
+        restoring: false,
+
+        // Compare modal state — opened by clicking "View" on any version.
+        showCompareModal: false,
+        compareLoading: false,
+        compareVersionId: null,
+        compareData: null,
+
+        // Role gate — body[data-role] is set by base.html.
+        canRestore: ['marketing', 'director', 'admin', 'web'].includes(
+            (document.body.dataset.role || '').toLowerCase()
+        ),
+
+        tabs: [
+            { id: 'all',           label: 'All' },
+            { id: 'proforma',      label: 'Proforma' },
+            { id: 'marketing',     label: 'Marketing' },
+            { id: 'director_pis',  label: 'Director PIS' },
+            { id: 'web',           label: 'Web' },
+            { id: 'director_spec', label: 'Director Spec' },
+            { id: 'finalized',     label: 'Finalized' },
+        ],
+
+        async load() {
+            await Promise.all([this.loadVersions(), this.loadTimeline()]);
+        },
+
+        async loadVersions() {
+            this.loadingVersions = true;
+            try {
+                const r = await fetch(`/api/product/${this.productId}/versions`);
+                this.versions = await r.json();
+            } catch (e) {
+                console.error('versions load failed', e);
+                this.versions = [];
+            } finally {
+                this.loadingVersions = false;
+            }
+        },
+
+        async loadTimeline() {
+            this.loadingTimeline = true;
+            const params = new URLSearchParams({
+                page: this.page, per_page: this.perPage,
+            });
+            if (this.lane && this.lane !== 'all') params.set('stage', this.lane);
+            if (this.dateFrom) params.set('from', this.dateFrom);
+            if (this.dateTo)   params.set('to',   this.dateTo);
+
+            try {
+                const r = await fetch(`/api/product/${this.productId}/timeline?${params}`);
+                const j = await r.json();
+                this.groups      = j.groups || [];
+                this.summary     = j.summary || null;
+                this.totalEvents = j.total_events || 0;
+            } catch (e) {
+                console.error('timeline load failed', e);
+                this.groups = [];
+            } finally {
+                this.loadingTimeline = false;
+            }
+        },
+
+        setLane(id) {
+            this.lane = id;
+            this.page = 1;
+            this.loadTimeline();
+        },
+
+        async toggleChanges(eventId, versionNum) {
+            this.changesOpen[eventId] = !this.changesOpen[eventId];
+            if (this.changesOpen[eventId] && !this.changesCache[versionNum]) {
+                try {
+                    const r = await fetch(`/api/product/${this.productId}/changelog`);
+                    const all = await r.json();
+                    this.changesCache[versionNum] = all.filter(c => c.version_num === versionNum);
+                } catch (e) {
+                    console.error('changelog load failed', e);
+                    this.changesCache[versionNum] = [];
+                }
+            }
+        },
+
+        async previewVersion(versionId, versionNum) {
+            // Open the in-page compare modal showing CURRENT vs this
+            // version as a three-column diff table. Replaces the old
+            // JSON-dump-in-new-window preview.
+            this.compareVersionId = versionId;
+            this.compareData = null;
+            this.compareLoading = true;
+            this.showCompareModal = true;
+            try {
+                const r = await fetch(`/api/product/${this.productId}/versions/${versionId}/compare`);
+                const j = await r.json();
+                if (j.error) {
+                    alert(j.error);
+                    this.showCompareModal = false;
+                    return;
+                }
+                this.compareData = j;
+            } catch (e) {
+                console.error('compare load failed', e);
+                alert('Failed to compute differences.');
+                this.showCompareModal = false;
+            } finally {
+                this.compareLoading = false;
+            }
+        },
+
+        // Word-level diff helpers — reused inside the comparison cells so
+        // the user can see exactly which words changed, not just that the
+        // value differs. Same algorithm as version_history_panel.html.
+        _tokenize(s) {
+            return s ? (s.match(/\S+|\s+/g) || []) : [];
+        },
+        _escape(s) {
+            const el = document.createElement('span');
+            el.textContent = s;
+            return el.innerHTML;
+        },
+        _lcs(a, b) {
+            const m = a.length, n = b.length;
+            const dp = Array.from({length: m + 1}, () => new Uint16Array(n + 1));
+            for (let i = 1; i <= m; i++)
+                for (let j = 1; j <= n; j++)
+                    dp[i][j] = a[i-1] === b[j-1] ? dp[i-1][j-1] + 1 : Math.max(dp[i-1][j], dp[i][j-1]);
+            const matchA = new Set(), matchB = new Set();
+            let i = m, j = n;
+            while (i > 0 && j > 0) {
+                if (a[i-1] === b[j-1]) { matchA.add(i-1); matchB.add(j-1); i--; j--; }
+                else if (dp[i-1][j] > dp[i][j-1]) i--;
+                else j--;
+            }
+            return { matchA, matchB };
+        },
+        diffOld(oldVal, newVal) {
+            if (!oldVal) return '<span class="italic opacity-50">(empty)</span>';
+            if (!newVal) return this._escape(oldVal);
+            const a = this._tokenize(oldVal), b = this._tokenize(newVal);
+            const { matchA } = this._lcs(a, b);
+            return a.map((tok, idx) => {
+                if (/^\s+$/.test(tok)) return tok;
+                return matchA.has(idx) ? this._escape(tok)
+                    : '<span class="diff-del">' + this._escape(tok) + '</span>';
+            }).join('');
+        },
+        diffNew(oldVal, newVal) {
+            if (!newVal) return '<span class="italic opacity-50">(empty)</span>';
+            if (!oldVal) return this._escape(newVal);
+            const a = this._tokenize(oldVal), b = this._tokenize(newVal);
+            const { matchB } = this._lcs(a, b);
+            return b.map((tok, idx) => {
+                if (/^\s+$/.test(tok)) return tok;
+                return matchB.has(idx) ? this._escape(tok)
+                    : '<span class="diff-add">' + this._escape(tok) + '</span>';
+            }).join('');
+        },
+
+        // Pill colour for the "Section" badge on each diff row.
+        sectionBadge(section) {
+            return ({
+                'Header':         'bg-red-50 text-red-700',
+                'Description':    'bg-indigo-50 text-indigo-700',
+                'Sales':          'bg-amber-50 text-amber-700',
+                'Key Features':   'bg-amber-50 text-amber-700',
+                'Specs':          'bg-violet-50 text-violet-700',
+                'SEO':            'bg-emerald-50 text-emerald-700',
+                'Warranty':       'bg-blue-50 text-blue-700',
+                'Classification': 'bg-pink-50 text-pink-700',
+            })[section] || 'bg-gray-100 text-gray-600';
+        },
+
+        restoreVersion(versionId, versionNum) {
+            this.pendingVersionId = versionId;
+            this.pendingVersionNum = versionNum;
+            this.showRestoreModal = true;
+        },
+
+        async confirmRestore() {
+            if (!this.pendingVersionId) return;
+            this.restoring = true;
+            try {
+                const r = await fetch(`/api/product/${this.productId}/versions/${this.pendingVersionId}/restore`, {
+                    method: 'POST',
+                });
+                const j = await r.json();
+                if (j.ok) {
+                    window.location.reload();
+                } else {
+                    alert(j.error || 'Restore failed');
+                    this.restoring = false;
+                    this.showRestoreModal = false;
+                }
+            } catch (e) {
+                alert('Network error.');
+                console.error(e);
+                this.restoring = false;
+                this.showRestoreModal = false;
+            }
+        },
+
+        formatDateHeader(d) {
+            try {
+                const dt = new Date(d + 'T00:00:00');
+                return dt.toLocaleDateString('en-GB', {
+                    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
+                });
+            } catch { return d; }
+        },
+
+        // Mirror the backend's _STAGE_SWIM_LANE map so version labels can
+        // render their lane badge without a separate API call.
+        swimLaneOf(stage) {
+            const map = {
+                'marketing_draft': 'marketing',
+                'marketing_in_progress': 'marketing',
+                'marketing_changes_requested': 'marketing',
+                'pending_director_pis': 'director_pis',
+                'ready_for_web': 'web',
+                'specsheet_draft': 'web',
+                'web_changes_requested': 'web',
+                'pending_director_spec': 'director_spec',
+                'finalized': 'finalized',
+            };
+            return map[stage] || 'proforma';
+        },
+
+        laneLabel(lane) {
+            return ({
+                'proforma':      'PROFORMA',
+                'marketing':     'MARKETING',
+                'director_pis':  'DIRECTOR · PIS',
+                'web':           'WEB',
+                'director_spec': 'DIRECTOR · SPEC',
+                'finalized':     'FINALIZED',
+            })[lane] || 'OTHER';
+        },
+
+        laneBadgeClass(lane) {
+            return ({
+                'proforma':      'bg-slate-100 text-slate-700',
+                'marketing':     'bg-amber-50 text-amber-700',
+                'director_pis':  'bg-violet-50 text-violet-700',
+                'web':           'bg-blue-50 text-blue-700',
+                'director_spec': 'bg-violet-50 text-violet-700',
+                'finalized':     'bg-emerald-50 text-emerald-700',
+            })[lane] || 'bg-slate-100 text-slate-600';
+        },
+
+        laneDotClass(lane) {
+            return ({
+                'all':           'bg-red-600',
+                'proforma':      'bg-slate-400',
+                'marketing':     'bg-amber-500',
+                'director_pis':  'bg-violet-500',
+                'web':           'bg-blue-500',
+                'director_spec': 'bg-violet-500',
+                'finalized':     'bg-emerald-500',
+            })[lane] || 'bg-slate-300';
+        },
+
+        laneTextClass(lane) {
+            return ({
+                'proforma':      'text-slate-700',
+                'marketing':     'text-amber-700',
+                'director_pis':  'text-violet-700',
+                'web':           'text-blue-700',
+                'director_spec': 'text-violet-700',
+                'finalized':     'text-emerald-700',
+            })[lane] || 'text-slate-700';
+        },
+    };
+}
+</script>

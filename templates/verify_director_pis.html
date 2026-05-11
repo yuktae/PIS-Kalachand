@@ -1,7 +1,12 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="max-w-7xl mx-auto pb-32 bg-gray-50 min-h-screen">
+{# Source files (proforma uploads) attached to this PIS — surfaced in the
+   right-panel Source tab so the Director can cross-check claims. Lives on
+   data._source_files (set at import time by helpers.proforma_to_pis_data). #}
+{% set _source_files = data.get('_source_files') or [] %}
+
+<div class="max-w-screen-2xl mx-auto pb-32 bg-gray-50 min-h-screen">
     <form id="verifyForm" method="POST">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
@@ -10,74 +15,74 @@
         <input type="hidden" name="director_general_comments">
 
         <!-- ================= HEADER ================= -->
-        <div
-            class="sticky top-0 z-40 bg-white/80 backdrop-blur-md shadow-sm border-b border-gray-100 -mx-8 px-8 py-4 mb-10 transition-all">
-            <div class="flex items-center justify-between mb-4 flex-wrap gap-4">
+        <div class="sticky top-0 z-50 backdrop-blur-md bg-gradient-to-br from-white/95 via-white/90 to-red-50/60 border-b border-gray-100 transition-all">
+            {# Same red dot texture marketing uses, so the director header
+               reads as part of the same red-themed family of pages. #}
+            <div class="absolute inset-0 bg-[radial-gradient(#fee2e2_1px,transparent_1px)] [background-size:18px_18px] opacity-30 pointer-events-none"></div>
+
+            <div class="relative z-10 px-8 py-4 flex items-center justify-between flex-wrap gap-4">
                 <div>
-                    <h2 class="text-2xl font-extrabold text-gray-900">Review PIS</h2>
-                    <div class="text-sm text-gray-500 flex items-center gap-2 flex-wrap">
-                        <span>{{ product.model_name }}</span>
-                        <span>•</span>
+                    {# Subtle differentiator: "REVIEW PIS" eyebrow vs marketing's "EDIT PIS". #}
+                    <p class="text-[10px] font-bold text-red-600 uppercase tracking-widest mb-0.5">Review PIS</p>
+                    <div class="flex items-center gap-3 flex-wrap">
+                        <h2 class="text-xl font-extrabold text-slate-900 tracking-tight">{{ product.model_name }}</h2>
+                    </div>
+                    <div class="flex items-center gap-2 text-xs text-gray-500 mt-1 flex-wrap">
                         {% if product.workflow_stage == 'marketing_draft' %}
-                        <span
-                            class="px-2 py-0.5 rounded text-[10px] font-bold bg-yellow-50 text-yellow-700 border border-yellow-100 whitespace-nowrap">Draft PIS</span>
+                        <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-yellow-50 text-yellow-700 border border-yellow-100 whitespace-nowrap">Draft PIS</span>
                         {% elif product.workflow_stage == 'marketing_in_progress' %}
-                        <span
-                            class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-100 whitespace-nowrap">In Process</span>
+                        <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-100 whitespace-nowrap">In Process</span>
                         {% elif product.workflow_stage == 'marketing_changes_requested' %}
-                        <span
-                            class="px-2 py-0.5 rounded text-[10px] font-bold bg-red-50 text-red-700 border border-red-100 whitespace-nowrap">Change Requested</span>
+                        <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-red-50 text-red-700 border border-red-100 whitespace-nowrap">Change Requested</span>
                         {% elif product.workflow_stage == 'pending_director_pis' %}
-                        <span
-                            class="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-100 whitespace-nowrap">Need Review</span>
+                        <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-100 whitespace-nowrap">Need Review</span>
                         {% else %}
-                        <span
-                            class="px-2 py-0.5 rounded text-[10px] font-bold bg-green-50 text-green-700 border border-green-100 whitespace-nowrap">PIS Approved</span>
+                        <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-green-50 text-green-700 border border-green-100 whitespace-nowrap">PIS Approved</span>
                         {% endif %}
                     </div>
                 </div>
 
-                <div class="flex gap-3 flex-wrap">
-                    <a href="{{ url_for('director.dashboard_director') }}"
-                        class="px-5 py-2.5 bg-white border border-gray-300 text-gray-600 font-bold rounded-2xl hover:bg-gray-50 transition-colors">
-                        Cancel
-                    </a>
-
+                <div class="flex items-center gap-3 flex-wrap">
+                    {# Auto-save indicator stays — wired by performAutoSave() below. #}
                     <div id="saveStatus"
                         class="flex items-center gap-2 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all duration-300 opacity-0 bg-gray-50 text-gray-400">
                         <div class="status-dot w-1.5 h-1.5 rounded-full bg-gray-300"></div>
                         <span class="status-text">Saved </span>
                     </div>
 
-                    <a href="{{ url_for('marketing.download_pis_pdf', product_id=product.id) }}" target="_blank"
-                        class="px-5 py-2.5 bg-white border border-gray-300 text-gray-700 font-bold rounded-2xl hover:bg-gray-50 transition-colors flex items-center gap-2">
-                        <svg class="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                        </svg>
-                        Preview PDF
-                    </a>
+                    {# Action cluster — Cancel / Need Review / Approve, tight gap-2. #}
+                    <div class="flex items-center gap-2">
+                        <a href="{{ url_for('director.dashboard_director') }}"
+                            class="px-4 py-2 rounded-lg bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm font-semibold shadow-sm transition-colors inline-flex items-center gap-1.5 group">
+                            <svg class="w-4 h-4 transition-transform group-hover:-translate-x-0.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+                            </svg>
+                            Cancel
+                        </a>
 
-                    <button type="button" onclick="openReviewModal()"
-                        class="px-5 py-2.5 bg-white border border-gray-300 text-red-600 font-bold rounded-2xl hover:bg-red-50 transition-colors flex items-center gap-2">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                        </svg>
-                        Need Review
-                    </button>
+                        <button type="button" onclick="openReviewModal()"
+                            class="px-4 py-2 rounded-lg bg-white border border-red-200 text-red-600 text-sm font-semibold shadow-sm hover:bg-red-50 transition-colors flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                            Need Review
+                        </button>
 
-                    <button type="button" onclick="openApproveModal()" id="headerApproveBtn"
-                        class="px-5 py-2.5 bg-black text-white font-bold rounded-2xl hover:bg-gray-800 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-black">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                        </svg>
-                        Approve
-                    </button>
+                        {# Approve stays black — director's authoritative action,
+                           subtly different from marketing's red primary button. #}
+                        <button type="button" onclick="openApproveModal()" id="headerApproveBtn"
+                            class="px-5 py-2 rounded-lg bg-slate-900 text-white text-sm font-semibold shadow-sm hover:bg-black transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-slate-900">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                            </svg>
+                            Approve
+                        </button>
+                    </div>
                 </div>
             </div>
 
-            <div class="flex justify-between items-center gap-8">
+            <div class="px-8 pb-3 flex justify-between items-center gap-8">
                 <nav class="flex gap-1 bg-gray-100/50 p-1 rounded-xl overflow-x-auto whitespace-nowrap scrollbar-thin">
                     <a href="#header"
                         class="nav-link px-4 py-1.5 rounded-lg text-xs font-bold text-gray-500 hover:text-gray-900 transition-all">Header</a>
@@ -100,10 +105,10 @@
         </div>
 
         <!-- ================= MAIN GRID ================= -->
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-10">
+        <div class="mt-8 px-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
 
             <!-- ================= LEFT CONTENT ================= -->
-            <div class="lg:col-span-9 space-y-10">
+            <div class="lg:col-span-6 space-y-8">
 
                 {% macro comment_box(section, placeholder) %}
                 <div id="box-{{ section }}"
@@ -260,98 +265,234 @@
                 </div>
             </div>
 
-            <!-- ================= RIGHT SIDEBAR ================= -->
-            <div class="lg:col-span-3 sticky top-28 space-y-6">
+            <!-- ================= RIGHT TABBED PANEL ================= -->
+            <div class="lg:col-span-6 space-y-6"
+                 x-data="{
+                     activeTab: 'preview',
+                     activeSrc: 0,
+                     previewBust: Date.now(),
+                     refreshPreview() { this.previewBust = Date.now(); }
+                 }"
+                 x-init="window.__refreshPisPreview = () => refreshPreview();">
 
-                {# Visual Reference Card — Marketing-style Gallery #}
-                <div class="section-card overflow-hidden !p-0">
-                    <!-- Gallery Header -->
-                    <div class="bg-gradient-to-r from-slate-50 to-gray-50 px-5 py-4 border-b border-gray-100">
-                        <div class="flex items-center justify-between">
-                            <div class="flex items-center gap-2.5">
-                                <div class="w-8 h-8 rounded-lg bg-white shadow-sm border border-gray-200 flex items-center justify-center">
-                                    <svg class="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                                    </svg>
+                {# Sticky tabbed panel — Live Preview (view-only iframe) /
+                   Gallery (editable, same upload/delete/set-main as marketing) /
+                   Source (the original Proforma uploads, view-only). #}
+                <div class="sticky top-28 bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden flex flex-col"
+                     style="height: calc(100vh - 9rem);">
+
+                    {# Tab strip #}
+                    <div class="border-b border-gray-100 flex bg-gradient-to-r from-slate-50 to-gray-50 shrink-0">
+                        <button type="button" @click="activeTab = 'preview'"
+                            :class="activeTab === 'preview' ? 'border-red-500 text-red-700 bg-white' : 'border-transparent text-slate-500 hover:text-slate-800'"
+                            class="flex-1 px-3 py-3 text-[11px] font-bold uppercase tracking-wider border-b-2 transition-colors flex items-center justify-center gap-1.5">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                            Live Preview
+                        </button>
+                        <button type="button" @click="activeTab = 'gallery'"
+                            :class="activeTab === 'gallery' ? 'border-red-500 text-red-700 bg-white' : 'border-transparent text-slate-500 hover:text-slate-800'"
+                            class="flex-1 px-3 py-3 text-[11px] font-bold uppercase tracking-wider border-b-2 transition-colors flex items-center justify-center gap-1.5">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                            Gallery
+                        </button>
+                        {% if _source_files %}
+                        <button type="button" @click="activeTab = 'source'"
+                            :class="activeTab === 'source' ? 'border-red-500 text-red-700 bg-white' : 'border-transparent text-slate-500 hover:text-slate-800'"
+                            class="flex-1 px-3 py-3 text-[11px] font-bold uppercase tracking-wider border-b-2 transition-colors flex items-center justify-center gap-1.5">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                            Source
+                        </button>
+                        {% endif %}
+                    </div>
+
+                    {# ─── SOURCE tab ─── #}
+                    {% if _source_files %}
+                    <div x-show="activeTab === 'source'" x-cloak class="flex-1 flex flex-col overflow-hidden">
+                        {% if _source_files | length > 1 %}
+                        <div class="border-b border-gray-100 flex overflow-x-auto bg-slate-50/50 shrink-0">
+                            {% for src in _source_files %}
+                            <button type="button" @click="activeSrc = {{ loop.index0 }}"
+                                class="px-3 py-2 text-[10px] font-semibold border-b-2 whitespace-nowrap transition-colors"
+                                :class="activeSrc === {{ loop.index0 }} ? 'border-red-500 text-red-700 bg-white' : 'border-transparent text-slate-500 hover:text-slate-800'">
+                                {{ loop.index }}. {{ src.split('/')[-1] | truncate(20, True, '…') }}
+                            </button>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        <div class="flex-1 overflow-hidden bg-gray-100">
+                            {% for src in _source_files %}
+                            {% set _ext = src.rsplit('.', 1)[-1] | lower %}
+                            <div x-show="activeSrc === {{ loop.index0 }}" class="h-full">
+                                {% if _ext == 'pdf' %}
+                                <iframe src="{{ url_for('static', filename=src) }}#view=FitH"
+                                        class="w-full h-full" frameborder="0"></iframe>
+                                {% elif _ext in ['jpg','jpeg','png','webp','gif','bmp'] %}
+                                <div class="h-full overflow-auto p-3 flex items-start justify-center bg-[#F8F9FC]">
+                                    <img src="{{ url_for('static', filename=src) }}" class="max-w-full rounded-lg shadow border border-slate-200">
                                 </div>
-                                <div>
-                                    <p class="text-xs font-extrabold text-slate-800 tracking-tight">Product Gallery</p>
-                                    <p class="text-[10px] text-gray-400 font-medium">
-                                        {% set img_count = (1 if product.image_path else 0) + (product.additional_images|length if product.additional_images else 0) %}
-                                        {{ img_count }} image{{ 's' if img_count != 1 else '' }}
-                                    </p>
+                                {% else %}
+                                <div class="h-full flex flex-col items-center justify-center p-6 text-center">
+                                    <p class="text-xs text-slate-500 mb-3">Inline preview not supported.</p>
+                                    <a href="{{ url_for('static', filename=src) }}" target="_blank" class="text-xs font-bold text-red-600 hover:text-red-800 underline">Open in new tab →</a>
                                 </div>
+                                {% endif %}
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {# ─── LIVE PREVIEW tab — view-only iframe of the PIS ─── #}
+                    <div x-show="activeTab === 'preview'" x-cloak class="flex-1 flex flex-col overflow-hidden">
+                        <div class="border-b border-gray-100 px-3 py-2 flex items-center justify-between bg-slate-50/50 shrink-0">
+                            <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                                Reflects last saved state
+                            </p>
+                            <div class="flex items-center gap-2">
+                                <button type="button" @click="refreshPreview()"
+                                    class="px-2.5 py-1 rounded-lg text-[10px] font-bold text-slate-600 hover:text-slate-900 hover:bg-white border border-slate-200 transition-colors flex items-center gap-1"
+                                    title="Re-render the preview from the latest saved state">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                                    Refresh
+                                </button>
+                                <a href="{{ url_for('marketing.download_pis_pdf', product_id=product.id) }}"
+                                    class="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-slate-900 hover:bg-black text-white transition-colors flex items-center gap-1"
+                                    title="Download the current saved state as a PDF">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                                    Download
+                                </a>
                             </div>
                         </div>
-                        <!-- Action Buttons -->
-                        <div class="flex items-center gap-2 mt-3">
-                            <input type="file" id="imageUploadInput" class="hidden" accept="image/*" multiple
-                                onchange="uploadImage(this)">
-                            <button type="button" onclick="document.getElementById('imageUploadInput').click()"
-                                class="flex-1 text-[11px] font-bold text-slate-600 bg-white hover:bg-gray-50 border border-gray-200 px-3 py-2 rounded-lg transition-all flex items-center justify-center gap-1.5">
-                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
-                                </svg>
-                                Upload
-                            </button>
+                        <div class="flex-1 overflow-hidden bg-gray-100">
+                            <iframe :src="`{{ url_for('marketing.preview_pis_html', product_id=product.id) }}?t=${previewBust}`"
+                                    class="w-full h-full bg-white" frameborder="0"
+                                    title="Live PIS Preview"></iframe>
                         </div>
                     </div>
 
-                    <div class="p-4">
-                        <!-- Main Image -->
-                        <div class="mb-3 group relative">
-                            <div class="aspect-[4/3] bg-white rounded-xl flex items-center justify-center overflow-hidden border-2 border-gray-100 relative shadow-sm hover:shadow-md transition-shadow">
-                                {% if product.image_path %}
-                                <img src="{{ url_for('static', filename=product.image_path) }}"
-                                    class="object-contain w-full h-full p-3 mix-blend-multiply gallery-clickable"
-                                    onclick="event.stopPropagation(); openLightbox(this.src, galleryImagesDirector)">
-                                <button type="button" onclick="deleteImage('{{ product.image_path }}')"
-                                    class="absolute top-2.5 right-2.5 bg-white/95 text-red-500 p-1.5 rounded-lg shadow-md opacity-0 group-hover:opacity-100 transition-all hover:bg-red-50 hover:scale-110 backdrop-blur-sm border border-gray-100">
-                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    {# ─── GALLERY tab — existing director gallery, just nested in a tab ─── #}
+                    <div x-show="activeTab === 'gallery'" x-cloak class="flex-1 overflow-y-auto">
+
+                        {% if product.director_pis_comments %}
+                        <div class="m-4 p-4 rounded-xl bg-red-50 border-l-4 border-red-500">
+                            <div class="flex items-center gap-2 mb-2">
+                                <div class="p-1 bg-white text-red-500 rounded-md shadow-sm">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                            d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
                                     </svg>
-                                </button>
-                                <span class="absolute bottom-2.5 left-2.5 bg-gradient-to-r from-slate-800 to-slate-700 text-white text-[9px] font-bold px-2.5 py-1 rounded-md uppercase tracking-wider shadow-sm">★ Main</span>
-                                {% else %}
-                                <div class="flex flex-col items-center gap-2 py-6">
-                                    <div class="w-12 h-12 rounded-2xl bg-gray-50 border-2 border-dashed border-gray-200 flex items-center justify-center">
-                                        <svg class="w-6 h-6 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                                        </svg>
+                                </div>
+                                <h3 class="text-sm font-bold text-red-900">Previous Notes</h3>
+                            </div>
+                            <p class="text-xs text-red-800 italic leading-relaxed">
+                                "{{ product.director_pis_comments }}"
+                            </p>
+                        </div>
+                        {% endif %}
+
+                        <div>
+                            <!-- Gallery Header -->
+                            <div class="bg-gradient-to-r from-slate-50 to-gray-50 px-5 py-4 border-b border-gray-100">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center gap-2.5">
+                                        <div class="w-8 h-8 rounded-lg bg-white shadow-sm border border-gray-200 flex items-center justify-center">
+                                            <svg class="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                            </svg>
+                                        </div>
+                                        <div>
+                                            <p class="text-xs font-extrabold text-slate-800 tracking-tight">Product Gallery</p>
+                                            <p class="text-[10px] text-gray-400 font-medium">
+                                                {% set img_count = (1 if product.image_path else 0) + (product.additional_images|length if product.additional_images else 0) %}
+                                                {{ img_count }} image{{ 's' if img_count != 1 else '' }}
+                                            </p>
+                                        </div>
                                     </div>
-                                    <p class="text-[11px] text-gray-400 font-medium">No main image</p>
+                                </div>
+                                <!-- Upload -->
+                                <div class="flex items-center gap-2 mt-3">
+                                    <input type="file" id="imageUploadInput" class="hidden" accept="image/*" multiple
+                                        onchange="uploadImage(this)">
+                                    <button type="button" onclick="document.getElementById('imageUploadInput').click()"
+                                        class="flex-1 text-[11px] font-bold text-slate-600 bg-white hover:bg-gray-50 border border-gray-200 px-3 py-2 rounded-lg transition-all flex items-center justify-center gap-1.5">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                                        </svg>
+                                        Upload
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="p-4">
+                                <!-- Main Image -->
+                                <div class="mb-3 group relative">
+                                    <div class="aspect-[4/3] bg-white rounded-xl flex items-center justify-center overflow-hidden border-2 border-gray-100 relative shadow-sm hover:shadow-md transition-shadow">
+                                        {% if product.image_path %}
+                                        <img src="{{ url_for('static', filename=product.image_path) }}"
+                                            class="object-contain w-full h-full p-3 mix-blend-multiply gallery-clickable"
+                                            onclick="event.stopPropagation(); openLightbox(this.src, galleryImagesDirector)">
+                                        <button type="button" onclick="deleteImage('{{ product.image_path }}')"
+                                            class="absolute top-2.5 right-2.5 bg-white/95 text-red-500 p-1.5 rounded-lg shadow-md opacity-0 group-hover:opacity-100 transition-all hover:bg-red-50 hover:scale-110 backdrop-blur-sm border border-gray-100">
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                            </svg>
+                                        </button>
+                                        <span class="absolute bottom-2.5 left-2.5 bg-gradient-to-r from-slate-800 to-slate-700 text-white text-[9px] font-bold px-2.5 py-1 rounded-md uppercase tracking-wider shadow-sm">★ Main</span>
+                                        {% else %}
+                                        <div class="flex flex-col items-center gap-2 py-6">
+                                            <div class="w-12 h-12 rounded-2xl bg-gray-50 border-2 border-dashed border-gray-200 flex items-center justify-center">
+                                                <svg class="w-6 h-6 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                                </svg>
+                                            </div>
+                                            <p class="text-[11px] text-gray-400 font-medium">No main image</p>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+
+                                <!-- Additional Images Grid -->
+                                {% if product.additional_images %}
+                                <div class="grid grid-cols-2 gap-2">
+                                    {% for img_path in product.additional_images %}
+                                    <div class="aspect-square bg-white rounded-xl flex items-center justify-center overflow-hidden border border-gray-100 relative group cursor-pointer hover:border-red-200 hover:shadow-sm transition-all">
+                                        <img src="{{ url_for('static', filename=img_path) }}" class="object-cover w-full h-full hover:scale-105 transition-transform duration-300 gallery-clickable"
+                                            onclick="event.stopPropagation(); openLightbox(this.src, galleryImagesDirector)">
+                                        {# Action overlay — pointer-events-none on container so the
+                                           img stays lightbox-clickable; each button re-enables itself. #}
+                                        <div class="absolute inset-0 bg-gradient-to-t from-black/65 via-black/15 to-transparent flex items-end justify-center gap-1.5 pb-3 opacity-0 group-hover:opacity-100 transition-all duration-200 pointer-events-none">
+                                            <button type="button"
+                                                onclick="event.stopPropagation(); setMainImage('{{ img_path }}')"
+                                                class="pointer-events-auto flex items-center gap-1 text-[10px] font-bold text-white bg-amber-500/90 hover:bg-amber-500 px-2.5 py-1 rounded-md backdrop-blur-sm transition-colors"
+                                                title="Set as main image">
+                                                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.16c.969 0 1.371 1.24.588 1.81l-3.366 2.446a1 1 0 00-.364 1.118l1.286 3.957c.3.922-.755 1.688-1.54 1.118l-3.366-2.445a1 1 0 00-1.176 0l-3.366 2.445c-.784.57-1.838-.196-1.54-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.05 9.384c-.783-.57-.38-1.81.588-1.81h4.16a1 1 0 00.95-.69l1.286-3.957z"/>
+                                                </svg>
+                                                Set as main
+                                            </button>
+                                            <button type="button"
+                                                onclick="event.stopPropagation(); deleteImage('{{ img_path }}')"
+                                                class="pointer-events-auto flex items-center gap-1 text-[10px] font-bold text-white bg-red-500/90 hover:bg-red-500 px-2.5 py-1 rounded-md backdrop-blur-sm transition-colors"
+                                                title="Remove from gallery">
+                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                </svg>
+                                                Remove
+                                            </button>
+                                        </div>
+                                        <span class="absolute top-1.5 right-1.5 bg-white/80 text-[8px] font-bold text-gray-500 w-5 h-5 rounded-md flex items-center justify-center backdrop-blur-sm border border-gray-100">{{ loop.index }}</span>
+                                    </div>
+                                    {% endfor %}
                                 </div>
                                 {% endif %}
                             </div>
                         </div>
 
-                        <!-- Additional Images Grid -->
-                        {% if product.additional_images %}
-                        <div class="grid grid-cols-2 gap-2">
-                            {% for img_path in product.additional_images %}
-                            <div class="aspect-square bg-white rounded-xl flex items-center justify-center overflow-hidden border border-gray-100 relative group cursor-pointer hover:border-indigo-200 hover:shadow-sm transition-all">
-                                <img src="{{ url_for('static', filename=img_path) }}" class="object-cover w-full h-full hover:scale-105 transition-transform duration-300 gallery-clickable"
-                                    onclick="event.stopPropagation(); openLightbox(this.src, galleryImagesDirector)">
-                                <button type="button" onclick="deleteImage('{{ img_path }}')"
-                                    class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent flex items-end justify-center pb-3 text-white opacity-0 group-hover:opacity-100 transition-all duration-200">
-                                    <span class="flex items-center gap-1 text-[10px] font-bold bg-red-500/90 px-2.5 py-1 rounded-md backdrop-blur-sm">
-                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                        </svg>
-                                        Remove
-                                    </span>
-                                </button>
-                                <span class="absolute top-1.5 right-1.5 bg-white/80 text-[8px] font-bold text-gray-500 w-5 h-5 rounded-md flex items-center justify-center backdrop-blur-sm border border-gray-100">{{ loop.index }}</span>
-                            </div>
-                            {% endfor %}
-                        </div>
-                        {% endif %}
-                    </div>
-                </div>
-
-            </div>
+                    </div>{# closes activeTab === 'gallery' #}
+                </div>{# closes sticky tabbed panel #}
+            </div>{# closes lg:col-span-6 right wrapper #}
         </div>
 
 
@@ -825,6 +966,31 @@
             alert('Delete failed: ' + error.message);
         }
     }
+
+    /* Promote an additional image to the main slot. Backed by the same
+       endpoint the marketing edit page uses (open to director role). */
+    async function setMainImage(path) {
+        try {
+            updateSaveStatus('saving');
+            const response = await fetch(`/api/product/{{ product.id }}/images/set_main`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ path }),
+            });
+            if (response.redirected && response.url.includes('/login')) {
+                alert('Your session expired — please refresh and log in again.');
+                return;
+            }
+            const result = await response.json().catch(() => ({}));
+            if (!response.ok || result.error) {
+                alert('Set as main failed: ' + (result.error || response.statusText));
+                return;
+            }
+            location.reload();
+        } catch (error) {
+            alert('Set as main failed: ' + error.message);
+        }
+    }
 </script>
 
 {% include 'partials/version_history_panel.html' %}
@@ -898,8 +1064,8 @@
         </div>
 
         <div
-            class="bg-indigo-50 border border-indigo-100 rounded-2xl p-4 text-sm text-indigo-800 mb-8 flex items-start gap-3 shadow-sm">
-            <svg class="w-5 h-5 text-indigo-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor"
+            class="bg-red-50 border border-red-100 rounded-2xl p-4 text-sm text-red-800 mb-8 flex items-start gap-3 shadow-sm">
+            <svg class="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor"
                 viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                     d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
@@ -918,7 +1084,7 @@
             <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest">General
                 Directive <span class="font-normal lowercase text-slate-300">(Optional)</span></label>
             <textarea name="director_general_comments_ext" rows="3"
-                class="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm focus:ring-4 focus:ring-indigo-500/5 focus:border-indigo-400 focus:bg-white outline-none transition-all placeholder-slate-300 resize-none leading-relaxed"
+                class="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm focus:ring-4 focus:ring-red-500/10 focus:border-red-400 focus:bg-white outline-none transition-all placeholder-slate-300 resize-none leading-relaxed"
                 placeholder="Any overall feedback or specific guidance for the team...">{{ product.director_pis_comments or '' }}</textarea>
         </div>
 
@@ -928,7 +1094,7 @@
                 Keep Reviewing
             </button>
             <button type="button" onclick="submitReview()"
-                class="flex-1 px-6 py-4 bg-indigo-600 text-white rounded-2xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 active:scale-95">
+                class="flex-1 px-6 py-4 bg-red-600 text-white rounded-2xl font-bold hover:bg-red-700 transition-all shadow-lg shadow-red-100 active:scale-95">
                 Send Request
             </button>
         </div>

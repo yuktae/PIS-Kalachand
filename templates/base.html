@@ -173,6 +173,7 @@
 </head>
 
 <body class="bg-[#F8F9FC] flex h-screen overflow-hidden text-slate-600"
+      data-role="{{ session.get('role', '') }}"
       x-data="{
           mobileMenuOpen: false,
           sidebarCollapsed: localStorage.getItem('sidebar') === 'collapsed',
@@ -256,7 +257,7 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
                 </svg>
-                <span>Overview</span>
+                <span>Product Gallery</span>
             </a>
 
             <a href="{{ url_for('marketing.import_proforma') }}"
@@ -403,6 +404,29 @@
                         d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                 </svg>
                 <span>Stats &amp; Analytics</span>
+            </a>
+
+            {# Admin oversight links — read-only views of marketing-owned
+               surfaces so admins can audit/troubleshoot without juggling
+               accounts. #}
+            <a href="{{ url_for('marketing.history_marketing') }}"
+                class="{{ nav_base }} {{ nav_active if request.endpoint == 'marketing.history_marketing' else nav_inactive }}">
+                <svg class="w-4 h-4 mr-3 {{ 'text-red-600' if request.endpoint == 'marketing.history_marketing' else 'text-slate-500 group-hover:text-slate-800' }}"
+                    fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>History Log</span>
+            </a>
+
+            <a href="{{ url_for('marketing.marketing_archive') }}"
+                class="{{ nav_base }} {{ nav_active if request.endpoint == 'marketing.marketing_archive' else nav_inactive }}">
+                <svg class="w-4 h-4 mr-3 {{ 'text-red-600' if request.endpoint == 'marketing.marketing_archive' else 'text-slate-500 group-hover:text-slate-800' }}"
+                    fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+                </svg>
+                <span>PDF Archive</span>
             </a>
 
             {% else %}

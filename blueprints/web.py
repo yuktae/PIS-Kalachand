@@ -206,10 +206,37 @@ def download_specsheet(product_id):
     from datetime import datetime
     product = Product.query.get_or_404(product_id)
     all_images_b64 = _load_images_b64(product)
+    date_generated = datetime.now().strftime("%Y-%m-%d")
     html = render_template('specsheet_pdf.html',
                            data=product.pis_data, spec_data=product.spec_data or {},
                            product=product, all_images_b64=all_images_b64,
-                           date_generated=datetime.now().strftime("%Y-%m-%d"))
+                           date_generated=date_generated)
+
+    # Chromium-native footer: rendered on EVERY physical PDF page after
+    # content is laid out, so it can't be overlapped by overflowing
+    # tech-spec rows the way the old absolute-positioned <footer> was.
+    # Uses Chromium's special <span class="pageNumber"> / "totalPages"
+    # placeholders so multi-page exports get correct page numbering.
+    footer_template = f"""
+    <div style="font-family: 'Inter', sans-serif; font-size: 8px;
+                width: 100%; padding: 6px 15mm 0 15mm; box-sizing: border-box;
+                background: #1e293b; color: #94a3b8;
+                display: flex; justify-content: space-between; align-items: center;
+                -webkit-print-color-adjust: exact; print-color-adjust: exact;">
+        <div>
+            <span style="color: #ffffff; font-weight: 700; letter-spacing: 1px;">J. KALACHAND</span>
+            &nbsp;|&nbsp; PRODUCT INFORMATION SHEET
+        </div>
+        <div>
+            REF: PIS-{product.id} &nbsp;|&nbsp; GENERATED ON {date_generated}
+            &nbsp;|&nbsp; PAGE <span class="pageNumber"></span> / <span class="totalPages"></span>
+        </div>
+    </div>
+    """
+    # Empty header — Playwright requires `header_template` when
+    # `display_header_footer` is on, but we don't want a top banner.
+    header_template = "<div></div>"
+
     try:
         with sync_playwright() as p:
             browser = p.chromium.launch(
@@ -219,8 +246,15 @@ def download_specsheet(product_id):
             page = browser.new_page()
             page.set_content(html, wait_until='networkidle')
             page.wait_for_timeout(1500)
-            pdf_bytes = page.pdf(format="A4", print_background=True,
-                                 margin={"top": "15mm", "right": "15mm", "bottom": "15mm", "left": "15mm"})
+            pdf_bytes = page.pdf(
+                format="A4", print_background=True,
+                display_header_footer=True,
+                header_template=header_template,
+                footer_template=footer_template,
+                # bottom widened to ~25mm so the native footer band has
+                # room to sit without overlapping the last content row.
+                margin={"top": "28mm", "right": "15mm", "bottom": "25mm", "left": "15mm"},
+            )
             browser.close()
         return Response(pdf_bytes, mimetype='application/pdf',
                         headers={"Content-Disposition": f"attachment;filename=SpecSheet_{secure_filename(product.model_name)}.pdf"})
