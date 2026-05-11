@@ -50,12 +50,12 @@
     ],
     get filteredProducts() {
         return this.products.filter(p => {
-            const matchesSearch = p.model_id.toLowerCase().includes(this.search.toLowerCase()) || 
-                                  p.model_name.toLowerCase().includes(this.search.toLowerCase()) || 
+            const matchesSearch = p.model_id.toLowerCase().includes(this.search.toLowerCase()) ||
+                                  p.model_name.toLowerCase().includes(this.search.toLowerCase()) ||
                                   p.brand.toLowerCase().includes(this.search.toLowerCase());
-            
+
             if (!matchesSearch) return false;
-            
+
             if (this.filter === 'all') return true;
             if (this.filter === 'draft') return p.stage === 'marketing_draft';
             if (this.filter === 'changes') return p.stage === 'marketing_changes_requested';
@@ -64,7 +64,149 @@
             if (this.filter === 'approved') return ['ready_for_web', 'specsheet_draft', 'pending_director_spec', 'web_changes_requested', 'finalized'].includes(p.stage);
             return false;
         });
-    }
+    },
+
+    deletingId: null,
+    showClearAllModal: false,
+    clearAllBusy: false,
+
+    pendingDelete: null,
+    showDeleteModal: false,
+
+    selectedIds: [],
+    showBulkDeleteModal: false,
+    bulkDeleting: false,
+    merging: false,
+
+    isSelected(id) { return this.selectedIds.includes(id); },
+    toggleSelect(id) {
+        if (this.isSelected(id)) {
+            this.selectedIds = this.selectedIds.filter(x => x !== id);
+        } else {
+            this.selectedIds = [...this.selectedIds, id];
+        }
+    },
+    selectAllVisible() {
+        this.selectedIds = this.filteredProducts.map(p => p.id);
+    },
+    clearSelection() { this.selectedIds = []; },
+
+    /* Phase 2.5 — Merge selected drafts into one with variants.
+       Convention: the FIRST selected id stays as the primary product;
+       the rest get absorbed as variants and soft-deleted. */
+    async confirmMerge() {
+        if (this.merging || this.selectedIds.length < 2) return;
+        const ids = this.selectedIds.slice();
+        const primary_id = ids[0];
+        const secondary_ids = ids.slice(1);
+        const ok = confirm(
+            `Merge ${ids.length} drafts into one?\n\n` +
+            `Product #${primary_id} will be kept as the base; ` +
+            `the other ${secondary_ids.length} will be absorbed as variants and archived. ` +
+            `You'll land on the merged product's review page.`
+        );
+        if (!ok) return;
+        this.merging = true;
+        try {
+            const res = await fetch('/api/products/merge', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ primary_id, secondary_ids }),
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) {
+                alert('Merge failed: ' + (data.error || 'unknown'));
+                return;
+            }
+            window.location.href = data.redirect_url || `/review/marketing/${primary_id}`;
+        } catch (err) {
+            alert('Network error during merge: ' + err.message);
+        } finally {
+            this.merging = false;
+        }
+    },
+
+    async confirmBulkDelete() {
+        if (this.bulkDeleting || this.selectedIds.length === 0) return;
+        const ids = this.selectedIds.slice();
+        this.bulkDeleting = true;
+        try {
+            const res = await fetch('/api/products/bulk_delete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ids: ids })
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) {
+                if (window.bgProcess) bgProcess.error(data.error || 'Bulk delete failed');
+                return;
+            }
+            const idSet = new Set(ids);
+            this.products = this.products.filter(x => !idSet.has(x.id));
+            this.selectedIds = [];
+            this.showBulkDeleteModal = false;
+            const n = data.deleted_count || ids.length;
+            if (window.bgProcess) bgProcess.success('Deleted ' + n + ' product' + (n === 1 ? '' : 's'));
+        } catch (err) {
+            if (window.bgProcess) bgProcess.error('Network error during bulk delete');
+        } finally {
+            this.bulkDeleting = false;
+        }
+    },
+
+    requestDeleteProduct(p) {
+        if (this.deletingId) return;
+        this.pendingDelete = {
+            id: p.id,
+            label: p.model_id || p.model_name || ('#' + p.id),
+        };
+        this.showDeleteModal = true;
+    },
+
+    async confirmDeleteProduct() {
+        if (!this.pendingDelete || this.deletingId) return;
+        const id = this.pendingDelete.id;
+        const label = this.pendingDelete.label;
+        this.deletingId = id;
+        try {
+            const res = await fetch('/api/product/' + id + '/delete', { method: 'POST' });
+            if (!res.ok) {
+                const data = await res.json().catch(() => ({}));
+                if (window.bgProcess) bgProcess.error(data.error || 'Delete failed');
+                return;
+            }
+            this.products = this.products.filter(x => x.id !== id);
+            if (window.bgProcess) bgProcess.success('Deleted ' + label);
+        } catch (err) {
+            if (window.bgProcess) bgProcess.error('Network error during delete');
+        } finally {
+            this.deletingId = null;
+            this.showDeleteModal = false;
+            this.pendingDelete = null;
+        }
+    },
+
+    async confirmClearAll() {
+        if (this.clearAllBusy) return;
+        this.clearAllBusy = true;
+        try {
+            const res = await fetch('/api/products/clear_active', { method: 'POST' });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) {
+                if (window.bgProcess) bgProcess.error(data.error || 'Clear all failed');
+                return;
+            }
+            const cleared = data.deleted_count || this.products.length;
+            this.products = [];
+            this.showClearAllModal = false;
+            if (window.bgProcess) bgProcess.success('Cleared ' + cleared + ' product' + (cleared === 1 ? '' : 's'));
+            setTimeout(() => window.location.reload(), 900);
+        } catch (err) {
+            if (window.bgProcess) bgProcess.error('Network error during clear all');
+        } finally {
+            this.clearAllBusy = false;
+        }
+    },
 }">
 
     <!-- LIGHT HERO SECTION -->
@@ -84,8 +226,9 @@
             </div>
 
             <div class="flex gap-3">
-                <button type="button" onclick="openGlobalPurgeModal()"
-                    class="px-5 py-2.5 bg-white border border-red-100 text-red-500 rounded-lg text-sm font-semibold hover:bg-red-50 hover:border-red-200 transition-all flex items-center gap-2 shadow-sm">
+                <button type="button" @click="showClearAllModal = true"
+                    :disabled="products.length === 0"
+                    class="px-5 py-2.5 bg-white border border-red-100 text-red-500 rounded-lg text-sm font-semibold hover:bg-red-50 hover:border-red-200 transition-all flex items-center gap-2 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-4v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -278,7 +421,8 @@
                     class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
                     <template x-for="p in filteredProducts" :key="'card-' + p.id">
                         <div
-                            class="bg-white rounded-xl p-3 border border-gray-100 shadow-[0_2px_8px_rgba(0,0,0,0.02)] hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group flex flex-col h-full">
+                            class="bg-white rounded-xl p-3 border shadow-[0_2px_8px_rgba(0,0,0,0.02)] hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group flex flex-col h-full"
+                            :class="isSelected(p.id) ? 'ring-2 ring-red-400 border-red-200' : 'border-gray-100'">
 
                             <!-- Image Area -->
                             <div
@@ -303,6 +447,27 @@
                                 <div class="absolute top-2 left-2 px-2 py-0.5 rounded text-[10px] font-bold backdrop-blur-md border border-white/50 shadow-sm"
                                     :class="p.status_bg + ' ' + p.status_text" x-text="p.stage_display">
                                 </div>
+
+                                <!-- Delete Button Overlay -->
+                                <button type="button" @click.stop="requestDeleteProduct(p)"
+                                    :disabled="deletingId === p.id"
+                                    title="Delete product"
+                                    class="absolute top-2 right-2 w-7 h-7 rounded-md bg-white/90 backdrop-blur-md border border-white/60 text-slate-400 hover:text-red-600 hover:bg-white shadow-sm opacity-0 group-hover:opacity-100 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-4v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                </button>
+
+                                <!-- Selection Checkbox Overlay -->
+                                <button type="button" @click.stop="toggleSelect(p.id)"
+                                    title="Select product"
+                                    class="absolute bottom-2 left-2 w-6 h-6 rounded-md backdrop-blur-md border-2 shadow-sm transition-all flex items-center justify-center"
+                                    :class="isSelected(p.id) ? 'bg-red-600 border-red-600 opacity-100' : 'bg-white/85 border-white/70 opacity-0 group-hover:opacity-100 hover:border-red-300'">
+                                    <svg x-show="isSelected(p.id)" class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
+                                    </svg>
+                                </button>
                             </div>
 
                             <!-- Content -->
@@ -336,7 +501,14 @@
                         <thead
                             class="bg-gray-50/50 text-xs uppercase font-semibold text-slate-500 border-b border-gray-100">
                             <tr>
-                                <th class="px-6 py-4 pl-8">Product Details</th>
+                                <th class="px-4 py-4 pl-6 w-10">
+                                    <input type="checkbox"
+                                        :checked="filteredProducts.length > 0 && selectedIds.length === filteredProducts.length"
+                                        @change="$event.target.checked ? selectAllVisible() : clearSelection()"
+                                        title="Select all visible"
+                                        class="w-4 h-4 rounded text-red-600 border-slate-300 focus:ring-red-400 cursor-pointer">
+                                </th>
+                                <th class="px-6 py-4">Product Details</th>
                                 <th class="px-6 py-4">Brand</th>
                                 <th class="px-6 py-4">Date</th>
                                 <th class="px-6 py-4">Status</th>
@@ -345,8 +517,15 @@
                         </thead>
                         <tbody class="divide-y divide-gray-100 bg-white">
                             <template x-for="p in filteredProducts" :key="'list-' + p.id">
-                                <tr class="hover:bg-slate-50 transition-colors group">
-                                    <td class="px-6 py-3 pl-8">
+                                <tr class="hover:bg-slate-50 transition-colors group"
+                                    :class="isSelected(p.id) ? 'bg-red-50/40' : ''">
+                                    <td class="px-4 py-3 pl-6">
+                                        <input type="checkbox"
+                                            :checked="isSelected(p.id)"
+                                            @change="toggleSelect(p.id)"
+                                            class="w-4 h-4 rounded text-red-600 border-slate-300 focus:ring-red-400 cursor-pointer">
+                                    </td>
+                                    <td class="px-6 py-3">
                                         <div class="flex items-center gap-3">
                                             <div
                                                 class="w-10 h-10 rounded-lg bg-gray-50 flex items-center justify-center overflow-hidden border border-gray-100">
@@ -373,14 +552,25 @@
                                             :class="p.status_bg + ' ' + p.status_text" x-text="p.stage_display"></span>
                                     </td>
                                     <td class="px-6 py-3 text-right pr-8">
-                                        <a :href="p.edit_url"
-                                            class="inline-flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-bold text-slate-600 bg-gray-50 hover:bg-red-600 hover:text-white transition-colors border border-gray-100 hover:border-red-600">
-                                            <span>Details</span>
-                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                    d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                                            </svg>
-                                        </a>
+                                        <div class="inline-flex items-center gap-2">
+                                            <a :href="p.edit_url"
+                                                class="inline-flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-bold text-slate-600 bg-gray-50 hover:bg-red-600 hover:text-white transition-colors border border-gray-100 hover:border-red-600">
+                                                <span>Details</span>
+                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                        d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                                                </svg>
+                                            </a>
+                                            <button type="button" @click="requestDeleteProduct(p)"
+                                                :disabled="deletingId === p.id"
+                                                title="Delete product"
+                                                class="w-8 h-8 rounded-lg bg-gray-50 border border-gray-100 text-slate-400 hover:text-red-600 hover:bg-red-50 hover:border-red-200 transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed">
+                                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-4v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                </svg>
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
                             </template>
@@ -408,6 +598,144 @@
             </div>
         </div>
 
+    </div>
+
+    <!-- Floating Multi-Select Action Bar -->
+    <div x-show="selectedIds.length > 0" x-cloak
+        x-transition:enter="transition ease-out duration-200"
+        x-transition:enter-start="opacity-0 translate-y-4"
+        x-transition:enter-end="opacity-100 translate-y-0"
+        x-transition:leave="transition ease-in duration-150"
+        x-transition:leave-start="opacity-100 translate-y-0"
+        x-transition:leave-end="opacity-0 translate-y-4"
+        class="fixed bottom-6 left-1/2 -translate-x-1/2 z-[110]">
+        <div class="bg-slate-900 text-white rounded-2xl shadow-2xl flex items-center gap-1 pl-5 pr-2 py-2 border border-slate-800">
+            <span class="text-sm font-bold mr-2">
+                <span x-text="selectedIds.length"></span>
+                product<span x-show="selectedIds.length !== 1">s</span> selected
+            </span>
+            <button type="button" @click="selectAllVisible()"
+                class="px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors">
+                Select all visible
+            </button>
+            <button type="button" @click="clearSelection()"
+                class="px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors">
+                Clear
+            </button>
+            <button type="button"
+                @click="selectedIds.length >= 2 ? confirmMerge() : null"
+                :disabled="selectedIds.length < 2 || merging"
+                :class="selectedIds.length >= 2 ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-slate-700 cursor-not-allowed opacity-50'"
+                class="ml-2 px-4 py-2 text-xs font-bold text-white rounded-xl flex items-center gap-2 transition-colors"
+                title="Merge the selected drafts into one — first selected becomes the base, the rest become variants. Pick at least 2.">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M9 19v-2a4 4 0 014-4h4M7 12l-4-4m0 0l4-4M3 8h18" />
+                </svg>
+                <span x-text="merging ? 'Merging…' : ('Merge ' + selectedIds.length)"></span>
+            </button>
+            <button type="button" @click="showBulkDeleteModal = true"
+                class="ml-2 px-4 py-2 text-xs font-bold bg-red-600 hover:bg-red-700 text-white rounded-xl flex items-center gap-2 transition-colors">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-4v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+                <span>Delete <span x-text="selectedIds.length"></span></span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Bulk Delete Confirmation Modal -->
+    <div x-show="showBulkDeleteModal" x-cloak
+        class="fixed inset-0 z-[120] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md"
+        @keydown.escape.window="showBulkDeleteModal = false">
+        <div class="bg-white rounded-3xl w-full max-w-md p-8 shadow-2xl text-center">
+            <div class="w-16 h-16 bg-red-50 text-red-600 rounded-2xl flex items-center justify-center mb-5 mx-auto">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-4v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+            </div>
+            <h3 class="font-bold text-2xl text-slate-900 mb-2">Delete selected products?</h3>
+            <p class="text-sm text-slate-500 mb-6 leading-relaxed">
+                <span class="font-bold text-slate-800" x-text="selectedIds.length"></span>
+                product<span x-show="selectedIds.length !== 1">s</span> will be removed from the dashboard.
+                They are soft-deleted and can be recovered by an admin.
+            </p>
+            <div class="flex gap-3">
+                <button type="button" @click="showBulkDeleteModal = false"
+                    class="flex-1 bg-slate-100 text-slate-700 py-3 rounded-xl font-bold hover:bg-slate-200 transition-colors">
+                    Cancel
+                </button>
+                <button type="button" @click="confirmBulkDelete()" :disabled="bulkDeleting"
+                    class="flex-1 bg-red-600 text-white py-3 rounded-xl font-bold hover:bg-red-700 transition-colors shadow-lg shadow-red-100 disabled:opacity-50 disabled:cursor-not-allowed">
+                    <span x-show="!bulkDeleting">Yes, delete</span>
+                    <span x-show="bulkDeleting">Deleting...</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Per-Product Delete Confirmation Modal -->
+    <div x-show="showDeleteModal" x-cloak
+        class="fixed inset-0 z-[120] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md"
+        @keydown.escape.window="showDeleteModal = false; pendingDelete = null">
+        <div class="bg-white rounded-3xl w-full max-w-md p-8 shadow-2xl text-center">
+            <div class="w-16 h-16 bg-red-50 text-red-600 rounded-2xl flex items-center justify-center mb-5 mx-auto">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-4v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+            </div>
+            <h3 class="font-bold text-2xl text-slate-900 mb-2">Delete this product?</h3>
+            <p class="text-sm text-slate-500 mb-6 leading-relaxed">
+                <span class="font-bold text-slate-800" x-text="pendingDelete ? pendingDelete.label : ''"></span>
+                will be removed from the dashboard. It is soft-deleted and can be recovered by an admin.
+            </p>
+            <div class="flex gap-3">
+                <button type="button" @click="showDeleteModal = false; pendingDelete = null"
+                    class="flex-1 bg-slate-100 text-slate-700 py-3 rounded-xl font-bold hover:bg-slate-200 transition-colors">
+                    Cancel
+                </button>
+                <button type="button" @click="confirmDeleteProduct()"
+                    :disabled="deletingId !== null"
+                    class="flex-1 bg-red-600 text-white py-3 rounded-xl font-bold hover:bg-red-700 transition-colors shadow-lg shadow-red-100 disabled:opacity-50 disabled:cursor-not-allowed">
+                    <span x-show="deletingId === null">Yes, delete</span>
+                    <span x-show="deletingId !== null">Deleting...</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Clear All Confirmation Modal -->
+    <div x-show="showClearAllModal" x-cloak
+        class="fixed inset-0 z-[120] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md"
+        @keydown.escape.window="showClearAllModal = false">
+        <div class="bg-white rounded-3xl w-full max-w-md p-8 shadow-2xl text-center">
+            <div class="w-16 h-16 bg-red-50 text-red-600 rounded-2xl flex items-center justify-center mb-5 mx-auto">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-4v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+            </div>
+            <h3 class="font-bold text-2xl text-slate-900 mb-2">Clear all products?</h3>
+            <p class="text-sm text-slate-500 mb-6 leading-relaxed">
+                This removes <span class="font-bold text-slate-800" x-text="products.length"></span>
+                product<span x-show="products.length !== 1">s</span> from the active dashboard. They are
+                soft-deleted and can be recovered by an admin if needed.
+            </p>
+            <div class="flex gap-3">
+                <button type="button" @click="showClearAllModal = false"
+                    class="flex-1 bg-slate-100 text-slate-700 py-3 rounded-xl font-bold hover:bg-slate-200 transition-colors">
+                    Cancel
+                </button>
+                <button type="button" @click="confirmClearAll()" :disabled="clearAllBusy"
+                    class="flex-1 bg-red-600 text-white py-3 rounded-xl font-bold hover:bg-red-700 transition-colors shadow-lg shadow-red-100 disabled:opacity-50 disabled:cursor-not-allowed">
+                    <span x-show="!clearAllBusy">Yes, clear all</span>
+                    <span x-show="clearAllBusy">Clearing...</span>
+                </button>
+            </div>
+        </div>
     </div>
 </div>
 {% endblock %}

@@ -30,13 +30,15 @@
                 <p class="text-[10px] text-gray-400 font-bold tracking-widest uppercase">Internal System</p>
             </div>
 
-            <!-- Flash Messages -->
-            {% with messages = get_flashed_messages(with_categories=true) %}
+            {# Flash Messages — login only surfaces auth errors. Any
+               success/info flashes left over from a prior session
+               (e.g. "Draft saved successfully") are drained silently
+               by the unfiltered call below so they don't appear here. #}
+            {% set _ = get_flashed_messages(category_filter=['message', 'info', 'success']) %}
+            {% with messages = get_flashed_messages(with_categories=true, category_filter=['error']) %}
             {% if messages %}
             {% for category, message in messages %}
-            <div class="mb-4 p-3 rounded-xl text-sm font-medium
-                {% if 'error' in category %} bg-red-50 text-red-700 border border-red-100
-                {% else %} bg-emerald-50 text-emerald-700 border border-emerald-100 {% endif %}">
+            <div class="mb-4 p-3 rounded-xl text-sm font-medium bg-red-50 text-red-700 border border-red-100">
                 {{ message }}
             </div>
             {% endfor %}

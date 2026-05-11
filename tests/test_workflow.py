@@ -11,7 +11,7 @@ Covers:
 import os
 import pytest
 import urllib.parse
-import psycopg2
+import psycopg2  # type: ignore[import-untyped]
 from dotenv import load_dotenv
 
 
@@ -44,15 +44,17 @@ def test_product_default_stage_is_marketing_draft(app, sample_product):
     from model import db, Product
     with app.app_context():
         p = db.session.get(Product, sample_product)
+        assert p is not None
         assert p.workflow_stage == 'marketing_draft'
 
 
 def test_product_soft_delete_leaves_record(app, sample_product):
     from model import db, Product
-    from datetime import datetime
+    from datetime import datetime, timezone
     with app.app_context():
         p = db.session.get(Product, sample_product)
-        p.deleted_at = datetime.utcnow()
+        assert p is not None
+        p.deleted_at = datetime.now(timezone.utc).replace(tzinfo=None)
         db.session.commit()
         # Record still exists in DB
         found = db.session.get(Product, sample_product)
