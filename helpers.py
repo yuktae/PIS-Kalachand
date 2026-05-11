@@ -395,6 +395,271 @@ def normalize_pis_data(data):
     return data
 
 
+# ================= PROFORMA SCHEMA → PIS DATA =================
+
+def extract_raw_text_from_files(file_paths) -> str:
+    """Phase 2.4: pull plain text out of every supported source file so the
+    grep-verification pass can check whether the AI's claimed source_facts
+    actually appear on the page. PDF goes through PyMuPDF; .docx through
+    python-docx (lazy-imported, optional). Image OCR is intentionally out of
+    scope here — those documents fall through to AI-only verification.
+    """
+    if not file_paths:
+        return ""
+    if isinstance(file_paths, str):
+        file_paths = [file_paths]
+    chunks = []
+    for fp in file_paths:
+        if not fp or not os.path.exists(fp):
+            continue
+        ext = os.path.splitext(fp)[1].lower()
+        try:
+            if ext == '.pdf':
+                import fitz  # type: ignore
+                doc = fitz.open(fp)
+                for page in doc:
+                    chunks.append(page.get_text("text"))
+                doc.close()
+            elif ext in ('.docx',):
+                try:
+                    import docx  # type: ignore  (python-docx)
+                    d = docx.Document(fp)
+                    for p in d.paragraphs:
+                        if p.text:
+                            chunks.append(p.text)
+                except ImportError:
+                    pass  # python-docx not installed; skip
+        except Exception as e:
+            print(f"⚠ raw-text extraction failed for {os.path.basename(fp)}: {e}")
+    return "\n".join(chunks)
+
+
+def _value_appears_in_text(value, raw_text_lower: str) -> bool:
+    """Loose substring match: case-insensitive, whitespace-collapsed. For
+    numeric values (like a model number or price), also tries a digit-only
+    comparison so '12,000' matches '12000' and 'Rs. 12 000'."""
+    if not value or not raw_text_lower:
+        return False
+    s = str(value).strip().lower()
+    if len(s) < 2:
+        return False
+    if s in raw_text_lower:
+        return True
+    s_norm = re.sub(r'\s+', ' ', s)
+    if s_norm in raw_text_lower:
+        return True
+    # Digit-only fallback for prices, model numbers with separators
+    digits = re.sub(r'\D', '', s)
+    if digits and len(digits) >= 3:
+        raw_digits = re.sub(r'\D', '', raw_text_lower)
+        if digits in raw_digits:
+            return True
+    return False
+
+
+# Currency symbol / code → ISO 4217 mapping.
+_CURRENCY_PATTERNS = [
+    (re.compile(r'\bMUR\b', re.IGNORECASE), 'MUR'),
+    (re.compile(r'\bRs\.?\b', re.IGNORECASE), 'MUR'),
+    (re.compile(r'₨'), 'MUR'),
+    (re.compile(r'\bUSD\b', re.IGNORECASE), 'USD'),
+    (re.compile(r'\$'), 'USD'),
+    (re.compile(r'\bEUR\b', re.IGNORECASE), 'EUR'),
+    (re.compile(r'€'), 'EUR'),
+    (re.compile(r'\bGBP\b', re.IGNORECASE), 'GBP'),
+    (re.compile(r'£'), 'GBP'),
+    (re.compile(r'\bINR\b', re.IGNORECASE), 'INR'),
+    (re.compile(r'₹'), 'INR'),
+    (re.compile(r'\b(RMB|CNY)\b', re.IGNORECASE), 'CNY'),
+    (re.compile(r'¥'), 'CNY'),
+    (re.compile(r'\bAED\b', re.IGNORECASE), 'AED'),
+    (re.compile(r'\bSGD\b', re.IGNORECASE), 'SGD'),
+    (re.compile(r'\bZAR\b', re.IGNORECASE), 'ZAR'),
+]
+
+
+def parse_price_currency(price_str: str) -> dict:
+    """Phase 2.4: extract currency code + numeric amount from a free-form
+    price string. Mauritian rupee (MUR / Rs / ₨) is the home currency —
+    everything else gets `is_foreign=True` so the UI can flag it for accounts.
+    Returns `{'amount': str, 'currency': str, 'is_foreign': bool}`."""
+    out = {'amount': '', 'currency': '', 'is_foreign': False}
+    if not price_str or not isinstance(price_str, str):
+        return out
+    s = price_str.strip()
+    for pattern, code in _CURRENCY_PATTERNS:
+        if pattern.search(s):
+            out['currency'] = code
+            break
+    m = re.search(r'[\d][\d,\s]*(?:\.\d+)?', s)
+    if m:
+        out['amount'] = re.sub(r'[\s,]', '', m.group(0))
+    out['is_foreign'] = out['currency'] not in ('', 'MUR')
+    return out
+
+
+def _normalize_mur_price(price_str: str, parsed: dict) -> str:
+    """If the price was detected as MUR (or carries no currency at all and a
+    plain amount), return a canonical 'Rs N,NNN' / 'Rs N,NNN.NN' form so the
+    UI is consistent. Foreign currencies and unparseable strings are returned
+    unchanged so we don't drop information the reviewer needs."""
+    if not parsed or parsed.get('is_foreign'):
+        return price_str
+    amount = parsed.get('amount') or ''
+    if not amount:
+        return price_str
+    try:
+        n = float(amount)
+    except (ValueError, TypeError):
+        return price_str
+    formatted = f"{int(n):,}" if n.is_integer() else f"{n:,.2f}"
+    return f"Rs {formatted}"
+
+
+def proforma_to_pis_data(product_obj: dict, raw_text: str | None = None,
+                         source_files: list | None = None) -> dict:
+    """Flatten the Phase-2 source_facts / ai_enriched_details schema into the
+    legacy `pis_data` structure consumed by the UI and version system.
+
+    Keeps the original nodes (`source_facts`, `ai_enriched_details`,
+    `variants`) inside pis_data so the verify UI can mark AI-enriched fields
+    with a sparkle indicator. Also writes a flat `_field_origins` map so
+    template logic doesn't need to walk nested objects.
+
+    Phase 2.4 — when `raw_text` is provided, runs a deterministic grep pass
+    on every claimed source_facts value and tags origins as one of:
+        verified    — claimed in source_facts AND found in raw doc text
+        discrepancy — claimed in source_facts but NOT found (likely AI mis-read)
+        inferred    — value came from inferred_specs
+        ai          — narrative composed by the model
+    Without raw_text, falls back to the legacy {'source','ai'} two-state.
+    """
+    if not isinstance(product_obj, dict):
+        return {}
+
+    src = product_obj.get('source_facts') or {}
+    ai  = product_obj.get('ai_enriched_details') or {}
+    variants = product_obj.get('variants') or []
+
+    documented_specs = src.get('documented_specs') if isinstance(src.get('documented_specs'), dict) else {}
+    inferred_specs   = ai.get('inferred_specs')   if isinstance(ai.get('inferred_specs'),   dict) else {}
+
+    merged_specs = {}
+    if isinstance(documented_specs, dict):
+        merged_specs.update(documented_specs)
+    if isinstance(inferred_specs, dict):
+        for k, v in inferred_specs.items():
+            if k not in merged_specs:
+                merged_specs[k] = v
+
+    seo = ai.get('seo_data') or {}
+
+    pis = {
+        'header_info': {
+            'product_name':  src.get('product_name')  or '',
+            'model_number':  src.get('model_number')  or '',
+            'brand':         src.get('brand')         or '',
+            'price_estimate':src.get('price_estimate')or '',
+        },
+        'range_overview': ai.get('range_overview') or '',
+        'sales_arguments': ai.get('sales_arguments') if isinstance(ai.get('sales_arguments'), list) else [],
+        'technical_specifications': merged_specs,
+        'warranty_service': {
+            'period':   src.get('warranty_period')   or '',
+            'coverage': src.get('warranty_coverage') or '',
+        },
+        'seo_data': {
+            'generated_keywords':   seo.get('generated_keywords')   or '',
+            'meta_title':           seo.get('meta_title')           or '',
+            'meta_description':     seo.get('meta_description')     or '',
+            'seo_long_description': seo.get('seo_long_description') or '',
+        },
+        'found_image_url': ai.get('found_image_url'),
+        'variants': variants,
+        'source_facts': src,
+        'ai_enriched_details': ai,
+    }
+
+    # ── 4-state origin classification ─────────────────────────────────────
+    raw_lower = (raw_text or '').lower()
+    have_text = bool(raw_lower)
+
+    def _classify_source(value) -> str:
+        """For a field claimed in source_facts: did the value appear on the page?"""
+        if not have_text:
+            return 'source'  # legacy fallback when we couldn't extract raw text
+        if not value:
+            return 'ai'      # empty source value = no claim, treat as ai
+        return 'verified' if _value_appears_in_text(value, raw_lower) else 'discrepancy'
+
+    origins = {
+        'header_info.product_name':  _classify_source(src.get('product_name'))  if src.get('product_name')  else 'ai',
+        'header_info.model_number':  _classify_source(src.get('model_number'))  if src.get('model_number')  else 'ai',
+        'header_info.brand':         _classify_source(src.get('brand'))         if src.get('brand')         else 'ai',
+        'header_info.price_estimate':_classify_source(src.get('price_estimate'))if src.get('price_estimate')else 'ai',
+        'range_overview':            'ai',
+        'sales_arguments':           'ai',
+        'warranty_service.period':   _classify_source(src.get('warranty_period'))   if src.get('warranty_period')   else 'ai',
+        'warranty_service.coverage': _classify_source(src.get('warranty_coverage')) if src.get('warranty_coverage') else 'ai',
+        'seo_data.generated_keywords':   'ai',
+        'seo_data.meta_title':           'ai',
+        'seo_data.meta_description':     'ai',
+        'seo_data.seo_long_description': 'ai',
+    }
+
+    spec_origins = {}
+    for k, v in merged_specs.items():
+        is_documented = k in documented_specs
+        if not have_text:
+            spec_origins[k] = 'source' if is_documented else 'inferred'
+        elif not is_documented:
+            spec_origins[k] = 'inferred'
+        # A documented spec is "verified" if EITHER the spec key OR its
+        # value appears on the page. This is permissive on purpose:
+        # boolean-shaped values like "Yes" / "Standard" / "Available" rarely
+        # appear in isolation, but their KEY ("Mesh back", "Bluetooth") will.
+        # The check still catches pure hallucinations — when the AI invents
+        # an entire spec, neither key nor value will be in the raw text.
+        elif _value_appears_in_text(v, raw_lower) or _value_appears_in_text(k, raw_lower):
+            spec_origins[k] = 'verified'
+        else:
+            spec_origins[k] = 'discrepancy'
+
+    pis['_field_origins'] = origins
+    pis['_spec_origins'] = spec_origins
+
+    # Confidence scores (Phase 2.4) — surfaced from ai_enriched_details if AI
+    # provided them. Used by the UI to colour the sparkle by certainty.
+    confidence = ai.get('confidence_scores')
+    if isinstance(confidence, dict):
+        pis['_confidence'] = confidence
+
+    # Currency normalisation (Phase 2.4) — flag foreign-currency prices for
+    # the accounts team. Phase 2.5: also rewrite local-currency prices into
+    # the canonical "Rs N,NNN" form so the UI doesn't have to do per-render
+    # formatting and stays consistent across imports.
+    pis['_price_meta'] = parse_price_currency(pis['header_info']['price_estimate'])
+    pis['header_info']['price_estimate'] = _normalize_mur_price(
+        pis['header_info']['price_estimate'], pis['_price_meta']
+    )
+
+    # Phase 2.5: source-file references for the inline viewer on
+    # verify_marketing.html. Stored as web-relative paths (e.g.
+    # "uploads/foo.pdf") so the template can pass them to url_for('static').
+    if source_files:
+        rel = []
+        for fp in source_files:
+            if not fp:
+                continue
+            base = os.path.basename(str(fp))
+            if base:
+                rel.append(f"uploads/{base}")
+        if rel:
+            pis['_source_files'] = rel
+
+    return pis
+
+
 # ================= FORBIDDEN WORDS =================
 
 def _forbidden_words_file():

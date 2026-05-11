@@ -7,6 +7,7 @@ import json
 import os
 import time
 import re
+from typing import Any
 from google import genai
 from google.genai import types
 from .category_classifier import classify_product_category
@@ -23,7 +24,7 @@ def _get_client():
     return _client
 
 
-def generate_pis_data(file_paths, model_name, url_data):
+def generate_pis_data(file_paths, model_name, url_data) -> dict[str, Any]:
     """Generate single PIS data from uploaded file(s) and/or website data.
     
     Args:
@@ -80,7 +81,15 @@ def generate_pis_data(file_paths, model_name, url_data):
         contents=content_parts,
         config=types.GenerateContentConfig(response_mime_type="application/json")
     )
-    return safe_json_loads(response.text, fallback={})
+    # Normalize: AI sometimes returns a list-wrapped single product or null;
+    # callers (api.py, marketing.py) treat the return value as a PIS dict and
+    # call .get('header_info', ...) on it, so coerce non-dict shapes to {}.
+    parsed = safe_json_loads(response.text, fallback={})
+    if isinstance(parsed, list):
+        parsed = parsed[0] if parsed and isinstance(parsed[0], dict) else {}
+    if not isinstance(parsed, dict):
+        parsed = {}
+    return parsed
 
 
 def _scrub_forbidden_words(data, forbidden_words):
@@ -213,7 +222,201 @@ def generate_comprehensive_spec_data(pis_data, forbidden_words=None):
         return fallback_data
 
 
-def generate_bulk_pis_data(file_paths, url_data, product_filter=""):
+# ══════════════════════════════════════════════════════════════════════════
+# Phase 2 — Unified Proforma Import
+# ══════════════════════════════════════════════════════════════════════════
+
+# Phase 2.4: every extraction now starts with this Mauritius retail context
+# so the AI doesn't have to be told the same local norms on every call.
+_MAURITIUS_DEFAULT_CONTEXT = (
+    "MAURITIUS RETAIL CONTEXT (always applies — use as background knowledge):\n"
+    "- Mains electricity is 240V / 50Hz; plug type G (UK 3-pin).\n"
+    "- Standard local warranty for major appliances: 2 years parts, 1 year labour.\n"
+    "- The market is bilingual French / English — proforma documents may mix\n"
+    "  the two. Translate every narrative field to English in the output.\n"
+    "- Local pricing is in MUR (Mauritian Rupee, written `Rs` or `Rs.`). A\n"
+    "  proforma in USD/EUR/CNY is supplier-side wholesale, not retail; keep\n"
+    "  the original currency in `price_estimate` so reviewers can flag it.\n"
+)
+
+
+# Brand-context library: extra context injected into the prompt for
+# local/Mauritian brands whose specs are scarce online. Keep keys lower-cased.
+BRAND_CONTEXT_LIBRARY = {
+    "belair": (
+        "BelAir is a Mauritian premium-tier home appliance brand. Online "
+        "documentation is sparse, so when you cannot find a documented spec, "
+        "deduce the standard premium-grade spec for this product type "
+        "(e.g. inverter compressor, A++ energy class, multi-airflow cooling "
+        "for fridges). Mark all such inferences as ai_enriched_details."
+    ),
+    "kenstar": (
+        "Kenstar is an India-based mid-range appliance brand widely sold in "
+        "Mauritius. When specs are missing from the document, deduce typical "
+        "mid-range specs and mark them as ai_enriched_details."
+    ),
+    "sunon": (
+        "Sunon is a Chinese office-furniture manufacturer. Specs printed on "
+        "Sunon proformas are usually accurate (dimensions, weight capacity, "
+        "material). For missing fields, infer typical commercial-grade office "
+        "chair / desk specs (ergonomic adjustments, mesh back, gas lift)."
+    ),
+    "tcl": (
+        "TCL is a mass-market Chinese electronics brand sold across Mauritius "
+        "supermarket chains. Assume mid-range smart-TV defaults (Google TV / "
+        "Android TV platform, HDR10 support, 60Hz panel) when not documented."
+    ),
+    "hisense": (
+        "Hisense is a mid-range Chinese electronics manufacturer. For TVs, "
+        "default to VIDAA OS, HDR10, 4K UHD on 50\"+ models when not stated."
+    ),
+}
+
+
+def _resolve_brand_context(brand_hint: str | None) -> str:
+    """Return the prompt-ready brand-context block. The Mauritius default is
+    always prepended so every extraction gets the local retail context."""
+    block = _MAURITIUS_DEFAULT_CONTEXT
+    if not brand_hint:
+        return block
+    key = brand_hint.strip().lower()
+    for known, ctx in BRAND_CONTEXT_LIBRARY.items():
+        if known in key:
+            return block + f"\nBRAND CONTEXT — {brand_hint}:\n{ctx}\n"
+    return block
+
+
+_MODE_INSTRUCTIONS = {
+    "auto": "Auto-detect the category. Examine the document and apply the Clustering Algorithm below.",
+    "single": "The reviewer has confirmed this is a SINGLE PRODUCT proforma. Output exactly one product object — never split.",
+    "multiple": "The reviewer has confirmed this proforma contains MULTIPLE DISTINCT PRODUCTS. Treat each model line as its own product. Use the variants rule only for true colour/size variations of the same base model.",
+}
+
+
+def _upload_files_to_gemini(file_paths):
+    if file_paths is None:
+        file_paths = []
+    elif isinstance(file_paths, str):
+        file_paths = [file_paths]
+    uploaded = []
+    for fp in file_paths:
+        if not fp:
+            continue
+        uf = _get_client().files.upload(file=fp)
+        while uf.state.name == "PROCESSING":
+            time.sleep(1)
+            uf = _get_client().files.get(name=uf.name)
+        uploaded.append(uf)
+    return uploaded
+
+
+def _build_url_context(url_data):
+    """Build the prompt-ready blocks injected into proforma_extraction:
+        - web_context           — text + HTML + (Phase 2.4) structured data
+        - image_candidates_str  — bulleted list of candidate hero-shot URLs
+    Phase 2.4: structured data (JSON-LD Product + OpenGraph + Twitter card)
+    is rendered as a clearly-marked AUTHORITATIVE block so the AI prefers
+    it over re-reading the raw HTML.
+    """
+    web_context = ""
+    image_candidates_str = ""
+    if not url_data:
+        return web_context, image_candidates_str
+
+    structured = url_data.get('structured_data') or {}
+    structured_block = ""
+    if structured.get('jsonld_products') or structured.get('og') or structured.get('twitter'):
+        try:
+            structured_block = (
+                "\nSTRUCTURED DATA (AUTHORITATIVE — extracted from the page's "
+                "own metadata, prefer over rendered HTML):\n"
+                + json.dumps(structured, ensure_ascii=False, indent=2)[:6000]
+                + "\n"
+            )
+        except Exception:
+            structured_block = ""
+
+    if url_data.get('text') or structured_block:
+        web_context = (
+            f"{structured_block}"
+            f"WEBSITE TEXT CONTENT: {url_data.get('text', '')}\n\n"
+            f"WEBSITE HTML (Partial): {url_data.get('html', '')}"
+        )
+        candidates = url_data.get('image_candidates', [])
+        image_candidates_str = "IMAGE CANDIDATES (Ranked by crawler):\n" + "\n".join(
+            [f"- {url}" for url in candidates]
+        )
+    return web_context, image_candidates_str
+
+
+def generate_proforma_data(
+    file_paths,
+    url_data,
+    extraction_mode: str = "auto",
+    brand_hint: str | None = None,
+    prior_data: list | None = None,
+    feedback: str | None = None,
+):
+    """Unified proforma extraction.
+
+    Returns a list of product dicts, each with `source_facts`,
+    `ai_enriched_details`, and optional `variants`.
+
+    Args:
+        file_paths: One or many uploaded document paths (PDF/DOCX/img).
+        url_data:   Output of scrape_url_data(...) — may be empty.
+        extraction_mode: 'auto' | 'single' | 'multiple'. Guides the prompt.
+        brand_hint: Optional brand name to inject brand-context into prompt.
+        prior_data: Previous extraction (for the rework flow).
+        feedback:   Reviewer feedback text (triggers the rework prompt).
+    """
+    uploaded_files = _upload_files_to_gemini(file_paths)
+    web_context, image_candidates_str = _build_url_context(url_data or {})
+    mode = (extraction_mode or "auto").lower()
+    if mode not in _MODE_INSTRUCTIONS:
+        mode = "auto"
+    mode_instruction = _MODE_INSTRUCTIONS[mode]
+    brand_context_block = _resolve_brand_context(brand_hint)
+
+    is_rework = bool(feedback)
+    prompt_id = "proforma_rework" if is_rework else "proforma_extraction"
+    prompt_template = get_prompt(prompt_id)
+
+    fmt_kwargs = {
+        "extraction_mode": mode,
+        "mode_instruction": mode_instruction,
+        "brand_context": brand_context_block,
+        "image_candidates_str": image_candidates_str,
+        "web_context": web_context,
+    }
+    if is_rework:
+        fmt_kwargs["prior_data_json"] = json.dumps(prior_data or [], ensure_ascii=False)
+        fmt_kwargs["feedback"] = feedback
+
+    prompt = prompt_template.format(**fmt_kwargs)
+    content_parts = [prompt] + uploaded_files
+
+    response = _get_client().models.generate_content(
+        model=_MODEL,
+        contents=content_parts,
+        config=types.GenerateContentConfig(response_mime_type="application/json"),
+    )
+    result = safe_json_loads(response.text, fallback={})
+
+    # Normalise: always return a list of product dicts.
+    if isinstance(result, list):
+        products = result
+    elif isinstance(result, dict):
+        products = result.get("products")
+        if not isinstance(products, list):
+            # Single product returned at top-level
+            products = [result]
+    else:
+        products = []
+    return products
+
+
+def generate_bulk_pis_data(file_paths, url_data, product_filter="") -> list[dict[str, Any]]:
     """Generate bulk PIS data for multiple products from one or more documents.
     
     Args:
@@ -274,7 +477,16 @@ def generate_bulk_pis_data(file_paths, url_data, product_filter=""):
         contents=content_parts,
         config=types.GenerateContentConfig(response_mime_type="application/json")
     )
-    return safe_json_loads(response.text, fallback=[])
+    # Normalize: AI sometimes wraps the products list under a key like
+    # "products", or returns a single dict for a one-product document.
+    # Callers iterate the return value, so always hand back a list of dicts.
+    parsed = safe_json_loads(response.text, fallback=[])
+    if isinstance(parsed, dict):
+        inner = parsed.get("products")
+        parsed = inner if isinstance(inner, list) else [parsed]
+    if not isinstance(parsed, list):
+        return []
+    return [p for p in parsed if isinstance(p, dict)]
 
 
 def generate_specsheet_optimization(product_data):
