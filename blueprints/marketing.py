@@ -2972,14 +2972,21 @@ def review_pis_marketing(product_id):
         updated_data['warranty_service']['coverage'] = request.form.get('warranty_coverage')
 
         product.pis_data = updated_data
-        if product.revision_data:
+
+        action = request.form.get('action')
+        actor = get_current_username()
+
+        # Only clear the director's revision suggestions when the user
+        # explicitly resubmits — Save Draft must preserve them so the
+        # marketing team can keep working on the requested changes across
+        # sessions. Individual suggestions get popped on "Accept" via
+        # /api/product/<id>/save_draft (accepted_revisions), so partially
+        # resolved revisions still survive a Save Draft.
+        if action in ('submit_director', 'submit_director_batch') and product.revision_data:
             product.revision_data = None
 
         flag_modified(product, 'pis_data')
         flag_modified(product, 'revision_data')
-
-        action = request.form.get('action')
-        actor = get_current_username()
 
         if action == 'submit_director_batch' and batch_id and batch_siblings:
             # First, persist the current PIS edits as a draft snapshot.
@@ -3010,7 +3017,13 @@ def review_pis_marketing(product_id):
             flash('Sent to the Director for review')
         else:
             save_version_snapshot(product, label='Draft saved', is_major=False)
-            if product.workflow_stage in ('marketing_draft', 'marketing_changes_requested'):
+            # Only flip a brand-new draft to "in progress". Products that
+            # came back as `marketing_changes_requested` from a director
+            # review STAY in changes-requested while the marketing team
+            # works on the revisions — saving a draft must not clear the
+            # change-request status. Re-submission happens via the
+            # 'submit_director' action below.
+            if product.workflow_stage == 'marketing_draft':
                 product.workflow_stage = 'marketing_in_progress'
             log_event(product.id, actor, 'Draft Updated',
                       'The marketing team updated and saved changes to the product sheet.', 'neutral')
@@ -3024,7 +3037,9 @@ def review_pis_marketing(product_id):
                 for s in batch_siblings:
                     if s.id == product.id:
                         continue
-                    if s.workflow_stage in ('marketing_draft', 'marketing_changes_requested'):
+                    # Same rule for siblings: only flip raw drafts; leave
+                    # changes-requested rows in changes-requested.
+                    if s.workflow_stage == 'marketing_draft':
                         s.workflow_stage = 'marketing_in_progress'
                     save_version_snapshot(s, label='Draft saved (batch checkpoint)',
                                           is_major=False)

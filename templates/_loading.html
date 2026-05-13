@@ -1,0 +1,23 @@
+{# Reusable loading panel — centered red spinner + caption.
+
+   Usage:
+     {% from '_loading.html' import loading_panel %}
+     {{ loading_panel('Fetching Magento categories…',
+                      'The first load can take a few seconds.') }}
+
+   The macro renders an inline block, not a full-screen overlay. Wrap
+   it in a container that controls height / shows-hides via Alpine
+   (`x-show` / `<template x-if="loading">…</template>`) so the same
+   markup can be reused as either a section placeholder or a modal
+   body. Spinner colors match the rest of the red-themed surfaces. #}
+{% macro loading_panel(message='Loading…', submessage='') %}
+<div class="flex items-center justify-center py-16 px-6">
+    <div class="text-center">
+        <div class="inline-flex items-center justify-center mb-4">
+            <div class="w-12 h-12 border-[3px] border-red-100 border-t-red-600 rounded-full animate-spin"></div>
+        </div>
+        <p class="text-sm font-bold text-slate-700">{{ message }}</p>
+        {% if submessage %}<p class="text-xs text-slate-400 mt-1">{{ submessage }}</p>{% endif %}
+    </div>
+</div>
+{% endmacro %}

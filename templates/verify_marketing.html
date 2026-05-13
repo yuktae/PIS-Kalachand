@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from '_director_comments.html' import director_comments_icon %}
 {% block content %}
 
 {# Phase 2.2 + 2.4: field-origin map written by helpers.proforma_to_pis_data.
@@ -221,7 +222,8 @@
 
             <div class="lg:col-span-6 space-y-8">
 
-                <section id="header" class="section-card scroll-mt-40">
+                <section id="header" class="section-card scroll-mt-40 relative">
+                    {{ director_comments_icon(product, 'header_info', 'marketing') }}
                     <h3 class="section-title">Header Information</h3>
 
                     {% if product.revision_data and product.revision_data.get('header_info') %}
@@ -298,7 +300,8 @@
                     </div>
                 </section>
 
-                <section id="overview" class="section-card scroll-mt-40">
+                <section id="overview" class="section-card scroll-mt-40 relative">
+                    {{ director_comments_icon(product, 'range_overview', 'marketing') }}
                     <h3 class="section-title flex items-center gap-2">
                         <span>Description</span>{{ ai_badge('range_overview') }}
                     </h3>
@@ -317,10 +320,25 @@
                         <div class="text-sm text-gray-800 mb-4 font-medium border-l-2 border-amber-300 pl-3">
                             "{{ product.revision_data['range_overview']['comment'] }}"
                         </div>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        {# On mount, copy the Original column's rendered
+                           height onto the textarea so the two columns
+                           visually match. Pure-CSS flex-stretch wasn't
+                           reliable because textareas have an intrinsic
+                           min-content height that overrode flex-1 in some
+                           browsers. The Alpine snippet below runs once and
+                           handles the simple case the user actually has;
+                           manual resize via the bottom-right handle still
+                           works for finer control. #}
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4"
+                            x-data="{}"
+                            x-init="$nextTick(() => {
+                                const orig = $refs.origOverview;
+                                const ta   = $refs.aiOverview;
+                                if (orig && ta) ta.style.height = Math.max(orig.offsetHeight, 160) + 'px';
+                            })">
                             <div>
                                 <label class="text-[10px] uppercase font-bold text-gray-400 mb-1 block">Original</label>
-                                <div
+                                <div x-ref="origOverview"
                                     class="bg-white p-3 rounded-lg border border-gray-200 text-xs text-gray-400 line-through leading-relaxed">
                                     {{ product.revision_data['range_overview']['original'] }}
                                 </div>
@@ -328,9 +346,9 @@
                             <div>
                                 <label class="text-[10px] uppercase font-bold text-green-600 mb-1 block">AI Suggestion
                                     (Editable)</label>
-                                <textarea id="ai-edit-overview"
-                                    class="w-full p-3 rounded-lg border border-green-300 text-xs text-green-900 leading-relaxed shadow-sm resize-none focus:ring-2 focus:ring-green-200 focus:outline-none"
-                                    rows="5">{{ product.revision_data['range_overview']['ai_suggestion'] }}</textarea>
+                                <textarea id="ai-edit-overview" x-ref="aiOverview"
+                                    class="w-full p-3 rounded-lg border border-green-300 text-xs text-green-900 leading-relaxed shadow-sm focus:ring-2 focus:ring-green-200 focus:outline-none"
+                                    style="resize: vertical;">{{ product.revision_data['range_overview']['ai_suggestion'] }}</textarea>
                             </div>
                         </div>
                         <div class="flex gap-2">
@@ -355,7 +373,8 @@
                         class="textarea">{{ data.range_overview }}</textarea>
                 </section>
 
-                <section id="sales" class="section-card scroll-mt-40">
+                <section id="sales" class="section-card scroll-mt-40 relative">
+                    {{ director_comments_icon(product, 'sales_arguments', 'marketing') }}
                     <h3 class="section-title flex items-center gap-2">
                         <span>Sales Arguments</span>{{ ai_badge('sales_arguments') }}
                     </h3>
@@ -426,9 +445,10 @@
                     </button>
                 </section>
 
-                <section id="specs" class="section-card overflow-hidden scroll-mt-40">
+                <section id="specs" class="section-card scroll-mt-40 relative">
+                    {{ director_comments_icon(product, 'technical_specifications', 'marketing') }}
                     <div class="flex justify-between items-center border-b border-gray-100 p-6">
-                        <h3 class="section-title mb-0">Specs Specifications</h3>
+                        <h3 class="section-title mb-0">Technical Specifications</h3>
                         <button type="button" onclick="addSpec()"
                             class="add-btn text-xs bg-red-50 text-red-700 px-3 py-1.5 rounded-lg hover:bg-red-100">
                             + Add Row
@@ -539,7 +559,8 @@
                     </table>
                 </section>
 
-                <section id="warranty" class="section-card scroll-mt-40">
+                <section id="warranty" class="section-card scroll-mt-40 relative">
+                    {{ director_comments_icon(product, 'warranty_service', 'marketing') }}
                     <h3 class="section-title">Warranty & Service</h3>
 
                     {% if product.revision_data and product.revision_data.get('warranty_service') %}

@@ -15,6 +15,7 @@ from helpers import (
     _diff_and_log_changes, normalize_pis_data, load_forbidden_words,
     get_product_category, set_product_category,
     get_product_category_label, CATEGORY_UNCATEGORISED,
+    append_director_comment,
 )
 from utils.history import log_event
 from utils.ai_generation import generate_ai_revision, generate_comprehensive_spec_data
@@ -142,6 +143,12 @@ def review_director_pis(product_id):
                         'ai_suggestion': None, 'status': 'generating'
                     }
                     sections_to_revise.append((section, original, comment.strip()))
+                    # Persist into the per-section archive so marketing
+                    # can still review this comment after accepting the
+                    # AI suggestion (revision_data gets popped on Accept).
+                    # `audience='marketing'` keeps it scoped to the
+                    # marketing editor; the web team won't see it.
+                    append_director_comment(product, section, comment, audience='marketing')
 
             product.revision_data = new_revisions
             product.director_pis_comments = request.form.get('director_general_comments')
@@ -400,6 +407,12 @@ def review_director_spec(product_id):
                         'ai_suggestion': generate_ai_revision(section, original, comment),
                         'status': 'pending'
                     }
+                    # Persist into the per-section archive so the web team
+                    # can still review this comment after accepting the AI
+                    # suggestion (revision_data gets popped on Accept).
+                    # `audience='web'` keeps it scoped to the web editor;
+                    # the marketing team won't see it.
+                    append_director_comment(product, section, comment, audience='web')
 
             product.revision_data = new_revisions
             product.director_spec_comments = request.form.get('director_general_comments')

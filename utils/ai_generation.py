@@ -257,18 +257,6 @@ def lint_text_for_forbidden(text, forbidden_words):
     return hits
 
 
-def _record_hits_safe(hits):
-    """Persist a hits report to the rolling history file. Imported lazily
-    to avoid a circular import (helpers.py pulls in model/db at top level)
-    and wrapped so a logging failure never blocks AI generation."""
-    if not hits:
-        return
-    try:
-        from helpers import record_forbidden_word_hits
-        record_forbidden_word_hits(hits)
-    except Exception as e:
-        print(f"⚠️ Failed to record forbidden hits: {e}")
-
 def _build_seo_context(pis_data, spec_data=None, categories=None):
     """Pull a clean, prompt-ready set of product-context variables out of the
     PIS / spec_data blobs. Centralised so both the full SpecSheet generation
@@ -452,7 +440,6 @@ def generate_comprehensive_spec_data(pis_data, forbidden_words=None, categories=
             spec_data, hits = _scrub_forbidden_words(spec_data, fw_entries)
             if hits:
                 spec_data['_forbidden_hits'] = hits
-                _record_hits_safe(hits)
 
         # CATEGORY: prefer the caller's canonical value. Only run the AI
         # classifier as a last resort when the product has no category at
@@ -585,9 +572,7 @@ def regenerate_seo_only(pis_data, spec_data=None, forbidden_words=None):
         }
         # Scrub the regenerated SEO block so banned words can't sneak back in.
         if fw_entries:
-            seo, hits = _scrub_forbidden_words(seo, fw_entries)
-            if hits:
-                _record_hits_safe(hits)
+            seo, _hits = _scrub_forbidden_words(seo, fw_entries)
         return seo
     except Exception as e:
         print(f"SEO Regeneration Error: {e}")

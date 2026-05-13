@@ -84,6 +84,14 @@ class Product(db.Model):
     director_spec_comments = db.Column(db.Text)
     additional_images = db.Column(JSONB, default=list)
 
+    # Per-section comment archive — every comment the director leaves
+    # during a revision request is appended here so marketing/web can
+    # still review the rationale after accepting or modifying an AI
+    # suggestion. Shape: { section_key: [{comment, timestamp, actor}, ...] }
+    # Unlike `revision_data` this is never popped on Accept; only cleared
+    # at full product reset.
+    director_section_comments = db.Column(JSONB, default=dict)
+
     # Canonical product category — single source of truth. Previously lived
     # in three different JSONB shapes (pis_data.category_data,
     # spec_data.categories, and ghost pis_data.category_A/B/C) that could

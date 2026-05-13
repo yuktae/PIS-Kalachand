@@ -115,19 +115,10 @@ def web_archive():
 def web_forbidden_words():
     if session.get('role') != 'web':
         return redirect(url_for('auth.login'))
-    try:
-        from utils.magento_api import get_category_tree
-        category_tree = get_category_tree()
-    except Exception:
-        from utils.category_classifier import load_categories
-        raw_categories = load_categories()
-        category_tree = {}
-        for cat in raw_categories:
-            a, b, c = cat['cat_A'], cat['cat_B'], cat['cat_C']
-            category_tree.setdefault(a, {}).setdefault(b, [])
-            if c not in category_tree[a][b]:
-                category_tree[a][b].append(c)
-    return render_template('forbidden_words.html', category_tree=category_tree)
+    # The Magento category tree is fetched client-side via
+    # /api/magento_categories so the page paints instantly and the user
+    # sees a spinner in the categories area instead of a blank tab.
+    return render_template('forbidden_words.html')
 
 
 # ── SPECSHEET CREATION ────────────────────────────────────────────────────────

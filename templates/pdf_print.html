@@ -127,13 +127,16 @@
         }
 
         /* ---------------- SECTION STYLE ---------------- */
+        /* Casing follows the source text verbatim so PDF section labels
+           match the edit-form labels exactly (e.g. "Description" not
+           "DESCRIPTION"). Keep a subtle letter-spacing for typographic
+           polish without forcing uppercase. */
         .section-title {
             font-family: 'Outfit', sans-serif;
             font-size: 13px;
             font-weight: 700;
             color: #dc2626;
-            text-transform: uppercase;
-            letter-spacing: 1.5px;
+            letter-spacing: 0.5px;
             margin-bottom: 15px;
             display: flex;
             align-items: center;
@@ -266,16 +269,16 @@
 
         <!-- DESCRIPTION/OVERVIEW -->
         <div class="card no-break" style="margin-bottom: 30px;">
-            <div class="section-title">SHORT DESCRIPTION</div>
+            <div class="section-title">Description</div>
             <div class="description-text">
                 {{ data.range_overview }}
             </div>
         </div>
 
         <div class="grid">
-            <!-- KEY HIGHLIGHTS -->
+            <!-- SALES ARGUMENTS -->
             <div class="no-break">
-                <div class="section-title">Key Highlights</div>
+                <div class="section-title">Sales Arguments</div>
                 <ul class="feature-list">
                     {% for arg in data.sales_arguments %}
                     <li class="feature-item">
@@ -286,7 +289,7 @@
                 </ul>
 
                 <div class="card no-break" style="margin-top: 30px; background: #fef2f2; border-color: #fee2e2;">
-                    <div class="section-title" style="color: #991b1b;">Warranty & Support</div>
+                    <div class="section-title" style="color: #991b1b;">Warranty & Service</div>
                     <div style="font-size: 10px; color: #7f1d1d;">
                         <strong>Period:</strong> {{ data.warranty_service.period }}<br>
                         <strong>Coverage:</strong> {{ data.warranty_service.coverage }}

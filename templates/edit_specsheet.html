@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from '_director_comments.html' import director_comments_icon %}
 {% block content %}
 
 <div class="max-w-screen-2xl mx-auto pb-32">
@@ -246,7 +247,8 @@
                 </div>
 
                 {# 0. HEADER INFO (Editable) #}
-                <section id="header" class="section-card scroll-mt-40 border-l-4 border-l-red-500">
+                <section id="header" class="section-card scroll-mt-40 border-l-4 border-l-red-500 relative">
+                    {{ director_comments_icon(product, 'header_info', 'web') }}
                     <div class="flex items-center gap-3 mb-6">
                         <div class="p-2 bg-red-50 text-red-600 rounded-lg">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -261,7 +263,7 @@
                     </div>
 
                     {% if product.revision_data and product.revision_data.get('header_info') %}
-                    <div id="rev-card-header"
+                    <div id="rev-card-header" data-revision-key="header_info"
                         class="mb-6 bg-amber-50 border border-amber-200 rounded-xl p-5 relative overflow-hidden animate-fade-in shadow-sm">
                         <div
                             class="flex items-center gap-2 mb-3 text-amber-800 font-bold text-xs uppercase tracking-wide">
@@ -349,7 +351,8 @@
                 </section>
 
                 {# 1. CUSTOMER CONTENT (Editable) #}
-                <section id="content" class="section-card scroll-mt-40 border-l-4 border-l-indigo-500">
+                <section id="content" class="section-card scroll-mt-40 border-l-4 border-l-indigo-500 relative">
+                    {{ director_comments_icon(product, 'range_overview', 'web') }}
                     <div class="flex items-center gap-3 mb-6">
                         <div class="p-2 bg-indigo-50 text-indigo-600 rounded-lg">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -377,7 +380,7 @@
                     </div>
 
                     {% if product.revision_data and product.revision_data.get('range_overview') %}
-                    <div id="rev-card-description"
+                    <div id="rev-card-description" data-revision-key="range_overview"
                         class="mb-6 bg-amber-50 border border-amber-200 rounded-xl p-5 relative overflow-hidden animate-fade-in shadow-sm">
                         <div
                             class="flex items-center gap-2 mb-3 text-amber-800 font-bold text-xs uppercase tracking-wide">
@@ -390,20 +393,32 @@
                         <div class="text-sm text-gray-800 mb-4 font-medium border-l-2 border-amber-300 pl-3">
                             "{{ product.revision_data['range_overview']['comment'] }}"
                         </div>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        {# Alpine x-init copies the Original column's
+                           rendered height onto the textarea so the two
+                           columns visually match (pure-CSS stretch wasn't
+                           reliable for textareas in every browser). Manual
+                           vertical resize via the drag handle still works
+                           for finer control. #}
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4"
+                            x-data="{}"
+                            x-init="$nextTick(() => {
+                                const orig = $refs.origOverview;
+                                const ta   = $refs.aiOverview;
+                                if (orig && ta) ta.style.height = Math.max(orig.offsetHeight, 160) + 'px';
+                            })">
                             <div>
                                 <label class="text-[10px] uppercase font-bold text-gray-400 mb-1 block">Original</label>
-                                <div
-                                    class="bg-white p-3 rounded-lg border border-gray-200 text-xs text-gray-400 line-through leading-relaxed max-h-32 overflow-y-auto">
+                                <div x-ref="origOverview"
+                                    class="bg-white p-3 rounded-lg border border-gray-200 text-xs text-gray-400 line-through leading-relaxed max-h-64 overflow-y-auto">
                                     {{ product.revision_data['range_overview']['original'] }}
                                 </div>
                             </div>
                             <div>
                                 <label class="text-[10px] uppercase font-bold text-green-600 mb-1 block">AI Suggestion
                                     (Editable)</label>
-                                <textarea
-                                    class="w-full p-3 rounded-lg border border-green-300 text-xs text-green-900 leading-relaxed shadow-sm resize-none focus:ring-2 focus:ring-green-200 focus:outline-none"
-                                    rows="5">{{ product.revision_data['range_overview']['ai_suggestion'] }}</textarea>
+                                <textarea x-ref="aiOverview"
+                                    class="w-full p-3 rounded-lg border border-green-300 text-xs text-green-900 leading-relaxed shadow-sm focus:ring-2 focus:ring-green-200 focus:outline-none"
+                                    style="resize: vertical;">{{ product.revision_data['range_overview']['ai_suggestion'] }}</textarea>
                             </div>
                         </div>
                         <div class="flex gap-2">
@@ -437,7 +452,8 @@
                 </section>
 
                 {# 2. KEY FEATURES (Editable) #}
-                <section id="features" class="section-card scroll-mt-40 border-l-4 border-l-red-500">
+                <section id="features" class="section-card scroll-mt-40 border-l-4 border-l-red-500 relative">
+                    {{ director_comments_icon(product, 'sales_arguments', 'web') }}
                     <div class="flex items-center gap-3 mb-6">
                         <div class="p-2 bg-red-50 text-red-600 rounded-lg">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -452,7 +468,7 @@
                     </div>
 
                     {% if product.revision_data and product.revision_data.get('sales_arguments') %}
-                    <div id="rev-card-features"
+                    <div id="rev-card-features" data-revision-key="sales_arguments"
                         class="mb-6 bg-amber-50 border border-amber-200 rounded-xl p-5 relative overflow-hidden animate-fade-in">
                         <div
                             class="flex items-center gap-2 mb-3 text-amber-800 font-bold text-xs uppercase tracking-wide">
@@ -519,13 +535,14 @@
                 {# 3. SEO METADATA (Editable) — with live Google SERP preview
                        and a "Regenerate SEO" button that calls the dedicated
                        /api/product/<id>/regenerate_seo endpoint. #}
-                <section id="seo" class="section-card scroll-mt-40"
+                <section id="seo" class="section-card scroll-mt-40 relative"
                          x-data="seoSection({
                              metaTitle:  '{{ (spec_data.get('seo', {}).get('meta_title', '') | replace("'", "\\'") | replace('\n', ' ') | safe) }}',
                              metaDesc:   '{{ (spec_data.get('seo', {}).get('meta_description', '') | replace("'", "\\'") | replace('\n', ' ') | safe) }}',
                              keywords:   '{{ (spec_data.get('seo', {}).get('keywords', '') | replace("'", "\\'") | replace('\n', ' ') | safe) }}',
                              productId:  {{ product.id }}
                          })">
+                    {{ director_comments_icon(product, 'seo_optimization', 'web') }}
                     <div class="flex items-center justify-between gap-3 mb-6 flex-wrap">
                         <div class="flex items-center gap-3">
                             <div class="p-2 bg-green-50 text-green-600 rounded-lg">
@@ -620,7 +637,7 @@
                     </div>
 
                     {% if product.revision_data and product.revision_data.get('seo_optimization') %}
-                    <div id="rev-card-seo"
+                    <div id="rev-card-seo" data-revision-key="seo_optimization"
                         class="mb-6 bg-amber-50 border border-amber-200 rounded-xl p-5 relative animate-fade-in shadow-sm">
                         <div
                             class="flex items-center gap-2 mb-3 text-amber-800 font-bold text-xs uppercase tracking-wide">
@@ -736,7 +753,7 @@
                         </div>
 
                         {% if product.revision_data and product.revision_data.get('internal_web_keywords') %}
-                        <div id="rev-card-keywords"
+                        <div id="rev-card-keywords" data-revision-key="internal_web_keywords"
                             class="mt-4 bg-amber-50 border border-amber-200 rounded-xl p-5 relative animate-fade-in shadow-sm">
                             <div class="flex items-center gap-2 mb-3 text-amber-800 font-bold text-xs uppercase">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -768,7 +785,8 @@
                 </section>
 
                 {# NEW: PRODUCT CLASSIFICATION SECTION #}
-                <section id="categories" class="section-card scroll-mt-40 border-l-4 border-l-purple-500">
+                <section id="categories" class="section-card scroll-mt-40 border-l-4 border-l-purple-500 relative">
+                    {{ director_comments_icon(product, 'product_classification', 'web') }}
                     <div class="flex items-center justify-between mb-6">
                         <div class="flex items-center gap-3">
                             <div class="p-2 bg-purple-50 text-purple-600 rounded-lg">
@@ -785,7 +803,7 @@
                     </div>
 
                     {% if product.revision_data and product.revision_data.get('product_classification') %}
-                    <div id="rev-card-classification"
+                    <div id="rev-card-classification" data-revision-key="product_classification"
                         class="mb-6 bg-amber-50 border border-amber-200 rounded-xl p-5 relative animate-fade-in shadow-sm">
                         <div class="flex items-center gap-2 mb-3 text-amber-800 font-bold text-xs uppercase">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -990,6 +1008,13 @@
                         </p>
                     </div>
 
+                    {# Resolve the canonical product category ONCE in HTML
+                       scope so the inline JS block below contains zero
+                       Jinja control statements — keeps the file parseable
+                       by the IDE. The helper prefers Product.category_1/2/3
+                       columns, then falls back through spec_data.categories
+                       and pis_data.category_data for legacy products. #}
+                    {% set _cat = product_category(product) %}
                     <script>
                     // SEO section Alpine component — drives the live SERP preview,
                     // tracks meta_title / meta_description / keywords as model state
@@ -1051,11 +1076,10 @@
                     }
 
                     function categoryDropdowns() {
-                        {# Read the canonical category via the unified helper —
-                           prefers Product.category_1/2/3 columns, falls back
-                           through spec_data.categories then pis_data.category_data
-                           for products that pre-date the migration. #}
-                        {% set _cat = product_category(product) %}
+                        // Initial catA/B/C values are interpolated from
+                        // `_cat`, which was resolved in HTML scope just
+                        // above the script tag — no Jinja control
+                        // statements live inside this function.
                         return {
                             tree: {},
                             catA: '{{ _cat.category_1 }}',
@@ -1128,7 +1152,8 @@
                 </section>
 
                 {# 4. TECH SPECS (Editable) #}
-                <section id="tech_specs" class="section-card scroll-mt-40">
+                <section id="tech_specs" class="section-card scroll-mt-40 relative">
+                    {{ director_comments_icon(product, 'technical_specifications', 'web') }}
                     <div class="flex justify-between items-center border-b border-gray-100 pb-4 mb-6">
                         <div>
                             <h3 class="section-title mb-0">Technical Specifications</h3>
@@ -1137,7 +1162,7 @@
                     </div>
 
                     {% if product.revision_data and product.revision_data.get('technical_specifications') %}
-                    <div id="rev-card-specs"
+                    <div id="rev-card-specs" data-revision-key="technical_specifications"
                         class="mb-6 mx-8 bg-amber-50 border border-amber-200 rounded-xl p-5 relative animate-fade-in shadow-sm">
                         <div class="flex items-center gap-2 mb-3 text-amber-800 font-bold text-xs uppercase">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1220,7 +1245,8 @@
                 </section>
 
                 {# 5. WARRANTY (Editable) #}
-                <section id="warranty" class="section-card scroll-mt-40">
+                <section id="warranty" class="section-card scroll-mt-40 relative">
+                    {{ director_comments_icon(product, 'warranty_service', 'web') }}
                     <div class="flex items-center gap-3 mb-6">
                         <div class="p-2 bg-blue-50 text-blue-600 rounded-lg">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1235,7 +1261,7 @@
                     </div>
 
                     {% if product.revision_data and product.revision_data.get('warranty_service') %}
-                    <div id="rev-card-warranty"
+                    <div id="rev-card-warranty" data-revision-key="warranty_service"
                         class="mb-6 bg-amber-50 border border-amber-200 rounded-xl p-5 relative animate-fade-in shadow-sm">
                         <div class="flex items-center gap-2 mb-3 text-amber-800 font-bold text-xs uppercase">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1863,12 +1889,17 @@
     }
 </style>
 
+{# Build the gallery URL list in HTML scope so the JS body stays
+   free of Jinja control statements (keeps the IDE parser happy).
+   Returns a plain Python list which `| tojson` then emits as a
+   JSON array — JSON.parse wraps it in a template literal so VS
+   Code treats it as a string, not nested object syntax. #}
+{% set _gallery_urls = [] %}
+{% if product.image_path %}{% set _ = _gallery_urls.append(url_for('static', filename=product.image_path)) %}{% endif %}
+{% if product.additional_images %}{% for img in product.additional_images %}{% set _ = _gallery_urls.append(url_for('static', filename=img)) %}{% endfor %}{% endif %}
 <script>
-    /* Gallery images for lightbox */
-    const galleryImagesSpec = [
-        {% if product.image_path %}'{{ url_for('static', filename=product.image_path) }}',{% endif %}
-        {% if product.additional_images %}{% for img in product.additional_images %}'{{ url_for('static', filename=img) }}',{% endfor %}{% endif %}
-    ];
+    /* Gallery images for lightbox. */
+    const galleryImagesSpec = JSON.parse(`{{ _gallery_urls | tojson }}`);
 
     // --- Retry Logic (Generic) ---
     async function retryRevision(btn) {
@@ -1932,10 +1963,20 @@
         }
     }
 
+    // Tracks director revisions accepted in this session so the next
+    // autosave can tell the backend to pop them from `revision_data`.
+    // Without this, the cards reappear on reload even after Accept.
+    const acceptedRevisionKeys = new Set();
+
     // --- Accept Logic (Apply AI suggestion to main form) ---
     function acceptRevision(btn) {
         const section = btn.dataset.section;
         const card = btn.closest('.animate-fade-in');
+        // Record which `revision_data` key this card belongs to so the
+        // upcoming autosave can include it in `accepted_revisions`.
+        if (card && card.dataset.revisionKey) {
+            acceptedRevisionKeys.add(card.dataset.revisionKey);
+        }
 
         // Helper to get value from a multi-field set or a single textarea
         const getVal = (key) => {
@@ -2182,6 +2223,15 @@
             } catch (e) { console.error("Auto-save tech spec error:", e); }
         }
 
+        // 4. Director-revision acceptance. The backend pops these keys from
+        //    `revision_data` so the AI-suggestion cards don't reappear on
+        //    reload. Snapshot the Set here so concurrent Accepts during the
+        //    request don't get lost — we only clear on confirmed success.
+        const acceptedSnapshot = Array.from(acceptedRevisionKeys);
+        if (acceptedSnapshot.length) {
+            data['accepted_revisions'] = acceptedSnapshot;
+        }
+
         try {
             const response = await fetch(`/api/product/{{ product.id }}/save_draft`, {
                 method: 'POST',
@@ -2191,6 +2241,10 @@
             const result = await response.json();
             if (result.status === 'success') {
                 updateSaveStatus('saved');
+                // Drop only the keys we just confirmed-as-saved; anything the
+                // user accepted while the request was in flight stays queued
+                // for the next autosave.
+                acceptedSnapshot.forEach(k => acceptedRevisionKeys.delete(k));
                 /* Bust the iframe cache so the Live Preview tab re-renders
                    from the latest saved spec_data. The hook is wired by the
                    right-column Alpine x-data block. */
@@ -2564,7 +2618,11 @@
                 this.reworkMessage = 'Starting regeneration...';
                 
                 try {
-                    const productId = {{ product.id }};
+                    /* Wrap the Jinja-emitted id in a JSON.parse + template
+                       literal so the IDE parses the line cleanly. Without
+                       the wrap, a bare interpolation looks like a broken
+                       object literal to the JS parser. */
+                    const productId = JSON.parse(`{{ product.id | tojson }}`);
                     const res = await fetch(`/api/generate_specsheet/${productId}?rework=1`, {
                         method: 'POST'
                     });
@@ -2684,9 +2742,13 @@
 </div>
 
 <!-- Auto-poll for background specsheet AI generation -->
+{# Resolve the boolean flag in HTML scope so the JS body only ever
+   sees a tagged template literal (which the IDE happily treats as a
+   string). #}
+{% set _is_generating = true if spec_data.get('_spec_generating') else false %}
 <script>
 (function() {
-    const isGenerating = {{ 'true' if spec_data.get('_spec_generating') else 'false' }};
+    const isGenerating = JSON.parse(`{{ _is_generating | tojson }}`);
     if (!isGenerating) return;
     
     // Show generating banner

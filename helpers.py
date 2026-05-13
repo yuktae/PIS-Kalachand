@@ -446,6 +446,80 @@ def _diff_and_log_changes(product_id, old_data, new_data, prefix=''):
     _recurse(old_data, new_data, prefix)
 
 
+# ================= DIRECTOR SECTION COMMENTS =================
+#
+# Persistent archive of every per-section comment the director leaves
+# during revision requests. Built up over time; never cleared by Accept
+# (the matching entry in `revision_data` gets popped, but the comment
+# survives here for audit + review).
+#
+# `append_director_comment` is the single write site — called from both
+# director PIS review and director SpecSheet review when collecting
+# `comment_X` form fields, so the marketing/web team can still inspect
+# the rationale after the revision card disappears.
+
+def append_director_comment(product, section, comment, actor=None, audience=None):
+    """Append a comment to the persistent per-section archive.
+
+    `audience` tags the entry with the team it was addressed to so the
+    macro can scope the popover correctly:
+        'marketing' — left during the PIS review (marketing team acts on it)
+        'web'       — left during the SpecSheet review (web team acts on it)
+    Untagged entries (legacy, pre-audience-split) default to 'marketing'
+    at read time so they don't disappear silently.
+
+    Idempotent on dedup: if the most recent entry for this section *and
+    audience* has the exact same comment text, skip — protects against
+    form re-posts. The audience is part of the dedup key so a marketing
+    comment doesn't suppress an identical-text web comment.
+    """
+    from datetime import datetime, timezone
+
+    if not comment or not str(comment).strip():
+        return
+    comment = str(comment).strip()
+
+    archive = product.director_section_comments
+    if not isinstance(archive, dict):
+        archive = {}
+
+    entries = archive.get(section)
+    if not isinstance(entries, list):
+        entries = []
+
+    # Skip duplicate-of-last-entry — but only when same audience, so the
+    # same wording sent to two different teams doesn't get swallowed.
+    if entries:
+        last = entries[-1]
+        if (last.get('comment', '').strip() == comment
+                and last.get('audience') == audience):
+            return
+
+    entries.append({
+        'comment':   comment,
+        'timestamp': datetime.now(timezone.utc).replace(tzinfo=None).isoformat(timespec='seconds'),
+        'actor':     (actor or get_current_username() or 'Director'),
+        'audience':  audience,
+    })
+    archive[section] = entries
+    product.director_section_comments = archive
+    flag_modified(product, 'director_section_comments')
+
+
+def format_comment_timestamp(iso_str):
+    """Render a stored ISO timestamp as "13 May · 14:23" for the popup.
+    Robust against malformed/missing values so the template doesn't 500
+    if a comment is somehow missing its timestamp."""
+    if not iso_str:
+        return ''
+    try:
+        from datetime import datetime
+        dt = datetime.fromisoformat(str(iso_str).split('+')[0])
+        return dt.strftime('%d %b · %H:%M')
+    except (ValueError, TypeError):
+        return str(iso_str)
+
+
 # ================= UNIFIED PRODUCT CATEGORY =================
 #
 # Single source of truth: the Product.category_1/2/3 columns. Reads fall back
@@ -978,10 +1052,6 @@ def _forbidden_words_file():
     return os.path.join(current_app.config['BASE_DIR'], 'data', 'forbidden_words.json')
 
 
-def _hits_file():
-    return os.path.join(current_app.config['BASE_DIR'], 'data', 'forbidden_words_hits.json')
-
-
 def _normalize_word_entry(raw):
     """Coerce a string OR dict into the canonical entry shape.
 
@@ -1097,46 +1167,3 @@ def _all_entries_combined():
     return list(by_word.values())
 
 
-def record_forbidden_word_hits(hits):
-    """Append a scrub event to data/forbidden_words_hits.json so the manager
-    UI can surface a 'recently caught' panel. Best-effort — never raises."""
-    if not hits:
-        return
-    try:
-        path = _hits_file()
-        os.makedirs(os.path.dirname(path), exist_ok=True)
-        try:
-            with open(path, 'r', encoding='utf-8') as f:
-                history = json.load(f)
-        except (FileNotFoundError, json.JSONDecodeError):
-            history = []
-        if not isinstance(history, list):
-            history = []
-        from datetime import datetime, timezone
-        history.insert(0, {
-            'ts':   datetime.now(timezone.utc).isoformat(timespec='seconds'),
-            'hits': {str(k): int(v) for k, v in hits.items()},
-        })
-        history = history[:200]  # keep rolling window
-        with open(path, 'w', encoding='utf-8') as f:
-            json.dump(history, f, indent=2, ensure_ascii=False)
-    except Exception:
-        pass
-
-
-def load_recent_forbidden_hits(limit=10):
-    """Return the top-N most frequently scrubbed words over the stored
-    history window (last 200 scrub events). Shape: [{word, count}, ...]."""
-    try:
-        with open(_hits_file(), 'r', encoding='utf-8') as f:
-            history = json.load(f)
-    except (FileNotFoundError, json.JSONDecodeError):
-        return []
-    if not isinstance(history, list):
-        return []
-    totals = {}
-    for entry in history:
-        for word, count in (entry.get('hits') or {}).items():
-            totals[word] = totals.get(word, 0) + int(count)
-    ranked = sorted(totals.items(), key=lambda kv: kv[1], reverse=True)
-    return [{'word': w, 'count': c} for w, c in ranked[:limit]]

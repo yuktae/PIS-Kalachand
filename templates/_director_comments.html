@@ -1,0 +1,102 @@
+{# Reusable per-section "Director comments" icon + popover.
+
+   Renders nothing when the section has no archived comments. Otherwise:
+     - small chat-bubble button absolutely positioned at the section's
+       top-right (parent element must be `position: relative`).
+     - count badge on the button when more than one comment exists.
+     - smooth-transition popover with the full chronological comment
+       thread (oldest → newest) so revisited revision cycles read like
+       a conversation. Each entry shows actor + timestamp.
+
+   Each parent section needs `class="... relative"` for the absolute
+   anchor to work, and Alpine.js (already loaded site-wide via base.html)
+   handles the open/close + click-outside dismissal.
+#}
+{# `audience` — either 'marketing' or 'web'. Filters the section archive
+   so a marketing-bound comment doesn't leak into the web editor (and
+   vice versa). Untagged entries (legacy, written before the audience
+   split) are treated as 'marketing' so they don't disappear silently. #}
+{% macro director_comments_icon(product, section_key, audience='marketing') %}
+    {% set raw = (product.director_section_comments or {}).get(section_key, []) if product and product.director_section_comments else [] %}
+    {% set comments = [] %}
+    {% for entry in raw %}
+        {% set entry_audience = entry.get('audience') or 'marketing' %}
+        {% if entry_audience == audience %}
+            {% set _ = comments.append(entry) %}
+        {% endif %}
+    {% endfor %}
+    {% if comments %}
+        <div class="absolute top-4 right-4 z-20" x-data="{ open: false }"
+            @click.outside="open = false"
+            @keydown.escape.window="open = false">
+
+            {# Trigger button — amber so it visually pairs with the
+               "Director Change Request" amber theme used inside the
+               revision cards. Count badge surfaces follow-up comments. #}
+            <button type="button" @click="open = !open"
+                :class="open ? 'bg-amber-100 text-amber-700 border-amber-300' : 'bg-amber-50 text-amber-600 border-amber-100'"
+                class="relative w-9 h-9 rounded-lg border flex items-center justify-center shadow-sm hover:bg-amber-100 transition-colors"
+                :aria-expanded="open" aria-label="Director comments">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
+                {% if comments|length > 1 %}
+                <span class="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 bg-amber-500 text-white text-[9px] font-black rounded-full flex items-center justify-center shadow">
+                    {{ comments|length }}
+                </span>
+                {% endif %}
+            </button>
+
+            {# Popover — anchored top-right via origin-top-right so the
+               scale animation feels like it grows out of the trigger.
+               max-h + overflow-y keeps long threads scrollable. #}
+            <div x-show="open" x-cloak
+                x-transition:enter="transition ease-out duration-200"
+                x-transition:enter-start="opacity-0 -translate-y-1 scale-95"
+                x-transition:enter-end="opacity-100 translate-y-0 scale-100"
+                x-transition:leave="transition ease-in duration-150"
+                x-transition:leave-start="opacity-100 translate-y-0 scale-100"
+                x-transition:leave-end="opacity-0 -translate-y-1 scale-95"
+                class="absolute top-11 right-0 w-80 bg-white rounded-2xl shadow-2xl border border-slate-100 origin-top-right"
+                style="display: none">
+
+                {# Header #}
+                <div class="px-4 py-3 border-b border-slate-100 flex items-center justify-between rounded-t-2xl bg-amber-50/40">
+                    <div class="flex items-center gap-2">
+                        <svg class="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                        </svg>
+                        <span class="text-xs font-bold text-slate-700 uppercase tracking-widest">Director Comments</span>
+                    </div>
+                    <button type="button" @click="open = false"
+                        class="w-7 h-7 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors flex items-center justify-center"
+                        aria-label="Close comments">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+
+                {# Conversation thread — oldest first so the latest
+                   feedback lands at the bottom (matches reading order
+                   for a back-and-forth review cycle). #}
+                <div class="max-h-80 overflow-y-auto py-1">
+                    {% for entry in comments %}
+                    <div class="px-4 py-3 border-b border-slate-50 last:border-b-0">
+                        <div class="text-sm text-slate-800 leading-relaxed">
+                            "{{ entry.comment }}"
+                        </div>
+                        <div class="mt-1.5 flex items-center gap-1.5 text-[10px] text-slate-400 font-medium">
+                            <span class="font-bold text-slate-500">{{ entry.actor }}</span>
+                            <span>·</span>
+                            <span>{{ entry.timestamp | comment_ts }}</span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    {% endif %}
+{% endmacro %}

@@ -26,7 +26,8 @@
 
             changesModalOpen: false,
             changesLoading: false,
-            changesData: [],
+            changesData: [],          // flat list of field rows for the modal
+            changesChangedCount: 0,   // how many of those rows actually changed
             changesEvent: null,
 
             timelineSearch: '',
@@ -209,28 +210,56 @@
                 if (!this.selectedProduct || !this.isChangeEvent(event)) return;
                 this.changesEvent = event;
                 this.changesData = [];
+                this.changesChangedCount = 0;
                 this.changesLoading = true;
                 this.changesModalOpen = true;
                 try {
                     const resp = await fetch('/api/product/' + this.selectedProduct.id + '/changes_at?date=' + encodeURIComponent(event.date) + '&time=' + encodeURIComponent(event.time));
                     const data = await resp.json();
-                    this.changesData = data;
+                    // The endpoint now returns an object — `{fields, changed_count, ...}`.
+                    // Older code paths returned a bare array, so accept both shapes
+                    // to avoid breaking if the response is ever served stale.
+                    if (Array.isArray(data)) {
+                        this.changesData = data;
+                        this.changesChangedCount = data.length;
+                    } else {
+                        this.changesData = data?.fields || [];
+                        this.changesChangedCount = data?.changed_count ?? this.changesData.length;
+                    }
                 } catch (e) {
                     console.error('Failed to load changes:', e);
                     this.changesData = [];
+                    this.changesChangedCount = 0;
                 } finally {
                     this.changesLoading = false;
                 }
             },
             closeChangesModal() {
                 this.changesModalOpen = false;
-                setTimeout(() => { this.changesEvent = null; this.changesData = []; }, 200);
+                setTimeout(() => {
+                    this.changesEvent = null;
+                    this.changesData = [];
+                    this.changesChangedCount = 0;
+                }, 200);
             },
 
-            /* ===== Word-level diff engine ===== */
+            /* ===== Diff engine ─ sentence-level for prose, word-level
+               for short single-line fields (model number, voltage, …).
+               Kept in lock-step with the restore-version compare modal in
+               templates/partials/timeline_v2.html so both popups read the
+               same way:
+                 • Red on the BEFORE side  = sentence/word was removed
+                 • Green on the AFTER side = sentence/word was added
+                 • Unchanged content stays neutral
+            ===== */
             _tokenize(str) {
                 if (!str) return [];
                 return str.match(/\S+|\s+/g) || [];
+            },
+
+            _splitChunks(str) {
+                if (!str) return [];
+                return str.split(/(?<=[.!?;])\s+/).filter(p => p.length > 0);
             },
 
             _lcs(a, b) {
@@ -249,28 +278,71 @@
                 return { matchA, matchB };
             },
 
-            diffOld(oldVal, newVal) {
-                if (!oldVal) return '<span class="italic opacity-50">(empty)</span>';
-                if (!newVal) return this._esc(oldVal);
-                const a = this._tokenize(oldVal), b = this._tokenize(newVal);
-                const { matchA } = this._lcs(a, b);
-                return a.map((tok, idx) => {
-                    if (/^\s+$/.test(tok)) return tok;
-                    return matchA.has(idx) ? this._esc(tok)
-                        : '<span class="diff-del">' + this._esc(tok) + '</span>';
-                }).join('');
+            _lcsChunks(a, b) {
+                const m = a.length, n = b.length;
+                const dp = Array.from({length: m + 1}, () => new Uint16Array(n + 1));
+                for (let i = 1; i <= m; i++)
+                    for (let j = 1; j <= n; j++)
+                        dp[i][j] = a[i-1] === b[j-1] ? dp[i-1][j-1] + 1 : Math.max(dp[i-1][j], dp[i][j-1]);
+                const matchA = new Set(), matchB = new Set();
+                let i = m, j = n;
+                while (i > 0 && j > 0) {
+                    if (a[i-1] === b[j-1]) { matchA.add(i-1); matchB.add(j-1); i--; j--; }
+                    else if (dp[i-1][j] > dp[i][j-1]) i--;
+                    else j--;
+                }
+                return { matchA, matchB };
             },
 
-            diffNew(oldVal, newVal) {
-                if (!newVal) return '<span class="italic opacity-50">(empty)</span>';
-                if (!oldVal) return this._esc(newVal);
+            _wordDiffSide(oldVal, newVal, side) {
                 const a = this._tokenize(oldVal), b = this._tokenize(newVal);
-                const { matchB } = this._lcs(a, b);
+                const { matchA, matchB } = this._lcs(a, b);
+                if (side === 'old') {
+                    return a.map((tok, idx) => {
+                        if (/^\s+$/.test(tok)) return tok;
+                        return matchA.has(idx) ? this._esc(tok)
+                            : '<span class="diff-removed">' + this._esc(tok) + '</span>';
+                    }).join('');
+                }
                 return b.map((tok, idx) => {
                     if (/^\s+$/.test(tok)) return tok;
                     return matchB.has(idx) ? this._esc(tok)
-                        : '<span class="diff-add">' + this._esc(tok) + '</span>';
+                        : '<span class="diff-added">' + this._esc(tok) + '</span>';
                 }).join('');
+            },
+
+            diffOld(oldVal, newVal) {
+                if (!oldVal) return '<span class="italic opacity-50">empty</span>';
+                if (!newVal) {
+                    return '<span class="diff-removed-block">' + this._esc(oldVal) + '</span>';
+                }
+                const a = this._splitChunks(oldVal), b = this._splitChunks(newVal);
+                if (a.length <= 1 && b.length <= 1) {
+                    return this._wordDiffSide(oldVal, newVal, 'old');
+                }
+                const { matchA } = this._lcsChunks(a, b);
+                return a.map((sent, idx) => {
+                    const esc = this._esc(sent);
+                    return matchA.has(idx) ? esc
+                        : '<span class="diff-removed-block">' + esc + '</span>';
+                }).join(' ');
+            },
+
+            diffNew(oldVal, newVal) {
+                if (!newVal) return '<span class="italic opacity-50">empty</span>';
+                if (!oldVal) {
+                    return '<span class="diff-added-block">' + this._esc(newVal) + '</span>';
+                }
+                const a = this._splitChunks(oldVal), b = this._splitChunks(newVal);
+                if (a.length <= 1 && b.length <= 1) {
+                    return this._wordDiffSide(oldVal, newVal, 'new');
+                }
+                const { matchB } = this._lcsChunks(a, b);
+                return b.map((sent, idx) => {
+                    const esc = this._esc(sent);
+                    return matchB.has(idx) ? esc
+                        : '<span class="diff-added-block">' + esc + '</span>';
+                }).join(' ');
             },
 
             _esc(s) {
@@ -772,11 +844,13 @@
                         </div>
                     </div>
                     <div class="flex items-center gap-2">
-                        <!-- Badges -->
+                        <!-- Badges — reads "X of Y changes" so the user sees
+                             how many of the full editor surface (Y) actually
+                             moved at this event (X). -->
                         <template x-if="!changesLoading && changesData.length > 0">
                             <div class="flex items-center gap-1.5">
                                 <span class="px-2 py-1 bg-indigo-50 text-indigo-700 rounded-md text-[10px] font-bold">
-                                    <span x-text="changesData.length"></span> change<span x-show="changesData.length !== 1">s</span>
+                                    <span x-text="changesChangedCount"></span> of <span x-text="changesData.length"></span> change<span x-show="changesData.length !== 1">s</span>
                                 </span>
                                 <template x-if="changesData[0]?.version_num">
                                     <span class="px-2 py-1 bg-violet-50 text-violet-600 rounded-md text-[10px] font-bold">
@@ -792,17 +866,36 @@
                 </div>
             </div>
 
-            <!-- Column headers -->
+            <!-- Colour legend — matches the version-restore modal so both
+                 surfaces read the same way. Red = removed, green = added. -->
             <template x-if="!changesLoading && changesData.length > 0">
-                <div class="px-6 py-2.5 bg-gray-50 border-b border-gray-100 flex-shrink-0">
-                    <div class="grid grid-cols-[180px_1fr_1fr] gap-3 items-center">
+                <div class="px-6 py-2 bg-white border-b border-gray-100 text-[11px] text-gray-500 flex items-center gap-4 flex-wrap">
+                    <span class="flex items-center gap-1.5">
+                        <span class="inline-block px-1.5 py-0.5 text-[10px] font-bold diff-removed-block">Sentence</span>
+                        was removed
+                    </span>
+                    <span class="flex items-center gap-1.5">
+                        <span class="inline-block px-1.5 py-0.5 text-[10px] font-bold diff-added-block">Sentence</span>
+                        was added
+                    </span>
+                    <span class="text-gray-400">·</span>
+                    <span><em>empty</em> means the field had no value</span>
+                </div>
+            </template>
+
+            <!-- Column headers — bigger, centered, coloured titles. The value
+                 containers below stay neutral grey so all the colour comes
+                 from the inline sentence-level diff highlights. -->
+            <template x-if="!changesLoading && changesData.length > 0">
+                <div class="px-6 py-3 bg-gray-50 border-b border-gray-100 flex-shrink-0">
+                    <div class="grid grid-cols-[180px_minmax(0,1fr)_minmax(0,1fr)] gap-4 items-center">
                         <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Field</div>
-                        <div class="text-[10px] font-bold text-red-400 uppercase tracking-wider flex items-center gap-1">
-                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M20 12H4"/></svg>
+                        <div class="text-sm font-extrabold text-red-500 uppercase tracking-wider flex items-center justify-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20 12H4"/></svg>
                             Before
                         </div>
-                        <div class="text-[10px] font-bold text-emerald-500 uppercase tracking-wider flex items-center gap-1">
-                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
+                        <div class="text-sm font-extrabold text-emerald-600 uppercase tracking-wider flex items-center justify-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
                             After
                         </div>
                     </div>
@@ -825,33 +918,31 @@
                     </div>
                 </template>
 
-                <!-- Changes rows -->
+                <!-- Changes rows — flat grey value containers, no section
+                     pill under the field name. All colour comes from the
+                     inline sentence-level diff. Matches the version-restore
+                     compare modal in timeline_v2.html. -->
                 <template x-if="!changesLoading && changesData.length > 0">
                     <div class="divide-y divide-gray-100">
                         <template x-for="(change, ci) in changesData" :key="ci">
-                            <div class="px-6 py-4 hover:bg-gray-50/80 transition-colors group">
-                                <div class="grid grid-cols-[180px_1fr_1fr] gap-3 items-start">
+                            <div class="px-6 py-4 hover:bg-gray-50/40 transition-colors">
+                                <div class="grid grid-cols-[180px_minmax(0,1fr)_minmax(0,1fr)] gap-4 items-center">
 
-                                    <!-- Field name -->
-                                    <div class="pt-0.5">
-                                        <span class="text-[12px] font-bold text-gray-800 leading-tight block" x-text="change.field_name"></span>
-                                        <span class="text-[10px] text-gray-400 font-medium mt-0.5 block" x-text="change.section"></span>
+                                    <!-- Field name (no section badge — matches restore modal) -->
+                                    <div>
+                                        <p class="text-[13px] font-bold text-gray-900 leading-tight" x-text="change.field_name"></p>
                                     </div>
 
                                     <!-- Old (before) value -->
                                     <div class="min-w-0">
-                                        <div class="bg-red-50 border border-red-100 rounded-lg px-3 py-2.5 text-[12px] text-red-700 break-words max-h-32 overflow-y-auto leading-relaxed relative"
-                                             :class="change.old_value ? '' : 'italic text-red-300'">
-                                            <span x-html="diffOld(change.old_value, change.new_value)"></span>
-                                        </div>
+                                        <div class="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2.5 text-[13px] text-gray-700 break-words max-h-40 overflow-y-auto leading-relaxed"
+                                             x-html="diffOld(change.old_value, change.new_value)"></div>
                                     </div>
 
                                     <!-- New (after) value -->
                                     <div class="min-w-0">
-                                        <div class="bg-emerald-50 border border-emerald-100 rounded-lg px-3 py-2.5 text-[12px] text-emerald-800 break-words max-h-32 overflow-y-auto leading-relaxed"
-                                             :class="change.new_value ? '' : 'italic text-emerald-300'">
-                                            <span x-html="diffNew(change.old_value, change.new_value)"></span>
-                                        </div>
+                                        <div class="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2.5 text-[13px] text-gray-700 break-words max-h-40 overflow-y-auto leading-relaxed"
+                                             x-html="diffNew(change.old_value, change.new_value)"></div>
                                     </div>
 
                                 </div>
@@ -886,23 +977,36 @@
     .animate-fade-in-up {
         animation: fadeInUp 0.4s ease-out forwards;
     }
-    /* Word-level diff highlights */
-    .diff-del {
-        background: rgba(239, 68, 68, 0.15);
-        text-decoration: line-through;
-        text-decoration-color: rgba(239, 68, 68, 0.5);
-        border-radius: 2px;
-        padding: 0 2px;
+    /* Diff highlights — same scheme as the version-restore compare modal.
+       Two granularities: sentence-level (block) for prose, word-level for
+       short single-line fields. Containers are flat grey; all colour
+       comes from the inline highlights so changes stand out. */
+    .diff-removed-block, .diff-added-block {
+        border-radius: 4px;
+        padding: 2px 5px;
+        -webkit-box-decoration-break: clone;
+        box-decoration-break: clone;
     }
-    .diff-add {
-        background: rgba(16, 185, 129, 0.18);
-        text-decoration: underline;
-        text-decoration-color: rgba(16, 185, 129, 0.6);
-        text-decoration-thickness: 2px;
-        text-underline-offset: 2px;
+    .diff-removed-block {
+        background: rgba(239, 68, 68, 0.12);
+        color: rgb(153, 27, 27);
+    }
+    .diff-added-block {
+        background: rgba(16, 185, 129, 0.14);
+        color: rgb(6, 95, 70);
+    }
+    .diff-removed, .diff-added {
         border-radius: 2px;
-        padding: 0 2px;
+        padding: 0 3px;
         font-weight: 600;
+    }
+    .diff-removed {
+        background: rgba(239, 68, 68, 0.18);
+        color: rgb(185, 28, 28);
+    }
+    .diff-added {
+        background: rgba(16, 185, 129, 0.20);
+        color: rgb(4, 120, 87);
     }
 </style>
 {% endblock %}

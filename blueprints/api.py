@@ -22,8 +22,9 @@ from sqlalchemy.orm.attributes import flag_modified
 from model import db, Product, ProductVersion, FieldChangeLog, User, Job, ProductHistory
 from helpers import (
     get_current_username, save_version_snapshot,
-    _get_field_section, load_forbidden_words, save_forbidden_words,
-    load_recent_forbidden_hits, GLOBAL_CATEGORY_KEY, VALID_SEVERITIES,
+    _clean_field_name, _get_field_section,
+    load_forbidden_words, save_forbidden_words,
+    VALID_SEVERITIES,
     proforma_to_pis_data, extract_raw_text_from_files,
     set_product_category,
 )
@@ -906,18 +907,6 @@ def api_remove_forbidden_word():
     return _fw_json({'ok': True, 'words': fresh.get(category, [])})
 
 
-@api_bp.route('/api/forbidden_words/recent', methods=['GET'])
-def api_forbidden_words_recent_hits():
-    """Surface the top-N most frequently scrubbed words over the rolling
-    history window. Powers the "Recently Caught" panel in the manager UI."""
-    try:
-        limit = int(request.args.get('limit', 10))
-    except ValueError:
-        limit = 10
-    limit = max(1, min(limit, 50))
-    return _fw_json({'hits': load_recent_forbidden_hits(limit=limit)})
-
-
 # ── VERSION HISTORY ───────────────────────────────────────────────────────────
 
 @api_bp.route('/api/product/<int:product_id>/versions')
@@ -972,6 +961,163 @@ def api_restore_version(product_id, version_id):
 
 # ── PHASE 3: read-only preview at a past version ─────────────────────────────
 
+def _build_phase_diff(before_data, after_data, after_stage=None):
+    """Phase-aware field-by-field diff between two product snapshots.
+
+    `before_data` and `after_data` are dicts shaped like
+    `{'pis_data': {...}, 'spec_data': {...}, ...}` — the same shape
+    returned by `reconstruct_version_data` and exposed on `Product`.
+    `after_stage` is the workflow_stage of the "after" snapshot and
+    chooses the PIS vs SpecSheet whitelist; unknown stages fall through
+    to PIS so we never silently hide every field.
+
+    Returns `(fields, phase, changed_count)` where each entry in
+    `fields` is `{path, field_name, section, current_value,
+    target_value, changed}` in editor reading order. Both endpoints
+    (`/compare` and `/changes_at`) share this so the version-restore
+    modal and the history-event popup always agree on which fields
+    matter, how they're labelled, and what order they appear in.
+    """
+    from helpers import _clean_field_name, _format_value, _get_field_section
+
+    fields: list[dict] = []
+    seen_paths: set[str] = set()
+
+    def _push(path, cur_val, tgt_val):
+        if path in seen_paths:
+            return
+        seen_paths.add(path)
+        last_seg = path.split('.')[-1]
+        if last_seg.startswith('_'):
+            return
+        name = _clean_field_name(path)
+        section = _get_field_section(name)
+        cur_str = _format_value(cur_val)
+        tgt_str = _format_value(tgt_val)
+        if not cur_str and not tgt_str:
+            return
+        fields.append({
+            'path': path,
+            'field_name': name,
+            'section': section,
+            'current_value': cur_str,
+            'target_value':  tgt_str,
+            'changed': (cur_str or '') != (tgt_str or ''),
+        })
+
+    def _walk(prefix, cur, tgt):
+        if isinstance(cur, dict) or isinstance(tgt, dict):
+            cur_d = cur if isinstance(cur, dict) else {}
+            tgt_d = tgt if isinstance(tgt, dict) else {}
+            for key in sorted(set(list(cur_d.keys()) + list(tgt_d.keys()))):
+                path = f"{prefix}.{key}" if prefix else key
+                _walk(path, cur_d.get(key), tgt_d.get(key))
+            return
+        _push(prefix, cur, tgt)
+
+    _walk('pis_data',  (before_data or {}).get('pis_data')  or {}, (after_data or {}).get('pis_data')  or {})
+    _walk('spec_data', (before_data or {}).get('spec_data') or {}, (after_data or {}).get('spec_data') or {})
+
+    SPEC_PHASE_STAGES = {
+        'ready_for_web', 'specsheet_draft', 'pending_director_spec',
+        'web_changes_requested', 'finalized',
+    }
+    PIS_ALLOW_EXACT = {
+        'pis_data.header_info.product_name',
+        'pis_data.header_info.model_number',
+        'pis_data.header_info.brand',
+        'pis_data.header_info.price_estimate',
+        'pis_data.range_overview',
+        'pis_data.sales_arguments',
+    }
+    PIS_ALLOW_PREFIX = (
+        'pis_data.technical_specifications.',
+        'pis_data.warranty_service.',
+        'pis_data.warranty.',
+    )
+    SPEC_ALLOW_EXACT = {
+        'spec_data.header_info.product_name',
+        'spec_data.header_info.model_number',
+        'spec_data.header_info.brand',
+        'spec_data.header_info.price_estimate',
+        'spec_data.customer_friendly_description',
+        'spec_data.key_features',
+        'spec_data.seo.meta_title',
+        'spec_data.seo.meta_description',
+        'spec_data.seo.keywords',
+        'spec_data.seo_data.meta_title',
+        'spec_data.seo_data.meta_description',
+        'spec_data.seo_data.generated_keywords',
+        'spec_data.categories.category_1',
+        'spec_data.categories.category_2',
+        'spec_data.categories.category_3',
+    }
+    SPEC_ALLOW_PREFIX = (
+        'spec_data.technical_specifications.',
+        'spec_data.warranty_service.',
+        'spec_data.warranty.',
+    )
+
+    if after_stage in SPEC_PHASE_STAGES:
+        allow_exact, allow_prefix = SPEC_ALLOW_EXACT, SPEC_ALLOW_PREFIX
+        phase = 'specsheet'
+    else:
+        allow_exact, allow_prefix = PIS_ALLOW_EXACT, PIS_ALLOW_PREFIX
+        phase = 'pis'
+
+    def _is_visible(path: str) -> bool:
+        if path in allow_exact:
+            return True
+        return any(path.startswith(p) for p in allow_prefix)
+
+    fields = [f for f in fields if _is_visible(f['path'])]
+
+    deduped: list[dict] = []
+    by_label: dict[tuple[str, str], int] = {}
+    for f in fields:
+        key = (f['field_name'], f['section'])
+        if key not in by_label:
+            by_label[key] = len(deduped)
+            deduped.append(f)
+        else:
+            existing_idx = by_label[key]
+            existing = deduped[existing_idx]
+            if f['path'].startswith('spec_data') and existing['path'].startswith('pis_data'):
+                deduped[existing_idx] = f
+
+    PIS_SECTION_BUCKET = {
+        'Header': 0, 'Description': 1, 'Sales': 2,
+        'Specs': 3, 'Warranty': 4,
+    }
+    SPEC_SECTION_BUCKET = {
+        'Header': 0, 'Description': 1, 'Key Features': 2,
+        'SEO': 3, 'Classification': 4,
+        'Specs': 5, 'Warranty': 6,
+    }
+    EXPLICIT_NAME_ORDER = [
+        'Product Name', 'Model Number', 'Brand', 'Price Estimate',
+        'Description',
+        'Short Description', 'Refined Description',
+        'Key Selling Points', 'Key Features',
+        'Meta Title', 'Meta Description', 'SEO Keywords', 'Web Keywords',
+        'Category A', 'Category B', 'Category C',
+        'Warranty Period', 'Warranty Coverage',
+    ]
+    section_bucket = SPEC_SECTION_BUCKET if phase == 'specsheet' else PIS_SECTION_BUCKET
+
+    def _sort_key(f):
+        bucket = section_bucket.get(f['section'], 99)
+        if f['field_name'] in EXPLICIT_NAME_ORDER:
+            sub_priority = (0, EXPLICIT_NAME_ORDER.index(f['field_name']))
+        else:
+            sub_priority = (1, f['field_name'].lower())
+        return (bucket, sub_priority)
+
+    deduped.sort(key=_sort_key)
+    changed_count = sum(1 for f in deduped if f.get('changed'))
+    return deduped, phase, changed_count
+
+
 @api_bp.route('/api/product/<int:product_id>/versions/<int:version_id>/compare')
 def api_compare_version(product_id, version_id):
     """Diff CURRENT product data against a past version. Returns a flat
@@ -989,56 +1135,25 @@ def api_compare_version(product_id, version_id):
     if target is None:
         return jsonify({"error": "Could not reconstruct version data"}), 500
 
-    from helpers import _clean_field_name, _format_value, _get_field_section
-
-    fields: list[dict] = []
-    seen_paths: set[str] = set()
-
-    def _push(path, cur_val, tgt_val):
-        if path in seen_paths:
-            return
-        seen_paths.add(path)
-        # Skip internal keys (prefixed with _) so the UI doesn't show
-        # noise like `_field_origins`, `_bulk_*`, `_price_meta`, etc.
-        last_seg = path.split('.')[-1]
-        if last_seg.startswith('_'):
-            return
-        name = _clean_field_name(path)
-        section = _get_field_section(name)
-        cur_str = _format_value(cur_val)
-        tgt_str = _format_value(tgt_val)
-        if (cur_str or '') == (tgt_str or ''):
-            return  # normalised form is identical → not a real diff
-        fields.append({
-            'path': path,
-            'field_name': name,
-            'section': section,
-            'current_value': cur_str,
-            'target_value':  tgt_str,
-        })
-
-    def _walk(prefix, cur, tgt):
-        if isinstance(cur, dict) or isinstance(tgt, dict):
-            cur_d = cur if isinstance(cur, dict) else {}
-            tgt_d = tgt if isinstance(tgt, dict) else {}
-            for key in sorted(set(list(cur_d.keys()) + list(tgt_d.keys()))):
-                path = f"{prefix}.{key}" if prefix else key
-                _walk(path, cur_d.get(key), tgt_d.get(key))
-            return
-        if cur != tgt:
-            _push(prefix, cur, tgt)
-
-    _walk('pis_data',  product.pis_data or {},  target.get('pis_data') or {})
-    _walk('spec_data', product.spec_data or {}, target.get('spec_data') or {})
+    # The compare modal reads as "live → past version" — left column is
+    # the user's CURRENT live state, right column is what they'd land on
+    # if they restored. The helper outputs current_value/target_value
+    # keys that map directly to those columns.
+    before_data = {'pis_data': product.pis_data, 'spec_data': product.spec_data}
+    deduped, phase, changed_count = _build_phase_diff(
+        before_data, target, after_stage=target.get('workflow_stage')
+    )
 
     return jsonify({
         'version_num': version.version_num,
         'label':       version.label,
         'is_major':    version.is_major,
         'workflow_stage': target.get('workflow_stage'),
+        'phase':       phase,
+        'changed_count': changed_count,
         'created_at':  version.created_at.strftime('%d %b %Y, %H:%M') if version.created_at else None,
         'created_by':  version.created_by.display_name if version.created_by else 'System',
-        'fields':      fields,
+        'fields':      deduped,
     })
 
 
@@ -1259,8 +1374,13 @@ def api_product_timeline(product_id):
 def api_product_changelog(product_id):
     changes = FieldChangeLog.query.filter_by(product_id=product_id).order_by(FieldChangeLog.timestamp.desc()).limit(100).all()
     result = [{
-        "id": c.id, "field_name": c.field_name,
-        "section": _get_field_section(c.field_name) if c.field_name else 'Other',
+        "id": c.id,
+        # Translate the raw dotted path (e.g. `pis_data.range_overview`) into
+        # the same user-facing label shown in the marketing/web editors
+        # (e.g. "Description"). Falls back to the raw key for fields that
+        # aren't mapped in FIELD_LABELS.
+        "field_name": _clean_field_name(c.field_name) if c.field_name else c.field_name,
+        "section": _get_field_section(_clean_field_name(c.field_name)) if c.field_name else 'Other',
         "old_value": c.old_value, "new_value": c.new_value,
         "version_num": c.version_num,
         "user": c.user.display_name if c.user else "System",
@@ -1271,29 +1391,77 @@ def api_product_changelog(product_id):
 
 @api_bp.route('/api/product/<int:product_id>/changes_at')
 def api_product_changes_at(product_id):
+    """Full editor surface at a past event in time.
+
+    Pinpoints the ProductVersion that captured the event (via the
+    FieldChangeLog rows logged within a 2-minute window of the
+    requested timestamp), then reconstructs THAT version as the
+    "after" state and `version_num - 1` as the "before". Walks both
+    via `_build_phase_diff` so the popup shows the same full editor
+    surface — every Header / Description / Sales (or Short Desc / Key
+    Features / SEO / Classification) / Spec / Warranty field — that
+    the version-restore modal shows, with changed values highlighted
+    and unchanged values rendered as plain context.
+    """
     ts_str = request.args.get('date', '')
     tm_str = request.args.get('time', '')
     if not ts_str or not tm_str:
-        return jsonify([]), 400
+        return jsonify({'fields': [], 'changed_count': 0}), 400
     try:
         target_dt = datetime.strptime(f"{ts_str} {tm_str}", '%Y-%m-%d %H:%M')
     except ValueError:
-        return jsonify([]), 400
+        return jsonify({'fields': [], 'changed_count': 0}), 400
+
     window = timedelta(seconds=120)
     changes = FieldChangeLog.query.filter(
         FieldChangeLog.product_id == product_id,
         FieldChangeLog.timestamp >= target_dt - window,
         FieldChangeLog.timestamp <= target_dt + window
     ).order_by(FieldChangeLog.timestamp.asc()).all()
-    result = [{
-        "field_name": c.field_name,
-        "section": _get_field_section(c.field_name) if c.field_name else 'Other',
-        "old_value": c.old_value, "new_value": c.new_value,
-        "version_num": c.version_num,
-        "user": c.user.display_name if c.user else "System",
-        "timestamp": c.timestamp.strftime('%d %b %Y, %H:%M')
-    } for c in changes]
-    return jsonify(result)
+    if not changes:
+        return jsonify({'fields': [], 'changed_count': 0, 'version_num': None})
+
+    # All rows in this window belong to the same workflow action and
+    # therefore the same version_num. Take the first non-null one.
+    version_num = next((c.version_num for c in changes if c.version_num), None)
+    if not version_num:
+        return jsonify({'fields': [], 'changed_count': 0, 'version_num': None})
+
+    from utils.version_reconstruction import reconstruct_version_data
+    after = reconstruct_version_data(product_id, version_num)
+    if after is None:
+        return jsonify({'fields': [], 'changed_count': 0, 'version_num': version_num})
+
+    # `before` = the state immediately prior to this event. For v1 there
+    # is no predecessor, so we treat "before" as an empty product.
+    before = (reconstruct_version_data(product_id, version_num - 1)
+              if version_num > 1 else None) or {'pis_data': {}, 'spec_data': {}}
+
+    fields, phase, changed_count = _build_phase_diff(
+        before, after, after_stage=after.get('workflow_stage')
+    )
+
+    # The history popup's UI uses `old_value` / `new_value`; the
+    # compare popup uses `current_value` / `target_value`. Same data,
+    # different historical naming — translate at the boundary so
+    # neither UI has to change for the other.
+    rows = [{
+        'field_name':   f['field_name'],
+        'section':      f['section'],
+        'old_value':    f['current_value'],
+        'new_value':    f['target_value'],
+        'changed':      f['changed'],
+        'version_num':  version_num,
+    } for f in fields]
+
+    return jsonify({
+        'fields':        rows,
+        'changed_count': changed_count,
+        'phase':         phase,
+        'version_num':   version_num,
+        'user':          changes[0].user.display_name if changes[0].user else 'System',
+        'timestamp':     changes[0].timestamp.strftime('%d %b %Y, %H:%M'),
+    })
 
 
 # ── IMAGE HEALTH CHECK ────────────────────────────────────────────────────────
