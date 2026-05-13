@@ -8,10 +8,11 @@ import re
 import json
 import copy
 import time
+from typing import Iterator
 
 from flask import (
     Blueprint, session, redirect, url_for, render_template,
-    request, Response, stream_with_context, current_app
+    request, Response, stream_with_context, current_app, jsonify
 )
 from werkzeug.utils import secure_filename
 from sqlalchemy.orm.attributes import flag_modified
@@ -19,10 +20,22 @@ from sqlalchemy.orm.attributes import flag_modified
 from model import db, Product, ProductVersion
 from helpers import (
     get_current_username, save_version_snapshot,
-    _diff_and_log_changes, load_forbidden_words,
+    _diff_and_log_changes,
+    get_forbidden_words_for_category,
+    get_product_category, set_product_category,
+    get_product_category_label, CATEGORY_UNCATEGORISED,
 )
+
+
+def _format_hits_summary(hits):
+    """Compact human-readable summary of a scrub-hits dict for the history
+    log. Example: `{"experience": 3, "discover": 1}` → "experience×3, discover×1"."""
+    if not hits:
+        return ''
+    pairs = sorted(hits.items(), key=lambda kv: kv[1], reverse=True)
+    return ', '.join(f'{w}×{c}' for w, c in pairs[:8])
 from utils.history import log_event
-from utils.ai_generation import generate_comprehensive_spec_data
+from utils.ai_generation import generate_comprehensive_spec_data, regenerate_seo_only
 from extensions import limiter
 
 web_bp = Blueprint('web', __name__)
@@ -35,6 +48,10 @@ def dashboard_web():
     if session.get('role') != 'web':
         return redirect(url_for('auth.login'))
 
+    # Order by `last_edited_at` — bumped on every UPDATE so autosaves,
+    # SpecSheet edits, director approvals, and stage transitions all
+    # surface the task to the top. Fallback to created_at for any row
+    # where the column is NULL.
     tasks = (
         Product.query
         .filter(Product.workflow_stage.in_([
@@ -42,7 +59,9 @@ def dashboard_web():
             'specsheet_draft', 'pending_director_spec', 'finalized'
         ]))
         .filter(Product.deleted_at.is_(None))
-        .order_by(Product.created_at.desc())
+        .order_by(
+            db.func.coalesce(Product.last_edited_at, Product.created_at).desc()
+        )
         .all()
     )
 
@@ -53,6 +72,7 @@ def dashboard_web():
         "image": _image_url(p),
         "date": p.created_at.strftime("%d %b"),
         "stage": p.workflow_stage,
+        "category": get_product_category_label(p),
         "action_url": url_for("web.create_specsheet", product_id=p.id)
     } for p in tasks]
 
@@ -64,15 +84,31 @@ def dashboard_web():
         "approved":           sum(1 for p in tasks if p.workflow_stage == "finalized"),
         "in_process":         sum(1 for p in tasks if p.workflow_stage == "specsheet_draft"),
     }
-    return render_template("dashboard_web.html", tasks=tasks, products_json=products_json, metrics=metrics)
+
+    # Filter dropdown options — only categories actually present in the
+    # current task list. "Uncategorised" pinned last (alphabetical otherwise).
+    available_categories = sorted({p["category"] for p in products_json} - {CATEGORY_UNCATEGORISED})
+    if any(p["category"] == CATEGORY_UNCATEGORISED for p in products_json):
+        available_categories.append(CATEGORY_UNCATEGORISED)
+
+    return render_template(
+        "dashboard_web.html",
+        tasks=tasks, products_json=products_json, metrics=metrics,
+        available_categories=available_categories,
+        uncategorised_label=CATEGORY_UNCATEGORISED,
+    )
 
 
 @web_bp.route('/dashboard/web/archive')
 def web_archive():
     if session.get('role') != 'web':
         return redirect(url_for('auth.login'))
-    finalized = Product.query.filter_by(workflow_stage='finalized').filter(Product.deleted_at.is_(None)).order_by(Product.created_at.desc()).all()
-    return render_template('archive_web.html', products=finalized)
+    approved_stages = ['finalized', 'ready_for_web', 'specsheet_draft', 'pending_director_spec', 'web_changes_requested']
+    archived_products = Product.query.filter(
+        Product.workflow_stage.in_(approved_stages),
+        Product.deleted_at.is_(None)
+    ).order_by(Product.created_at.desc()).all()
+    return render_template('archive_web.html', products=archived_products)
 
 
 @web_bp.route('/dashboard/web/forbidden-words')
@@ -152,10 +188,11 @@ def create_specsheet(product_id):
         if cat2 == '__custom__': cat2 = request.form.get('category_2_custom', '').strip()
         if cat3 == '__custom__': cat3 = request.form.get('category_3_custom', '').strip()
         if cat1:
-            spec_data.setdefault('categories', {})
-            spec_data['categories']['category_1'] = cat1
-            spec_data['categories']['category_2'] = cat2
-            spec_data['categories']['category_3'] = cat3
+            # Canonical write — the helper updates Product.category_1/2/3 and
+            # mirrors to spec_data.categories so legacy readers keep working.
+            product.spec_data = spec_data
+            set_product_category(product, cat1, cat2, cat3)
+            spec_data = product.spec_data  # re-read after mirror
 
         tech_specs_json = request.form.get('technical_specifications')
         if tech_specs_json:
@@ -198,6 +235,25 @@ def create_specsheet(product_id):
 
 
 # ── DOWNLOADS ─────────────────────────────────────────────────────────────────
+
+@web_bp.route('/preview_specsheet_html/<int:product_id>')
+def preview_specsheet_html(product_id):
+    """Inline HTML preview of the SpecSheet using the same `specsheet_pdf.html`
+    template the PDF download uses. The Edit SpecSheet page embeds this in an
+    iframe and cache-busts it after each Save Draft so reviewers see exactly
+    what the printed PDF will look like — without spinning up Playwright."""
+    from datetime import datetime
+    product = Product.query.get_or_404(product_id)
+    all_images_b64 = _load_images_b64(product)
+    return render_template(
+        'specsheet_pdf.html',
+        data=product.pis_data,
+        spec_data=product.spec_data or {},
+        product=product,
+        all_images_b64=all_images_b64,
+        date_generated=datetime.now().strftime("%Y-%m-%d"),
+    )
+
 
 @web_bp.route('/download_specsheet/<int:product_id>')
 def download_specsheet(product_id):
@@ -362,14 +418,52 @@ def download_specsheet_csv(product_id):
 
 # ── AI REGENERATION ───────────────────────────────────────────────────────────
 
+@web_bp.route('/api/product/<int:product_id>/regenerate_seo', methods=['POST'])
+@limiter.limit("10 per minute")
+def api_regenerate_seo(product_id):
+    """Regenerate ONLY the SEO metadata (meta_title, meta_description, keywords)
+    for an existing SpecSheet — leaves customer_friendly_description, key_features,
+    and categories untouched. Used by the "Regenerate SEO" button in the editor.
+
+    Returns the freshly generated SEO block as JSON so the frontend can drop it
+    straight into the form fields without a full page reload. The DB is also
+    updated so the live-preview iframe picks up the change.
+    """
+    if session.get('role') != 'web':
+        return jsonify({'error': 'unauthorized'}), 403
+    product = Product.query.get_or_404(product_id)
+
+    spec_data = product.spec_data or {}
+    # Apply the same per-category forbidden-word guard the full SpecSheet
+    # generator uses so the regenerated SEO block can't reintroduce blocked
+    # terms (issue #5 from the redesign audit).
+    cat_3 = get_product_category(product)['category_3'] or None
+    fw_entries = get_forbidden_words_for_category(cat_3)
+
+    new_seo = regenerate_seo_only(product.pis_data, spec_data, forbidden_words=fw_entries)
+
+    spec_data['seo'] = new_seo
+    product.spec_data = spec_data
+    flag_modified(product, 'spec_data')
+    try:
+        db.session.commit()
+        log_event(product.id, get_current_username(), 'SEO Regenerated',
+                  'AI regenerated meta title, description and keywords.', 'neutral')
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': f'save failed: {e}'}), 500
+
+    return jsonify({'status': 'success', 'seo': new_seo})
+
+
 @web_bp.route('/api/generate_specsheet/<int:product_id>', methods=['POST'])
 @limiter.limit("5 per minute")
 def api_generate_specsheet(product_id):
     product = Product.query.get_or_404(product_id)
     is_rework = request.args.get('rework') == '1'
-    _app = current_app._get_current_object()
+    _app = current_app._get_current_object()  # type: ignore[attr-defined]
 
-    def generate():
+    def generate() -> Iterator[str]:
         if is_rework:
             yield json.dumps({"progress": 10, "message": "Loading forbidden words..."}) + "\n"
             time.sleep(0.3)
@@ -380,34 +474,64 @@ def api_generate_specsheet(product_id):
         yield json.dumps({"progress": 50, "message": "Rewriting Customer Content..."}) + "\n"
 
         try:
-            all_fw = load_forbidden_words()
-            combined_forbidden = list(set(w for words in all_fw.values() for w in words))
-            if is_rework and combined_forbidden:
-                yield json.dumps({"progress": 55, "message": f"Enforcing {len(combined_forbidden)} forbidden words..."}) + "\n"
+            # Resolve the product's canonical category — used both to filter
+            # forbidden-word rules and to pass directly to the spec generator
+            # so it doesn't re-run the AI classifier.
+            canonical_cat = get_product_category(product)
+            cat_3 = canonical_cat['category_3'] or None
+            forbidden_entries = get_forbidden_words_for_category(cat_3)
 
-            spec_data = generate_comprehensive_spec_data(product.pis_data, forbidden_words=combined_forbidden)
+            if is_rework and forbidden_entries:
+                yield json.dumps({"progress": 55, "message": f"Enforcing {len(forbidden_entries)} forbidden words..."}) + "\n"
+
+            spec_data = generate_comprehensive_spec_data(
+                product.pis_data,
+                forbidden_words=forbidden_entries,
+                categories=canonical_cat if canonical_cat['category_1'] else None,
+            )
+            # Pop the scrub-hits sentinel BEFORE we persist — it's a transient
+            # log signal, not part of the SpecSheet payload.
+            scrub_hits = spec_data.pop('_forbidden_hits', {}) if isinstance(spec_data, dict) else {}
             yield json.dumps({"progress": 80, "message": "Optimizing SEO Metadata..."}) + "\n"
 
             with _app.app_context():
                 p = Product.query.get(product_id)
+                if p is None:
+                    yield json.dumps({"error": "Product not found"}) + "\n"
+                    return
                 p.spec_data = spec_data
                 p.workflow_stage = 'specsheet_draft'
                 flag_modified(p, 'spec_data')
+                # If the spec generator fell back to AI classification
+                # (product had no canonical category yet), promote that
+                # result into the canonical column. Re-syncs the mirror too.
+                if not p.category_1:
+                    gen_cats = (spec_data.get('categories') or {}) if isinstance(spec_data, dict) else {}
+                    if gen_cats.get('category_1'):
+                        set_product_category(p,
+                            gen_cats.get('category_1', ''),
+                            gen_cats.get('category_2', ''),
+                            gen_cats.get('category_3', ''))
                 save_version_snapshot(p, label='SpecSheet regenerated' if is_rework else 'SpecSheet auto-generated', is_major=True)
                 db.session.commit()
+                hits_summary = _format_hits_summary(scrub_hits)
                 if is_rework:
-                    log_event(p.id, get_current_username(), 'SpecSheet Regenerated',
-                              f'The system regenerated content ({len(combined_forbidden)} restricted terms applied).', 'neutral')
+                    msg = f'The system regenerated content ({len(forbidden_entries)} restricted terms applied).'
+                    if hits_summary:
+                        msg += f' Caught: {hits_summary}.'
+                    log_event(p.id, get_current_username(), 'SpecSheet Regenerated', msg, 'neutral')
                 else:
-                    log_event(p.id, 'System', 'SpecSheet Auto-Generated',
-                              'The system automatically created customer-facing product descriptions and SEO keywords.', 'neutral')
+                    msg = 'The system automatically created customer-facing product descriptions and SEO keywords.'
+                    if hits_summary:
+                        msg += f' Forbidden terms caught: {hits_summary}.'
+                    log_event(p.id, 'System', 'SpecSheet Auto-Generated', msg, 'neutral')
 
             yield json.dumps({"progress": 100, "message": "Generation Complete!", "redirect": url_for('web.create_specsheet', product_id=product.id)}) + "\n"
         except Exception as e:
             print(f"SpecSheet gen error: {e}")
             yield json.dumps({"error": "AI Generation Failed. Please try again."}) + "\n"
 
-    return Response(stream_with_context(generate()), mimetype='application/x-ndjson')
+    return Response(stream_with_context(generate()), mimetype='application/x-ndjson')  # type: ignore[arg-type]
 
 
 # ── PRIVATE HELPERS ───────────────────────────────────────────────────────────

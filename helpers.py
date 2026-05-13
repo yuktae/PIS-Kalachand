@@ -446,6 +446,153 @@ def _diff_and_log_changes(product_id, old_data, new_data, prefix=''):
     _recurse(old_data, new_data, prefix)
 
 
+# ================= UNIFIED PRODUCT CATEGORY =================
+#
+# Single source of truth: the Product.category_1/2/3 columns. Reads fall back
+# to the legacy JSON locations so products written before the schema migration
+# still resolve. Writes update the canonical columns AND mirror to the legacy
+# locations so any reader not yet switched to the helper keeps working.
+#
+# Once every reader/writer has been migrated, the mirror can be dropped
+# (Phase F) — set_product_category(..., mirror_to_json=False).
+
+CATEGORY_UNCATEGORISED = 'Uncategorised'
+
+
+def get_product_category(product):
+    """Return the canonical category for a product.
+
+    Resolution order:
+      1. Product.category_1/2/3 columns (canonical, post-migration)
+      2. spec_data.categories            (legacy web-confirmed)
+      3. pis_data.category_data          (legacy AI-assigned)
+      4. None — surfaced as `source='uncategorised'` so callers can bucket
+         these products without a special case for empty fields.
+
+    Returns a dict so the same shape can feed templates, dashboards, and
+    the SpecSheet generator without each call site duplicating fallback
+    logic. `source` is informational — useful for debugging during the
+    migration but never user-visible.
+    """
+    if product is None:
+        return _empty_category()
+
+    # 1. Canonical columns
+    if getattr(product, 'category_1', None):
+        return {
+            'category_1':           product.category_1,
+            'category_2':           product.category_2 or '',
+            'category_3':           product.category_3 or '',
+            'magento_category_id':  getattr(product, 'magento_category_id', None),
+            'source':               'canonical',
+        }
+
+    # 2. Legacy spec_data.categories (web-confirmed wins over AI guess)
+    spec = getattr(product, 'spec_data', None)
+    if isinstance(spec, dict):
+        cats = spec.get('categories') or {}
+        if isinstance(cats, dict) and (cats.get('category_1') or '').strip():
+            return {
+                'category_1':           (cats.get('category_1') or '').strip(),
+                'category_2':           (cats.get('category_2') or '').strip(),
+                'category_3':           (cats.get('category_3') or '').strip(),
+                'magento_category_id':  None,
+                'source':               'spec_data',
+            }
+
+    # 3. Legacy pis_data.category_data (AI-assigned at bulk enrichment)
+    pis = getattr(product, 'pis_data', None)
+    if isinstance(pis, dict):
+        cats = pis.get('category_data') or {}
+        if isinstance(cats, dict) and (cats.get('category_1') or '').strip():
+            return {
+                'category_1':           (cats.get('category_1') or '').strip(),
+                'category_2':           (cats.get('category_2') or '').strip(),
+                'category_3':           (cats.get('category_3') or '').strip(),
+                'magento_category_id':  None,
+                'source':               'pis_data',
+            }
+
+    return _empty_category()
+
+
+def _empty_category():
+    return {
+        'category_1':           '',
+        'category_2':           '',
+        'category_3':           '',
+        'magento_category_id':  None,
+        'source':               'uncategorised',
+    }
+
+
+def get_product_category_label(product):
+    """Convenience for UI: returns the top-level category name or the
+    'Uncategorised' bucket label. Used by dashboard filters where the
+    fallback chain has to collapse to one filterable string."""
+    cat = get_product_category(product)
+    return cat['category_1'] or CATEGORY_UNCATEGORISED
+
+
+def set_product_category(product, category_1, category_2='', category_3='',
+                         magento_id=None, *, mirror_to_json=True):
+    """Write the canonical category for a product.
+
+    Always updates Product.category_1/2/3 (and magento_category_id, looked
+    up from the Magento taxonomy if not provided). With `mirror_to_json=True`
+    (default during the transition) also writes the legacy
+    `spec_data.categories` and `pis_data.category_data` shapes so any code
+    still reading from those keeps working.
+
+    Empty strings are stored as NULL — that's what `get_product_category`
+    treats as "uncategorised" and what the filter dropdown buckets together.
+
+    No commit — caller controls the transaction boundary."""
+    c1 = (category_1 or '').strip() or None
+    c2 = (category_2 or '').strip() or None
+    c3 = (category_3 or '').strip() or None
+
+    product.category_1 = c1
+    product.category_2 = c2
+    product.category_3 = c3
+
+    # Resolve Magento ID against the live taxonomy when not supplied. This
+    # is best-effort: if Magento is unreachable or the path doesn't exist
+    # upstream (e.g. the AI invented a custom category) we just leave the
+    # ID NULL so the names still display.
+    if magento_id is None and c1:
+        try:
+            from utils.magento_api import get_category_ids_for_path
+            magento_id = get_category_ids_for_path(c1, c2 or '', c3 or '')
+        except Exception:
+            magento_id = None
+    product.magento_category_id = magento_id
+
+    if not mirror_to_json:
+        return
+
+    # ── Mirror to legacy JSON locations ───────────────────────────────────
+    # Keeps every reader that still consults spec_data.categories or
+    # pis_data.category_data in sync with the canonical columns until those
+    # readers are switched in Phase D / Phase F removes this mirror.
+    if not isinstance(product.spec_data, dict):
+        product.spec_data = {}
+    product.spec_data.setdefault('categories', {})
+    product.spec_data['categories']['category_1'] = c1 or ''
+    product.spec_data['categories']['category_2'] = c2 or ''
+    product.spec_data['categories']['category_3'] = c3 or ''
+    flag_modified(product, 'spec_data')
+
+    if not isinstance(product.pis_data, dict):
+        product.pis_data = {}
+    product.pis_data['category_data'] = {
+        'category_1': c1 or '',
+        'category_2': c2 or '',
+        'category_3': c3 or '',
+    }
+    flag_modified(product, 'pis_data')
+
+
 # ================= PIS DATA NORMALIZATION =================
 
 def normalize_pis_data(data):
@@ -807,25 +954,189 @@ def classify_flat_pis_origins(pis_data: dict, raw_text: str | None) -> tuple[dic
 
 
 # ================= FORBIDDEN WORDS =================
+#
+# Storage shape on disk: { "<category>": [entry, ...], ..., "__global__": [...] }
+#
+# Each entry is either:
+#   (legacy)  "experience"                       — auto-coerced on read
+#   (current) { "word": "experience",
+#               "replace_with": "feature",       — optional, empty == delete
+#               "severity": "block" | "warn",    — defaults to "block"
+#               "reason": "SEO filler",          — optional, ≤80 chars
+#               "added_by": "Alice Wang",        — optional metadata
+#               "added_at": "2026-05-12T..." }   — ISO-8601 UTC
+#
+# The reserved category key "__global__" applies to every product regardless
+# of its Magento category — used for site-wide bans (legal, brand voice).
+
+GLOBAL_CATEGORY_KEY = '__global__'
+
+VALID_SEVERITIES = ('block', 'warn')
+
 
 def _forbidden_words_file():
     return os.path.join(current_app.config['BASE_DIR'], 'data', 'forbidden_words.json')
 
 
+def _hits_file():
+    return os.path.join(current_app.config['BASE_DIR'], 'data', 'forbidden_words_hits.json')
+
+
+def _normalize_word_entry(raw):
+    """Coerce a string OR dict into the canonical entry shape.
+
+    Returns None if the input has no usable `word` value so callers can drop
+    malformed entries without surfacing them to the UI."""
+    if isinstance(raw, str):
+        word = raw.strip().lower()
+        if not word:
+            return None
+        return {'word': word, 'replace_with': '', 'severity': 'block'}
+    if not isinstance(raw, dict):
+        return None
+    word = (raw.get('word') or '').strip().lower()
+    if not word:
+        return None
+    severity = raw.get('severity', 'block')
+    if severity not in VALID_SEVERITIES:
+        severity = 'block'
+    entry = {
+        'word':         word,
+        'replace_with': (raw.get('replace_with') or '').strip(),
+        'severity':     severity,
+    }
+    # Optional governance fields — only carry them through if present so the
+    # JSON file stays compact for entries that don't need them.
+    for opt_key in ('reason', 'added_by', 'added_at'):
+        val = raw.get(opt_key)
+        if val:
+            entry[opt_key] = str(val).strip()[:120] if opt_key == 'reason' else str(val).strip()
+    return entry
+
+
+def _normalize_category_list(raw_list):
+    """Run every entry in a category through _normalize_word_entry and drop
+    duplicates (keyed by lowercase word) preserving first-seen order."""
+    if not isinstance(raw_list, list):
+        return []
+    seen = set()
+    out = []
+    for raw in raw_list:
+        entry = _normalize_word_entry(raw)
+        if entry is None:
+            continue
+        if entry['word'] in seen:
+            continue
+        seen.add(entry['word'])
+        out.append(entry)
+    return out
+
+
 def load_forbidden_words():
+    """Return the full forbidden-words map with every entry normalized.
+
+    Always returns a dict; the legacy `{ cat: [str, ...] }` shape is upgraded
+    on the fly so existing callers see the new object shape transparently."""
     try:
         with open(_forbidden_words_file(), 'r', encoding='utf-8') as f:
-            return json.load(f)
+            raw = json.load(f)
     except (FileNotFoundError, json.JSONDecodeError):
         return {}
+    if not isinstance(raw, dict):
+        return {}
+    return {cat: _normalize_category_list(words) for cat, words in raw.items()}
 
 
 def save_forbidden_words(data):
+    """Persist the forbidden-words map. Strips empty categories and runs
+    every entry through normalization so the file is always self-consistent
+    on disk."""
+    cleaned = {}
+    for cat, words in (data or {}).items():
+        normalized = _normalize_category_list(words)
+        if normalized:
+            cleaned[cat] = normalized
     fw_file = _forbidden_words_file()
     os.makedirs(os.path.dirname(fw_file), exist_ok=True)
     with open(fw_file, 'w', encoding='utf-8') as f:
-        json.dump(data, f, indent=2, ensure_ascii=False)
+        json.dump(cleaned, f, indent=2, ensure_ascii=False)
 
 
 def get_forbidden_words_for_category(category_3):
-    return load_forbidden_words().get(category_3, [])
+    """Return the normalized entry list for a category, MERGED with the
+    site-wide __global__ list. Per-category entries win on word collisions
+    so a category-specific replacement overrides a global one."""
+    data = load_forbidden_words()
+    cat_entries = list(data.get(category_3) or []) if category_3 else []
+    global_entries = list(data.get(GLOBAL_CATEGORY_KEY) or [])
+    by_word = {}
+    for e in global_entries:
+        by_word[e['word']] = e
+    for e in cat_entries:
+        by_word[e['word']] = e   # category overrides global
+    return list(by_word.values())
+
+
+def get_forbidden_words_flat(category_3=None):
+    """Return just the word strings for a category (+global) — convenience
+    helper for legacy callers that only need the list of banned tokens."""
+    entries = get_forbidden_words_for_category(category_3) if category_3 \
+              else _all_entries_combined()
+    return [e['word'] for e in entries]
+
+
+def _all_entries_combined():
+    """Flatten every category into a single deduped entry list. Used by
+    callers that don't know the product category yet (e.g. legacy paths)."""
+    data = load_forbidden_words()
+    by_word = {}
+    # Iterate __global__ first so per-category replacements override.
+    for cat in [GLOBAL_CATEGORY_KEY] + [k for k in data if k != GLOBAL_CATEGORY_KEY]:
+        for e in data.get(cat) or []:
+            by_word[e['word']] = e
+    return list(by_word.values())
+
+
+def record_forbidden_word_hits(hits):
+    """Append a scrub event to data/forbidden_words_hits.json so the manager
+    UI can surface a 'recently caught' panel. Best-effort — never raises."""
+    if not hits:
+        return
+    try:
+        path = _hits_file()
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        try:
+            with open(path, 'r', encoding='utf-8') as f:
+                history = json.load(f)
+        except (FileNotFoundError, json.JSONDecodeError):
+            history = []
+        if not isinstance(history, list):
+            history = []
+        from datetime import datetime, timezone
+        history.insert(0, {
+            'ts':   datetime.now(timezone.utc).isoformat(timespec='seconds'),
+            'hits': {str(k): int(v) for k, v in hits.items()},
+        })
+        history = history[:200]  # keep rolling window
+        with open(path, 'w', encoding='utf-8') as f:
+            json.dump(history, f, indent=2, ensure_ascii=False)
+    except Exception:
+        pass
+
+
+def load_recent_forbidden_hits(limit=10):
+    """Return the top-N most frequently scrubbed words over the stored
+    history window (last 200 scrub events). Shape: [{word, count}, ...]."""
+    try:
+        with open(_hits_file(), 'r', encoding='utf-8') as f:
+            history = json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return []
+    if not isinstance(history, list):
+        return []
+    totals = {}
+    for entry in history:
+        for word, count in (entry.get('hits') or {}).items():
+            totals[word] = totals.get(word, 0) + int(count)
+    ranked = sorted(totals.items(), key=lambda kv: kv[1], reverse=True)
+    return [{'word': w, 'count': c} for w, c in ranked[:limit]]

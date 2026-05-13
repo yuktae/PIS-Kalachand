@@ -1,8 +1,9 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div x-data="{ 
+<div x-data="{
     filter: 'all',
+    categoryFilter: '',
     view: 'card',
     search: '',
     products: [
@@ -15,6 +16,7 @@
             image: `{{ url_for('static', filename=p.image_path) if p.image_path else '' }}`,
             date: `{{ p.created_at.strftime('%d %b') }}`,
             stage: `{{ p.workflow_stage }}`,
+            category: `{{ product_category_label(p) }}`,
             stage_display: (function(s) {
                 if (s === 'marketing_draft') return 'AI Generated PIS';
                 if (s === 'marketing_in_progress') return 'PIS Draft';
@@ -55,6 +57,7 @@
                                   p.brand.toLowerCase().includes(this.search.toLowerCase());
 
             if (!matchesSearch) return false;
+            if (this.categoryFilter && p.category !== this.categoryFilter) return false;
 
             if (this.filter === 'all') return true;
             if (this.filter === 'draft') return p.stage === 'marketing_draft';
@@ -473,15 +476,69 @@
     <!-- MAIN DASHBOARD CONTENT -->
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden min-h-[500px]">
 
-        <!-- Toolbar -->
-        <div class="px-6 py-4 border-b border-gray-100 flex flex-col md:flex-row justify-between items-center gap-4">
+        {# Toolbar — three-row layout designed for clarity:
+             Row 1: tools — search grows to fill, category dropdown sits
+                    centre-right with its own icon, view toggle anchors
+                    the right edge. Every input is the same height.
+             Row 2: status filter pills as a centred full-width segmented
+                    control — each pill flex-1 so they share the row
+                    evenly. Scrolls horizontally on cramped viewports.
+             Row 3 (conditional): active filter summary chips. #}
+        <div class="px-6 py-4 border-b border-gray-100 flex flex-col gap-3.5">
 
-            <div class="flex items-center gap-4 flex-1">
-                <!-- View Toggle -->
-                <div class="flex items-center bg-gray-50 p-1 rounded-lg border border-gray-100">
+            {# Row 1 — search (grows) + category dropdown + view toggle. #}
+            <div class="flex flex-col md:flex-row md:items-center gap-3">
+
+                {# Search input — primary tool, fills available width.
+                   Same height as the category dropdown so they align. #}
+                <div class="relative flex-1 min-w-0">
+                    <svg class="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                    <input x-model="search" type="text" placeholder="Search products by name, model, or brand…"
+                        class="w-full pl-10 pr-9 py-2.5 bg-gray-50 border border-gray-100 hover:border-gray-200 focus:bg-white focus:border-red-200 focus:ring-4 focus:ring-red-50 rounded-lg text-sm font-medium transition-all outline-none placeholder-gray-400">
+                    {# Clear-search affordance — only visible when search has text. #}
+                    <button type="button" x-show="search" @click="search = ''"
+                        class="absolute right-2.5 top-1/2 -translate-y-1/2 w-6 h-6 rounded-md text-gray-400 hover:text-slate-600 hover:bg-gray-100 transition-colors flex items-center justify-center"
+                        title="Clear search">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+
+                {# Category dropdown — distinct from search via its folder
+                   icon on the left and chevron on the right. Active-state
+                   styling (red ring) tips the user off when a filter is on. #}
+                <div class="relative md:w-60">
+                    <svg class="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none transition-colors"
+                        :class="categoryFilter ? 'text-red-500' : 'text-gray-400'"
+                        fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                    </svg>
+                    <select x-model="categoryFilter"
+                        class="appearance-none w-full pl-10 pr-9 py-2.5 border rounded-lg text-sm font-medium transition-all outline-none cursor-pointer"
+                        :class="categoryFilter
+                            ? 'bg-red-50/60 border-red-200 text-slate-800 ring-4 ring-red-50/40'
+                            : 'bg-gray-50 border-gray-100 hover:border-gray-200 text-gray-500 focus:bg-white focus:border-red-200 focus:ring-4 focus:ring-red-50'">
+                        <option value="">All categories</option>
+                        {% for cat in available_categories %}
+                        <option value="{{ cat }}">{{ cat }}</option>
+                        {% endfor %}
+                    </select>
+                    <svg class="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                </div>
+
+                {# View toggle — least-used control, anchored right. Matches
+                   the input height so the row baseline is consistent. #}
+                <div class="flex items-center bg-gray-50 p-1 rounded-lg border border-gray-100 self-start md:self-auto">
                     <button @click="view = 'card'"
                         :class="view === 'card' ? 'bg-white text-slate-800 shadow-sm' : 'text-gray-400 hover:text-slate-600'"
-                        class="p-2 rounded-md transition-all">
+                        class="p-2 rounded-md transition-all" title="Card view">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
@@ -489,45 +546,74 @@
                     </button>
                     <button @click="view = 'list'"
                         :class="view === 'list' ? 'bg-white text-slate-800 shadow-sm' : 'text-gray-400 hover:text-slate-600'"
-                        class="p-2 rounded-md transition-all">
+                        class="p-2 rounded-md transition-all" title="List view">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M4 6h16M4 12h16M4 18h16" />
                         </svg>
                     </button>
                 </div>
+            </div>
 
-                <div class="flex items-center gap-1 bg-gray-50 p-1 rounded-lg border border-gray-100">
+            {# Row 2 — status filter segmented control. Each pill `flex-1`
+               so they share the row evenly; the bar is centred and takes
+               up the full toolbar width. `overflow-x-auto` keeps the row
+               usable when the viewport is too narrow to fit all labels. #}
+            <div class="overflow-x-auto -mx-1 px-1">
+                <div class="flex w-full items-stretch gap-1 bg-gray-50 p-1 rounded-xl border border-gray-100">
                     <button @click="filter = 'all'"
-                        :class="filter === 'all' ? 'bg-white text-slate-800 shadow-sm font-bold' : 'text-gray-500 hover:text-slate-600'"
-                        class="px-4 py-1.5 rounded-md text-xs transition-all whitespace-nowrap">All</button>
+                        :class="filter === 'all' ? 'bg-white text-slate-800 shadow-sm font-semibold' : 'text-gray-500 hover:text-slate-700'"
+                        class="flex-1 px-4 py-2.5 rounded-lg text-xs transition-all whitespace-nowrap">All</button>
                     <button @click="filter = 'draft'"
-                        :class="filter === 'draft' ? 'bg-white text-yellow-600 shadow-sm font-bold' : 'text-gray-500 hover:text-slate-600'"
-                        class="px-4 py-1.5 rounded-md text-xs transition-all whitespace-nowrap">AI Generated PIS</button>
+                        :class="filter === 'draft' ? 'bg-white text-yellow-600 shadow-sm font-semibold' : 'text-gray-500 hover:text-slate-700'"
+                        class="flex-1 px-4 py-2.5 rounded-lg text-xs transition-all whitespace-nowrap">AI Generated PIS</button>
                     <button @click="filter = 'in_process'"
-                        :class="filter === 'in_process' ? 'bg-white text-amber-600 shadow-sm font-bold' : 'text-gray-500 hover:text-slate-600'"
-                        class="px-4 py-1.5 rounded-md text-xs transition-all whitespace-nowrap">PIS Draft</button>
+                        :class="filter === 'in_process' ? 'bg-white text-amber-600 shadow-sm font-semibold' : 'text-gray-500 hover:text-slate-700'"
+                        class="flex-1 px-4 py-2.5 rounded-lg text-xs transition-all whitespace-nowrap">PIS Draft</button>
                     <button @click="filter = 'review'"
-                        :class="filter === 'review' ? 'bg-white text-blue-600 shadow-sm font-bold' : 'text-gray-500 hover:text-slate-600'"
-                        class="px-4 py-1.5 rounded-md text-xs transition-all whitespace-nowrap">In Review</button>
+                        :class="filter === 'review' ? 'bg-white text-blue-600 shadow-sm font-semibold' : 'text-gray-500 hover:text-slate-700'"
+                        class="flex-1 px-4 py-2.5 rounded-lg text-xs transition-all whitespace-nowrap">In Review</button>
                     <button @click="filter = 'changes'"
-                        :class="filter === 'changes' ? 'bg-white text-red-600 shadow-sm font-bold' : 'text-gray-500 hover:text-slate-600'"
-                        class="px-4 py-1.5 rounded-md text-xs transition-all whitespace-nowrap">Change Requested</button>
+                        :class="filter === 'changes' ? 'bg-white text-red-600 shadow-sm font-semibold' : 'text-gray-500 hover:text-slate-700'"
+                        class="flex-1 px-4 py-2.5 rounded-lg text-xs transition-all whitespace-nowrap">Change Requested</button>
                     <button @click="filter = 'approved'"
-                        :class="filter === 'approved' ? 'bg-white text-green-600 shadow-sm font-bold' : 'text-gray-500 hover:text-slate-600'"
-                        class="px-4 py-1.5 rounded-md text-xs transition-all whitespace-nowrap">Approved PIS</button>
+                        :class="filter === 'approved' ? 'bg-white text-green-600 shadow-sm font-semibold' : 'text-gray-500 hover:text-slate-700'"
+                        class="flex-1 px-4 py-2.5 rounded-lg text-xs transition-all whitespace-nowrap">Approved PIS</button>
                 </div>
             </div>
 
-            <!-- Search -->
-            <div class="relative w-full md:w-64">
-                <svg class="w-4 h-4 absolute left-3 top-2.5 text-gray-400" fill="none" stroke="currentColor"
-                    viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-                <input x-model="search" type="text" placeholder="Search products..."
-                    class="w-full pl-9 pr-4 py-2 bg-gray-50 border border-transparent focus:bg-white focus:border-red-100 focus:ring-4 focus:ring-red-50 rounded-lg text-sm font-medium transition-all outline-none placeholder-gray-400">
+            {# Active filter summary — only renders when something is
+               filtered. Gives the user a one-glance "what's narrowing my
+               view right now" and a quick way to clear specific filters
+               without hunting for the controls. #}
+            <div x-show="categoryFilter || search || filter !== 'all'" x-cloak
+                class="flex flex-wrap items-center gap-2 pt-1">
+                <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Active filters:</span>
+                <template x-if="filter !== 'all'">
+                    <button @click="filter = 'all'"
+                        class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-100 text-slate-700 text-xs font-semibold hover:bg-slate-200 transition-colors">
+                        <span x-text="filter === 'draft' ? 'AI Generated PIS' : filter === 'in_process' ? 'PIS Draft' : filter === 'review' ? 'In Review' : filter === 'changes' ? 'Change Requested' : filter === 'approved' ? 'Approved PIS' : filter"></span>
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </template>
+                <template x-if="categoryFilter">
+                    <button @click="categoryFilter = ''"
+                        class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-red-50 text-red-700 text-xs font-semibold hover:bg-red-100 transition-colors">
+                        <span x-text="'Category: ' + categoryFilter"></span>
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </template>
+                <template x-if="search">
+                    <button @click="search = ''"
+                        class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-100 text-slate-700 text-xs font-semibold hover:bg-slate-200 transition-colors">
+                        <span x-text="'Search: ' + search"></span>
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </template>
+                <button @click="filter = 'all'; categoryFilter = ''; search = ''"
+                    class="text-[11px] font-bold text-red-500 hover:text-red-700 transition-colors ml-1">
+                    Clear all
+                </button>
             </div>
         </div>
 
@@ -712,8 +798,8 @@
                     <h3 class="text-lg font-bold text-slate-800">No products found</h3>
                     <p class="text-slate-500 text-sm max-w-xs mt-1">There are no products matching your current filters.
                     </p>
-                    <button @click="filter = 'all'" class="mt-4 text-xs font-bold text-red-600 hover:text-red-700">Clear
-                        filters</button>
+                    <button @click="filter = 'all'; categoryFilter = ''; search = ''"
+                        class="mt-4 text-xs font-bold text-red-600 hover:text-red-700">Clear filters</button>
                 </div>
             </div>
         </div>

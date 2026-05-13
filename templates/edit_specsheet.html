@@ -1,88 +1,74 @@
 {% extends "base.html" %}
 {% block content %}
 
-<div class="max-w-7xl mx-auto pb-32">
+<div class="max-w-screen-2xl mx-auto pb-32">
     <form method="POST">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
-        {# --- STICKY HEADER --- #}
-        <div class="sticky top-0 z-50 backdrop-blur-md bg-white/90 border-b border-gray-100 transition-all">
+        {# --- STICKY HEADER — mirrors the Marketing "Edit PIS" header --- #}
+        <div class="sticky top-0 z-50 backdrop-blur-md bg-gradient-to-br from-white/95 via-white/90 to-red-50/60 border-b border-gray-100 transition-all">
+            {# Subtle red dot texture so the sticky header reads as part of the
+               red-themed family (Dashboard / Archive / History). #}
+            <div class="absolute inset-0 bg-[radial-gradient(#fee2e2_1px,transparent_1px)] [background-size:18px_18px] opacity-30 pointer-events-none"></div>
 
-            <div class="px-8 py-4 flex items-center justify-between flex-wrap gap-4">
+            <div class="relative z-10 px-8 py-4 flex items-center justify-between flex-wrap gap-4">
                 <div>
-                    <h2 class="text-xl font-semibold text-gray-900">Edit SpecSheet</h2>
+                    <p class="text-[10px] font-bold text-red-600 uppercase tracking-widest mb-0.5">Edit SpecSheet</p>
+                    <div class="flex items-center gap-3 flex-wrap">
+                        <h2 class="text-xl font-extrabold text-slate-900 tracking-tight">{{ product.model_name }}</h2>
+                    </div>
                     <div class="flex items-center gap-2 text-xs text-gray-500 mt-1 flex-wrap">
-                        <span class="font-medium text-gray-900">{{ product.model_name }}</span>
-                        <span>·</span>
                         {% if product.workflow_stage == 'ready_for_web' %}
-                        <span
-                            class="px-2 py-0.5 rounded text-[10px] font-bold bg-green-50 text-green-700 border border-green-100 whitespace-nowrap">Draft SpecSheet</span>
+                        <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-yellow-50 text-yellow-700 border border-yellow-100 whitespace-nowrap">AI Generated SpecSheet</span>
                         {% elif product.workflow_stage == 'specsheet_draft' %}
-                        <span
-                            class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-100 whitespace-nowrap">In Process</span>
+                        <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-100 whitespace-nowrap">SpecSheet Draft</span>
                         {% elif product.workflow_stage == 'web_changes_requested' %}
-                        <span
-                            class="px-2 py-0.5 rounded text-[10px] font-bold bg-red-50 text-red-700 border border-red-100 whitespace-nowrap">Change Requested</span>
+                        <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-red-50 text-red-700 border border-red-100 whitespace-nowrap">Change Requested</span>
                         {% elif product.workflow_stage == 'pending_director_spec' %}
-                        <span
-                            class="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-100 whitespace-nowrap">Need Review</span>
+                        <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-100 whitespace-nowrap">In Review</span>
                         {% elif product.workflow_stage == 'finalized' %}
-                        <span
-                            class="px-2 py-0.5 rounded text-[10px] font-bold bg-green-50 text-green-700 border border-green-100 whitespace-nowrap">SpecSheet Approved</span>
+                        <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-green-50 text-green-700 border border-green-100 whitespace-nowrap">Approved PIS</span>
                         {% else %}
-                        <span
-                            class="px-2 py-0.5 rounded text-[10px] font-bold bg-gray-50 text-gray-700 border border-gray-100">{{
-                            product.workflow_stage|replace('_', ' ') }}</span>
+                        <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-gray-50 text-gray-700 border border-gray-100">{{ product.workflow_stage|replace('_', ' ') }}</span>
                         {% endif %}
                     </div>
                 </div>
 
                 <div class="flex items-center gap-3 flex-wrap">
-                    <a href="{{ url_for('web.dashboard_web') }}"
-                        class="text-sm font-medium text-gray-500 hover:text-gray-800 transition-colors">
-                        Cancel
-                    </a>
-
-                    <a href="{{ url_for('web.download_specsheet', product_id=product.id) }}" target="_blank"
-                        class="px-4 py-2 rounded-lg bg-gray-50 hover:bg-gray-100 border border-gray-200 text-gray-700 text-sm font-semibold transition-colors flex items-center gap-2">
-                        <svg class="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                        Preview PDF
-                    </a>
-
-                    <a href="{{ url_for('web.download_specsheet_csv', product_id=product.id) }}"
-                        class="px-4 py-2 rounded-lg bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-700 text-sm font-semibold transition-colors flex items-center gap-2">
-                        <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
-                        </svg>
-                        Export CSV
-                    </a>
-
+                    {# Save status indicator leads the action cluster so the actual
+                       buttons (Cancel / Save Draft / Need Review) sit together. #}
                     <div id="saveStatus"
                         class="flex items-center gap-2 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all duration-300 opacity-0 bg-gray-50 text-gray-400">
                         <div class="status-dot w-1.5 h-1.5 rounded-full bg-gray-300"></div>
                         <span class="status-text">Saved </span>
                     </div>
 
-                    <button type="submit" name="action" value="save"
-                        class="px-4 py-2 rounded-lg bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm font-semibold shadow-sm transition-colors">
-                        Save Draft
-                    </button>
+                    <div class="flex items-center gap-2">
+                        <a href="{{ url_for('web.dashboard_web') }}"
+                            class="px-4 py-2 rounded-lg bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm font-semibold shadow-sm transition-colors inline-flex items-center gap-1.5 group">
+                            <svg class="w-4 h-4 transition-transform group-hover:-translate-x-0.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+                            </svg>
+                            Cancel
+                        </a>
 
-                    {% set spec_approved = product.workflow_stage == 'finalized' %}
-                    <button type="button" id="needReviewBtn" onclick="openSubmitModal()"
-                        class="px-5 py-2 rounded-lg text-sm font-semibold shadow-sm transition-colors flex items-center gap-2
-                        {% if spec_approved %}bg-gray-300 text-gray-500 cursor-not-allowed{% else %}bg-indigo-600 hover:bg-indigo-700 text-white{% endif %}"
-                        {% if spec_approved %}disabled{% endif %}>
-                        <span>Need Review</span>
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M13 5l7 7-7 7M5 5l7 7-7 7" />
-                        </svg>
-                    </button>
+                        <button type="submit" name="action" value="save"
+                            class="px-4 py-2 rounded-lg bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm font-semibold shadow-sm transition-colors">
+                            Save Draft
+                        </button>
+
+                        {% set spec_approved = product.workflow_stage == 'finalized' %}
+                        <button type="button" id="needReviewBtn" onclick="openSubmitModal()"
+                            class="px-5 py-2 rounded-lg text-sm font-semibold shadow-sm transition-colors flex items-center gap-2
+                            {% if spec_approved %}bg-gray-300 text-gray-500 cursor-not-allowed{% else %}bg-red-600 hover:bg-red-700 text-white shadow-red-100{% endif %}"
+                            {% if spec_approved %}disabled{% endif %}>
+                            <span>Need Review</span>
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+                            </svg>
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -117,7 +103,147 @@
         <div class="mt-8 px-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
 
             {# --- LEFT COLUMN (MAIN CONTENT) --- #}
-            <div class="lg:col-span-9 space-y-8 min-w-0">
+            <div class="lg:col-span-6 space-y-8 min-w-0">
+
+                {# --- FORBIDDEN WORDS — two-row card: header (identity + actions) on top, form (category + word + block) below --- #}
+                <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden" x-data="forbiddenQuickAdd()" x-init="init()">
+
+                    {# Row 1 — header: title + counter on the left, Manage All + Rework on the right #}
+                    <div class="px-4 py-3 bg-gradient-to-r from-slate-50/80 to-white border-b border-gray-100 flex items-center justify-between gap-4 flex-wrap">
+                        <div class="flex items-center gap-3">
+                            <div class="w-9 h-9 rounded-xl bg-red-50 text-red-500 flex items-center justify-center shrink-0 border border-red-100">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                                </svg>
+                            </div>
+                            <div class="leading-tight">
+                                <p class="text-[11px] font-extrabold text-slate-800 uppercase tracking-widest">Forbidden Words</p>
+                                <div class="flex items-center gap-1.5 mt-0.5">
+                                    <span class="w-1.5 h-1.5 rounded-full" :class="totalWords > 0 ? 'bg-red-400 animate-pulse' : 'bg-gray-300'"></span>
+                                    <span class="text-[10px] text-gray-500 font-semibold" x-text="totalWords + ' word' + (totalWords === 1 ? '' : 's') + ' blocked'"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-2 shrink-0">
+                            <a href="{{ url_for('web.web_forbidden_words') }}"
+                                class="text-[10px] font-bold text-slate-500 hover:text-red-600 uppercase tracking-wider whitespace-nowrap transition-colors px-2 py-1.5">
+                                Manage All →
+                            </a>
+                            <span class="h-5 w-px bg-gray-200"></span>
+                            <template x-if="!reworking && !reworkConfirm">
+                                <button type="button" @click="reworkConfirm = true"
+                                    class="flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white rounded-lg text-[11px] font-bold transition-all shadow-sm shadow-amber-100">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                                    </svg>
+                                    Rework
+                                </button>
+                            </template>
+                            <template x-if="reworking">
+                                <div class="flex items-center gap-2 px-3 py-1.5 bg-amber-50 border border-amber-200 rounded-lg">
+                                    <svg class="w-3.5 h-3.5 text-amber-500 animate-spin" fill="none" viewBox="0 0 24 24">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    <span class="text-[10px] font-bold text-amber-800" x-text="reworkMessage"></span>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+
+                    {# Row 2 — form: category dropdown · word input · Block button (single-row grid on md+) #}
+                    <div class="px-4 py-3 grid grid-cols-1 md:grid-cols-[minmax(180px,220px)_1fr_auto] gap-2 items-center">
+                        {# Category select #}
+                        <div class="relative" @click.away="catDropOpen = false">
+                            <button type="button" @click="catDropOpen = !catDropOpen"
+                                class="w-full px-3 py-2 text-xs bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-red-300 focus:ring-2 focus:ring-red-50 flex items-center justify-between text-left transition-colors"
+                                :class="selectedCategory ? 'text-slate-800 font-semibold' : 'text-gray-400'">
+                                <span class="truncate" x-text="selectedCategory || 'Select Category...'"></span>
+                                <svg class="w-3.5 h-3.5 text-gray-400 transition-transform shrink-0 ml-1" :class="catDropOpen ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                </svg>
+                            </button>
+                            <div x-show="catDropOpen" x-transition x-cloak
+                                class="absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-hidden">
+                                <div class="p-2 border-b border-gray-100">
+                                    <input type="text" x-model="catSearch" placeholder="Search categories..."
+                                        class="w-full px-2.5 py-1.5 text-[11px] bg-gray-50 border border-gray-200 rounded-md outline-none focus:border-red-300 placeholder-gray-400"
+                                        @click.stop>
+                                </div>
+                                <div class="overflow-y-auto max-h-36">
+                                    <template x-for="cat in filteredCategories" :key="cat">
+                                        <button type="button" @click="selectedCategory = cat; catDropOpen = false; catSearch = ''"
+                                            class="w-full px-3 py-2 text-left text-[11px] hover:bg-red-50 transition-colors flex items-center justify-between"
+                                            :class="selectedCategory === cat ? 'bg-red-50 text-red-700 font-bold' : 'text-slate-600'">
+                                            <span x-text="cat"></span>
+                                            <span x-show="words[cat] && words[cat].length > 0"
+                                                class="text-[9px] bg-red-50 text-red-600 px-1.5 py-0.5 rounded font-bold"
+                                                x-text="words[cat].length"></span>
+                                        </button>
+                                    </template>
+                                    <div x-show="filteredCategories.length === 0" class="px-3 py-3 text-[10px] text-gray-400 text-center italic">
+                                        No categories found
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {# Word input #}
+                        <input type="text" placeholder="Type a word to block..." x-model="newWord"
+                            @keydown.enter.prevent="addWord()"
+                            :disabled="!selectedCategory"
+                            class="w-full min-w-0 px-3 py-2 text-xs bg-gray-50 border border-gray-200 rounded-lg focus:border-red-300 focus:ring-2 focus:ring-red-50 focus:bg-white outline-none transition-all placeholder-gray-400 disabled:opacity-40 disabled:cursor-not-allowed"
+                            :title="!selectedCategory ? 'Pick a category first' : ''">
+
+                        {# Block button #}
+                        <button type="button" @click="addWord()" :disabled="!selectedCategory || !newWord.trim()"
+                            class="px-4 py-2 bg-red-600 text-white rounded-lg text-xs font-bold hover:bg-red-700 transition-colors flex-shrink-0 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-1.5">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                            </svg>
+                            Block
+                        </button>
+                    </div>
+
+                    {# Row 3 (conditional) — selected category's tag list (entries are objects in the new shape) #}
+                    <template x-if="selectedCategory && words[selectedCategory] && words[selectedCategory].length > 0">
+                        <div class="px-4 pb-3 -mt-1 flex flex-wrap items-center gap-1.5">
+                            <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mr-1" x-text="selectedCategory"></span>
+                            <template x-for="entry in words[selectedCategory]" :key="entry.word">
+                                <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-red-50 text-red-700 rounded-md text-[10px] font-semibold border border-red-100"
+                                    :title="entry.replace_with ? ('replaced with: ' + entry.replace_with) : 'deleted'">
+                                    <span x-text="entry.word"></span>
+                                    <button type="button" @click="removeWord(entry.word)" class="text-red-400 hover:text-red-700 text-xs leading-none" title="Unblock">✕</button>
+                                </span>
+                            </template>
+                        </div>
+                    </template>
+
+                    {# Row 4 (conditional) — Rework confirmation strip #}
+                    <template x-if="reworkConfirm && !reworking">
+                        <div class="px-4 py-3 bg-amber-50/60 border-t border-amber-100 flex items-center gap-3 flex-wrap">
+                            <div class="flex items-start gap-2 flex-1 min-w-0">
+                                <svg class="w-4 h-4 text-amber-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+                                </svg>
+                                <p class="text-[11px] text-amber-900 leading-relaxed">
+                                    This will <strong>regenerate all AI content</strong> using current forbidden words. Existing edits will be overwritten.
+                                </p>
+                            </div>
+                            <div class="flex gap-2 shrink-0">
+                                <button type="button" @click="reworkConfirm = false"
+                                    class="px-3 py-1.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-600 rounded-lg text-[11px] font-bold transition-colors">
+                                    Cancel
+                                </button>
+                                <button type="button" @click="startRework()"
+                                    class="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-[11px] font-bold transition-colors">
+                                    Confirm Rework
+                                </button>
+                            </div>
+                        </div>
+                    </template>
+                </div>
 
                 {# 0. HEADER INFO (Editable) #}
                 <section id="header" class="section-card scroll-mt-40 border-l-4 border-l-red-500">
@@ -299,16 +425,31 @@
                     {% endif %}
 
                     <div>
-                        <label class="text-xs font-bold text-gray-400 mb-1.5 block">Short
-                            Description</label>
+                        <div class="flex items-center justify-between mb-1.5">
+                            <label class="text-xs font-bold text-gray-400">Short Description</label>
+                            <span data-fw-badge="customer_friendly_description"
+                                class="hidden text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full"></span>
+                        </div>
                         <textarea id="input-seo" name="customer_friendly_description" rows="10"
+                            data-fw-lint
                             class="textarea">{{ spec_data.customer_friendly_description }}</textarea>
                     </div>
                 </section>
 
                 {# 2. KEY FEATURES (Editable) #}
-                <section id="features" class="section-card scroll-mt-40">
-                    <h3 class="section-title">Key Features List</h3>
+                <section id="features" class="section-card scroll-mt-40 border-l-4 border-l-red-500">
+                    <div class="flex items-center gap-3 mb-6">
+                        <div class="p-2 bg-red-50 text-red-600 rounded-lg">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 5l7 7-7 7" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-gray-900 text-lg">Key Features List</h3>
+                            <p class="text-xs text-gray-500">Customer-facing product highlights.</p>
+                        </div>
+                    </div>
 
                     {% if product.revision_data and product.revision_data.get('sales_arguments') %}
                     <div id="rev-card-features"
@@ -357,9 +498,10 @@
                         x-data="{ features: JSON.parse($el.dataset.features || '[]') }">
                         <template x-for="(feat, index) in features" :key="index">
                             <div class="row group !bg-gray-50 !border-transparent">
-                                <div class="w-6 h-6 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-xs font-bold flex-shrink-0"
+                            <div class="w-6 h-6 rounded-full bg-red-100 text-red-600 flex items-center justify-center text-xs font-bold flex-shrink-0"
                                     x-text="index + 1"></div>
                                 <input type="text" name="key_features" x-model="features[index]"
+                                    data-fw-lint
                                     class="row-input text-gray-800">
                                 <button type="button" @click="features.splice(index, 1)"
                                     class="remove opacity-0 group-hover:opacity-100">
@@ -370,22 +512,110 @@
                                 </button>
                             </div>
                         </template>
-                        <button type="button" @click="features.push('')" class="add-btn">+ Add Feature Point</button>
+                        <button type="button" @click="features.push('')" class="mt-1 inline-flex items-center gap-1.5 text-xs font-bold text-red-600 hover:text-red-700 transition-colors px-3 py-2 rounded-lg hover:bg-red-50">+ Add Feature Point</button>
                     </div>
                 </section>
 
-                {# 3. SEO METADATA (Editable) #}
-                <section id="seo" class="section-card scroll-mt-40">
-                    <div class="flex items-center gap-3 mb-6">
-                        <div class="p-2 bg-green-50 text-green-600 rounded-lg">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
-                            </svg>
+                {# 3. SEO METADATA (Editable) — with live Google SERP preview
+                       and a "Regenerate SEO" button that calls the dedicated
+                       /api/product/<id>/regenerate_seo endpoint. #}
+                <section id="seo" class="section-card scroll-mt-40"
+                         x-data="seoSection({
+                             metaTitle:  '{{ (spec_data.get('seo', {}).get('meta_title', '') | replace("'", "\\'") | replace('\n', ' ') | safe) }}',
+                             metaDesc:   '{{ (spec_data.get('seo', {}).get('meta_description', '') | replace("'", "\\'") | replace('\n', ' ') | safe) }}',
+                             keywords:   '{{ (spec_data.get('seo', {}).get('keywords', '') | replace("'", "\\'") | replace('\n', ' ') | safe) }}',
+                             productId:  {{ product.id }}
+                         })">
+                    <div class="flex items-center justify-between gap-3 mb-6 flex-wrap">
+                        <div class="flex items-center gap-3">
+                            <div class="p-2 bg-green-50 text-green-600 rounded-lg">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-gray-900 text-lg">SEO Metadata</h3>
+                                <p class="text-xs text-gray-500">For Website CMS Upload.</p>
+                            </div>
                         </div>
-                        <div>
-                            <h3 class="font-bold text-gray-900 text-lg">SEO Metadata</h3>
-                            <p class="text-xs text-gray-500">For Website CMS Upload.</p>
+
+                        {# Regenerate SEO — calls the dedicated endpoint so the
+                           rest of the SpecSheet (description, key features,
+                           categories) stays untouched. #}
+                        <button type="button" @click="regenerateSeo()" :disabled="regenerating"
+                            class="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white text-xs font-bold shadow-sm shadow-emerald-200 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+                            title="Re-run the AI on just the SEO fields — leaves the rest of the SpecSheet alone">
+                            <svg class="w-3.5 h-3.5" :class="regenerating ? 'animate-spin' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                            </svg>
+                            <span x-text="regenerating ? 'Regenerating…' : 'Regenerate SEO'"></span>
+                        </button>
+                    </div>
+
+                    {# ─── Google SERP preview — shows how this listing will
+                          actually appear in search results. Reflects whatever
+                          is currently in the meta-title / meta-description
+                          inputs (live, two-way binding). ─── #}
+                    <div class="mb-6 p-5 bg-slate-50/70 border border-slate-200 rounded-2xl">
+                        <div class="flex items-center justify-between mb-3">
+                            <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                                Google search preview
+                            </p>
+                            <div class="flex items-center gap-1 bg-white border border-slate-200 rounded-lg p-0.5">
+                                <button type="button" @click="serpDevice = 'desktop'"
+                                    :class="serpDevice === 'desktop' ? 'bg-slate-900 text-white' : 'text-slate-500 hover:text-slate-800'"
+                                    class="px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider transition-colors">Desktop</button>
+                                <button type="button" @click="serpDevice = 'mobile'"
+                                    :class="serpDevice === 'mobile' ? 'bg-slate-900 text-white' : 'text-slate-500 hover:text-slate-800'"
+                                    class="px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider transition-colors">Mobile</button>
+                            </div>
+                        </div>
+
+                        <div class="bg-white rounded-xl border border-slate-200 px-4 py-3 shadow-sm font-[Arial,sans-serif]"
+                             :class="serpDevice === 'mobile' ? 'max-w-sm' : ''">
+                            {# Breadcrumb-style URL line — uses J. Kalachand site as a stand-in. #}
+                            <div class="flex items-center gap-2 mb-1">
+                                <div class="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-500">JK</div>
+                                <div class="leading-tight">
+                                    <div class="text-[11px] text-slate-700">J. Kalachand</div>
+                                    <div class="text-[10px] text-slate-400">jkalachand.mu › products › <span x-text="urlSlugPreview()"></span></div>
+                                </div>
+                            </div>
+                            {# The actual ranking surface — title in Google blue + description #}
+                            <a href="#" class="block">
+                                <h4 class="text-[18px] leading-snug font-normal text-[#1a0dab] hover:underline truncate"
+                                    :class="serpDevice === 'mobile' ? 'text-[16px]' : ''"
+                                    x-text="metaTitle || 'Your meta title appears here'"></h4>
+                            </a>
+                            <p class="text-[13px] text-[#4d5156] leading-snug mt-0.5 line-clamp-2"
+                               :class="serpDevice === 'mobile' ? 'text-[12px]' : ''"
+                               x-text="metaDesc || 'Your meta description appears here. Aim for 140–156 characters so Google does not truncate the snippet.'"></p>
+                        </div>
+
+                        {# Inline warnings — these are the actual SEO failure modes Google penalises. #}
+                        <div class="mt-3 flex flex-wrap gap-1.5">
+                            <span x-show="metaTitle.length > 0 && metaTitle.length < 50"
+                                  class="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-100 text-amber-700">
+                                Title too short ({{ '<' }}50 chars)
+                            </span>
+                            <span x-show="metaTitle.length > 60"
+                                  class="text-[10px] font-bold px-2 py-0.5 rounded bg-red-100 text-red-700">
+                                Title will be truncated ({{ '>' }}60 chars)
+                            </span>
+                            <span x-show="metaDesc.length > 0 && metaDesc.length < 140"
+                                  class="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-100 text-amber-700">
+                                Description short of 140 chars
+                            </span>
+                            <span x-show="metaDesc.length > 160"
+                                  class="text-[10px] font-bold px-2 py-0.5 rounded bg-red-100 text-red-700">
+                                Description will be truncated ({{ '>' }}160 chars)
+                            </span>
+                            <span x-show="metaTitle.length >= 50 && metaTitle.length <= 60 && metaDesc.length >= 140 && metaDesc.length <= 160"
+                                  class="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-700">
+                                ✓ Optimal length
+                            </span>
                         </div>
                     </div>
 
@@ -445,39 +675,51 @@
                     {% endif %}
 
                     <div class="space-y-6">
-                        <div x-data="{ charCount: $refs.metaTitle ? $refs.metaTitle.value.length : 0 }">
+                        {# Meta Title — bound to the seoSection x-data so the
+                           SERP preview above updates as the user types. New
+                           targets: 50–58 chars (mobile-safe). #}
+                        <div>
                             <div class="flex items-center justify-between mb-1.5">
-                                <label class="text-xs font-bold text-gray-400 uppercase tracking-wide">Meta
-                                    Title (Max 60 chars)</label>
+                                <label class="text-xs font-bold text-gray-400 uppercase tracking-wide">Meta Title (target 50–58 chars)</label>
                                 <span class="text-[11px] font-bold tabular-nums transition-colors"
-                                    :class="charCount > 55 ? 'text-red-500' : charCount > 40 ? 'text-green-500' : 'text-gray-400'"
-                                    x-text="charCount + ' / 60'"></span>
+                                    :class="metaTitle.length > 60 ? 'text-red-500'
+                                          : metaTitle.length >= 50 && metaTitle.length <= 58 ? 'text-emerald-500'
+                                          : metaTitle.length > 0 ? 'text-amber-500'
+                                          : 'text-gray-400'"
+                                    x-text="metaTitle.length + ' / 60'"></span>
                             </div>
-                            <input type="text" name="seo_meta_title" value="{{ spec_data.get('seo', {}).get('meta_title', '') }}"
-                                class="input" maxlength="60" placeholder="Product Name | J. Kalachand Mauritius"
-                                x-ref="metaTitle"
-                                x-init="charCount = $refs.metaTitle.value.length"
-                                @input="charCount = $refs.metaTitle.value.length">
-                        </div>
-                        <div x-data="{ charCount: $refs.metaDesc ? $refs.metaDesc.value.length : 0 }">
-                            <div class="flex items-center justify-between mb-1.5">
-                                <label class="text-xs font-bold text-gray-400 uppercase tracking-wide">Meta
-                                    Description (Max 160 chars)</label>
-                                <span class="text-[11px] font-bold tabular-nums transition-colors"
-                                    :class="charCount > 150 ? 'text-red-500' : charCount > 100 ? 'text-green-500' : 'text-gray-400'"
-                                    x-text="charCount + ' / 160'"></span>
+                            <div class="flex items-center justify-end mb-1">
+                                <span data-fw-badge="seo_meta_title"
+                                    class="hidden text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full"></span>
                             </div>
-                            <textarea name="seo_meta_description" rows="3" class="textarea" maxlength="160"
-                                placeholder="Compelling description mentioning Mauritius location & delivery"
-                                x-ref="metaDesc"
-                                x-init="charCount = $refs.metaDesc.value.length"
-                                @input="charCount = $refs.metaDesc.value.length">{{ spec_data.get('seo', {}).get('meta_description', '') }}</textarea>
+                            <input type="text" name="seo_meta_title" x-model="metaTitle"
+                                data-fw-lint
+                                class="input" maxlength="60" placeholder="Brand Spec Product — Buy in Mauritius | J. Kalachand">
                         </div>
                         <div>
-                            <label class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1.5 block">SEO
-                                Keywords</label>
-                            <textarea name="seo_keywords" rows="3" class="textarea"
-                                placeholder="product mauritius, brand mauritius, buy mauritius, port louis, delivery mauritius, mauritius price">{{ spec_data.get('seo', {}).get('keywords', '') }}</textarea>
+                            <div class="flex items-center justify-between mb-1.5">
+                                <label class="text-xs font-bold text-gray-400 uppercase tracking-wide">Meta Description (target 140–156 chars)</label>
+                                <span class="text-[11px] font-bold tabular-nums transition-colors"
+                                    :class="metaDesc.length > 160 ? 'text-red-500'
+                                          : metaDesc.length >= 140 && metaDesc.length <= 156 ? 'text-emerald-500'
+                                          : metaDesc.length > 0 ? 'text-amber-500'
+                                          : 'text-gray-400'"
+                                    x-text="metaDesc.length + ' / 160'"></span>
+                            </div>
+                            <div class="flex items-center justify-end mb-1">
+                                <span data-fw-badge="seo_meta_description"
+                                    class="hidden text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full"></span>
+                            </div>
+                            <textarea name="seo_meta_description" rows="3" class="textarea" maxlength="160" x-model="metaDesc"
+                                data-fw-lint
+                                placeholder="Hook · One spec · Trust signal · Call to action — 140-156 chars."></textarea>
+                        </div>
+                        <div>
+                            <label class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1.5 block">Target Keyword List
+                                <span class="text-[10px] font-medium text-gray-400 normal-case tracking-normal">(tiered — head, long-tail, buying-intent, bilingual, brand-defensive)</span>
+                            </label>
+                            <textarea name="seo_keywords" rows="3" class="textarea" x-model="keywords"
+                                placeholder="smart tv mauritius, xiaomi tv, 32 inch hd tv, buy tv mauritius, tv price mauritius, télé maurice"></textarea>
                         </div>
                         <div class="pt-4 border-t border-gray-100">
                             <label
@@ -590,74 +832,245 @@
                     </div>
                     {% endif %}
 
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6" x-data="categoryDropdowns()" x-init="init()">
+                    {# Custom Alpine dropdowns — native <select> can't render
+                       SVG icons inside options, so we render a button+popup
+                       per dropdown and feed the value through a hidden <input>
+                       so the form submit still picks it up. #}
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6"
+                         x-data="categoryDropdowns()" x-init="init()">
+
+                        {# ─── CATEGORY A ─── #}
                         <div>
-                            <label class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1.5 block">
-                                Category A
-                            </label>
-                            <select name="category_1" x-model="catA" @change="onCatAChange()"
-                                class="input bg-purple-50/30 border-purple-100 focus:border-purple-300 w-full">
-                                <option value="">-- Select Category A --</option>
-                                <template x-for="a in catAOptions" :key="a">
-                                    <option :value="a" x-text="a" :selected="a === catA"></option>
-                                </template>
-                                <option value="__custom__">✏️ Custom...</option>
-                            </select>
-                            <input x-show="catA === '__custom__'" type="text" name="category_1_custom" x-model="catACustom"
-                                class="input mt-2 bg-white border-purple-200" placeholder="Enter custom Category A">
+                            <label class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1.5 block">Category A</label>
+                            <input type="hidden" name="category_1" :value="catA">
+                            <div class="relative" @click.outside="openA = false">
+                                <button type="button" @click="openA = !openA"
+                                    class="w-full flex items-center justify-between gap-2 px-3.5 py-2.5 rounded-xl bg-white border border-slate-200 hover:border-purple-300 focus:border-purple-400 focus:ring-2 focus:ring-purple-100 transition-colors text-sm text-left shadow-sm"
+                                    :class="openA ? 'border-purple-400 ring-2 ring-purple-100' : ''">
+                                    <span class="truncate" :class="catA && catA !== '__custom__' ? 'font-semibold text-slate-800' : 'text-slate-400 font-medium'"
+                                          x-text="catA === '__custom__' ? 'Custom value' : (catA || 'Select Category A')"></span>
+                                    <svg class="w-4 h-4 text-slate-400 transition-transform shrink-0"
+                                         :class="openA ? 'rotate-180 text-purple-500' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                    </svg>
+                                </button>
+                                <div x-show="openA" x-cloak
+                                    x-transition:enter="transition ease-out duration-150"
+                                    x-transition:enter-start="opacity-0 -translate-y-1"
+                                    x-transition:enter-end="opacity-100 translate-y-0"
+                                    class="absolute z-30 mt-1 w-full bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden max-h-64 flex flex-col">
+                                    <div class="overflow-y-auto py-1 flex-1">
+                                        <template x-for="a in catAOptions" :key="a">
+                                            <button type="button" @click="catA = a; onCatAChange(); openA = false"
+                                                class="w-full text-left px-3.5 py-2 text-sm hover:bg-purple-50 transition-colors flex items-center justify-between gap-2"
+                                                :class="catA === a ? 'bg-purple-50 text-purple-700 font-semibold' : 'text-slate-700'">
+                                                <span class="truncate" x-text="a"></span>
+                                                <svg x-show="catA === a" class="w-4 h-4 text-purple-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                                            </button>
+                                        </template>
+                                    </div>
+                                    <button type="button" @click="catA = '__custom__'; onCatAChange(); openA = false"
+                                        class="w-full text-left px-3.5 py-2.5 text-sm hover:bg-amber-50 transition-colors flex items-center gap-2 border-t border-slate-100 bg-slate-50/50"
+                                        :class="catA === '__custom__' ? 'text-amber-700 font-semibold' : 'text-slate-600'">
+                                        <svg class="w-4 h-4 shrink-0 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                        </svg>
+                                        <span>Enter custom value</span>
+                                    </button>
+                                </div>
+                            </div>
+                            <input x-show="catA === '__custom__'" type="text" name="category_1_custom" x-model="catACustom" x-cloak
+                                class="input mt-2 bg-white border-amber-200 focus:border-amber-300" placeholder="Enter custom Category A">
                         </div>
+
+                        {# ─── CATEGORY B ─── #}
                         <div>
-                            <label class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1.5 block">
-                                Category B
-                            </label>
-                            <select name="category_2" x-model="catB" @change="onCatBChange()"
-                                class="input bg-purple-50/30 border-purple-100 focus:border-purple-300 w-full">
-                                <option value="">-- Select Category B --</option>
-                                <template x-for="b in catBOptions" :key="b">
-                                    <option :value="b" x-text="b" :selected="b === catB"></option>
-                                </template>
-                                <option value="__custom__">✏️ Custom...</option>
-                            </select>
-                            <input x-show="catB === '__custom__'" type="text" name="category_2_custom" x-model="catBCustom"
-                                class="input mt-2 bg-white border-purple-200" placeholder="Enter custom Category B">
+                            <label class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1.5 block">Category B</label>
+                            <input type="hidden" name="category_2" :value="catB">
+                            <div class="relative" @click.outside="openB = false">
+                                <button type="button" @click="openB = !openB"
+                                    :disabled="!catA"
+                                    class="w-full flex items-center justify-between gap-2 px-3.5 py-2.5 rounded-xl bg-white border border-slate-200 hover:border-purple-300 focus:border-purple-400 focus:ring-2 focus:ring-purple-100 transition-colors text-sm text-left shadow-sm disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-slate-200"
+                                    :class="openB ? 'border-purple-400 ring-2 ring-purple-100' : ''">
+                                    <span class="truncate" :class="catB && catB !== '__custom__' ? 'font-semibold text-slate-800' : 'text-slate-400 font-medium'"
+                                          x-text="catB === '__custom__' ? 'Custom value' : (catB || 'Select Category B')"></span>
+                                    <svg class="w-4 h-4 text-slate-400 transition-transform shrink-0"
+                                         :class="openB ? 'rotate-180 text-purple-500' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                    </svg>
+                                </button>
+                                <div x-show="openB" x-cloak
+                                    x-transition:enter="transition ease-out duration-150"
+                                    x-transition:enter-start="opacity-0 -translate-y-1"
+                                    x-transition:enter-end="opacity-100 translate-y-0"
+                                    class="absolute z-30 mt-1 w-full bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden max-h-64 flex flex-col">
+                                    <div class="overflow-y-auto py-1 flex-1">
+                                        <template x-if="catBOptions.length === 0">
+                                            <p class="px-3.5 py-3 text-xs text-slate-400 italic">No subcategories — pick Category A first</p>
+                                        </template>
+                                        <template x-for="b in catBOptions" :key="b">
+                                            <button type="button" @click="catB = b; onCatBChange(); openB = false"
+                                                class="w-full text-left px-3.5 py-2 text-sm hover:bg-purple-50 transition-colors flex items-center justify-between gap-2"
+                                                :class="catB === b ? 'bg-purple-50 text-purple-700 font-semibold' : 'text-slate-700'">
+                                                <span class="truncate" x-text="b"></span>
+                                                <svg x-show="catB === b" class="w-4 h-4 text-purple-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                                            </button>
+                                        </template>
+                                    </div>
+                                    <button type="button" @click="catB = '__custom__'; onCatBChange(); openB = false"
+                                        class="w-full text-left px-3.5 py-2.5 text-sm hover:bg-amber-50 transition-colors flex items-center gap-2 border-t border-slate-100 bg-slate-50/50"
+                                        :class="catB === '__custom__' ? 'text-amber-700 font-semibold' : 'text-slate-600'">
+                                        <svg class="w-4 h-4 shrink-0 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                        </svg>
+                                        <span>Enter custom value</span>
+                                    </button>
+                                </div>
+                            </div>
+                            <input x-show="catB === '__custom__'" type="text" name="category_2_custom" x-model="catBCustom" x-cloak
+                                class="input mt-2 bg-white border-amber-200 focus:border-amber-300" placeholder="Enter custom Category B">
                         </div>
+
+                        {# ─── CATEGORY C ─── #}
                         <div>
-                            <label class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1.5 block">
-                                Category C
-                            </label>
-                            <select name="category_3" x-model="catC"
-                                class="input bg-purple-50/30 border-purple-100 focus:border-purple-300 w-full">
-                                <option value="">-- Select Category C --</option>
-                                <template x-for="c in catCOptions" :key="c">
-                                    <option :value="c" x-text="c" :selected="c === catC"></option>
-                                </template>
-                                <option value="__custom__">✏️ Custom...</option>
-                            </select>
-                            <input x-show="catC === '__custom__'" type="text" name="category_3_custom" x-model="catCCustom"
-                                class="input mt-2 bg-white border-purple-200" placeholder="Enter custom Category C">
+                            <label class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1.5 block">Category C</label>
+                            <input type="hidden" name="category_3" :value="catC">
+                            <div class="relative" @click.outside="openC = false">
+                                <button type="button" @click="openC = !openC"
+                                    :disabled="!catB"
+                                    class="w-full flex items-center justify-between gap-2 px-3.5 py-2.5 rounded-xl bg-white border border-slate-200 hover:border-purple-300 focus:border-purple-400 focus:ring-2 focus:ring-purple-100 transition-colors text-sm text-left shadow-sm disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-slate-200"
+                                    :class="openC ? 'border-purple-400 ring-2 ring-purple-100' : ''">
+                                    <span class="truncate" :class="catC && catC !== '__custom__' ? 'font-semibold text-slate-800' : 'text-slate-400 font-medium'"
+                                          x-text="catC === '__custom__' ? 'Custom value' : (catC || 'Select Category C')"></span>
+                                    <svg class="w-4 h-4 text-slate-400 transition-transform shrink-0"
+                                         :class="openC ? 'rotate-180 text-purple-500' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                    </svg>
+                                </button>
+                                <div x-show="openC" x-cloak
+                                    x-transition:enter="transition ease-out duration-150"
+                                    x-transition:enter-start="opacity-0 -translate-y-1"
+                                    x-transition:enter-end="opacity-100 translate-y-0"
+                                    class="absolute z-30 mt-1 w-full bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden max-h-64 flex flex-col">
+                                    <div class="overflow-y-auto py-1 flex-1">
+                                        <template x-if="catCOptions.length === 0">
+                                            <p class="px-3.5 py-3 text-xs text-slate-400 italic">No subcategories — pick Category B first</p>
+                                        </template>
+                                        <template x-for="c in catCOptions" :key="c">
+                                            <button type="button" @click="catC = c; openC = false"
+                                                class="w-full text-left px-3.5 py-2 text-sm hover:bg-purple-50 transition-colors flex items-center justify-between gap-2"
+                                                :class="catC === c ? 'bg-purple-50 text-purple-700 font-semibold' : 'text-slate-700'">
+                                                <span class="truncate" x-text="c"></span>
+                                                <svg x-show="catC === c" class="w-4 h-4 text-purple-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                                            </button>
+                                        </template>
+                                    </div>
+                                    <button type="button" @click="catC = '__custom__'; openC = false"
+                                        class="w-full text-left px-3.5 py-2.5 text-sm hover:bg-amber-50 transition-colors flex items-center gap-2 border-t border-slate-100 bg-slate-50/50"
+                                        :class="catC === '__custom__' ? 'text-amber-700 font-semibold' : 'text-slate-600'">
+                                        <svg class="w-4 h-4 shrink-0 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                        </svg>
+                                        <span>Enter custom value</span>
+                                    </button>
+                                </div>
+                            </div>
+                            <input x-show="catC === '__custom__'" type="text" name="category_3_custom" x-model="catCCustom" x-cloak
+                                class="input mt-2 bg-white border-amber-200 focus:border-amber-300" placeholder="Enter custom Category C">
                         </div>
                     </div>
 
-                    <div class="mt-4 p-4 bg-blue-50 border border-blue-100 rounded-xl">
-                        <p class="text-xs text-blue-700">
-                            <span class="font-bold">ℹ️ Categories sourced from Magento.</span>
-                            Select from existing categories or choose "Custom" to enter a new one.
+                    <div class="mt-4 p-3.5 bg-blue-50 border border-blue-100 rounded-xl flex items-start gap-2.5">
+                        <svg class="w-4 h-4 text-blue-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        <p class="text-xs text-blue-700 leading-relaxed">
+                            <span class="font-bold">Categories sourced from Magento.</span>
+                            Select from existing categories or choose <span class="font-semibold">Enter custom value</span> to enter a new one.
                         </p>
                     </div>
 
                     <script>
+                    // SEO section Alpine component — drives the live SERP preview,
+                    // tracks meta_title / meta_description / keywords as model state
+                    // (so the Google preview updates while the user types), and
+                    // owns the "Regenerate SEO" button's lifecycle.
+                    function seoSection({ metaTitle, metaDesc, keywords, productId }) {
+                        return {
+                            metaTitle: metaTitle || '',
+                            metaDesc:  metaDesc  || '',
+                            keywords:  keywords  || '',
+                            productId,
+                            serpDevice: 'desktop',     // 'desktop' | 'mobile'
+                            regenerating: false,
+
+                            /** Approximate Magento url_key from the meta title so the
+                             *  SERP breadcrumb preview shows a realistic slug. */
+                            urlSlugPreview() {
+                                const src = (this.metaTitle || 'product').toLowerCase();
+                                const slug = src.replace(/\|.*$/, '')   // strip "| J. Kalachand"
+                                                .replace(/[^a-z0-9]+/g, '-')
+                                                .replace(/^-+|-+$/g, '')
+                                                .slice(0, 60);
+                                return slug || 'product';
+                            },
+
+                            /** POST to /api/product/<id>/regenerate_seo and update
+                             *  the three fields in place with whatever comes back.
+                             *  The autosave hook below picks the new values up. */
+                            async regenerateSeo() {
+                                if (this.regenerating) return;
+                                this.regenerating = true;
+                                if (window.bgProcess) bgProcess.show('processing', 'Regenerating SEO…');
+                                try {
+                                    const res = await fetch(`/api/product/${this.productId}/regenerate_seo`, {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' }
+                                    });
+                                    const data = await res.json();
+                                    if (!res.ok || data.error) {
+                                        if (window.bgProcess) bgProcess.error(data.error || 'SEO regeneration failed');
+                                        return;
+                                    }
+                                    const seo = data.seo || {};
+                                    this.metaTitle = seo.meta_title || '';
+                                    this.metaDesc  = seo.meta_description || '';
+                                    this.keywords  = seo.keywords || '';
+                                    if (window.bgProcess) bgProcess.success('SEO regenerated');
+                                    // Refresh the live preview iframe (right panel) so the
+                                    // PDF preview shows the new SEO immediately.
+                                    if (window.__refreshSpecPreview) window.__refreshSpecPreview();
+                                } catch (e) {
+                                    console.error('SEO regen error:', e);
+                                    if (window.bgProcess) bgProcess.error('Network error');
+                                } finally {
+                                    this.regenerating = false;
+                                }
+                            }
+                        };
+                    }
+
                     function categoryDropdowns() {
+                        {# Read the canonical category via the unified helper —
+                           prefers Product.category_1/2/3 columns, falls back
+                           through spec_data.categories then pis_data.category_data
+                           for products that pre-date the migration. #}
+                        {% set _cat = product_category(product) %}
                         return {
                             tree: {},
-                            catA: '{{ spec_data.get("categories", {}).get("category_1", "") }}',
-                            catB: '{{ spec_data.get("categories", {}).get("category_2", "") }}',
-                            catC: '{{ spec_data.get("categories", {}).get("category_3", "") }}',
+                            catA: '{{ _cat.category_1 }}',
+                            catB: '{{ _cat.category_2 }}',
+                            catC: '{{ _cat.category_3 }}',
                             catACustom: '',
                             catBCustom: '',
                             catCCustom: '',
                             catAOptions: [],
                             catBOptions: [],
                             catCOptions: [],
+                            // Open/closed state for each custom dropdown trigger
+                            openA: false,
+                            openB: false,
+                            openC: false,
                             async init() {
                                 try {
                                     const resp = await fetch('/api/magento_categories');
@@ -881,10 +1294,22 @@
 
             </div>
 
-            {# --- RIGHT COLUMN (SIDEBAR) --- #}
-            <div class="lg:col-span-3 space-y-6 min-w-0">
+            {# --- RIGHT COLUMN — tabbed Preview / Gallery / Source panel --- #}
+            {% set _source_files = (product.pis_data.get('_source_files') if product.pis_data else []) or [] %}
+            <div class="lg:col-span-6 space-y-6 min-w-0"
+                 x-data="{
+                     activeTab: 'preview',
+                     activeSrc: 0,
+                     previewBust: Date.now(),
+                     refreshPreview() { this.previewBust = Date.now(); }
+                 }"
+                 x-init="
+                     /* Refresh the live SpecSheet preview after saveStatus
+                        flips to Saved (the existing autosave shows it briefly). */
+                     window.__refreshSpecPreview = () => refreshPreview();
+                 ">
 
-                {# Sidebar Director Notes #}
+                {# Sidebar Director Notes — sits above the tabbed panel #}
                 {% if product.director_spec_comments %}
                 <div class="section-card p-5 !bg-red-50 !border-l-4 !border-red-500 !shadow-none">
                     <div class="flex items-center gap-2 mb-3">
@@ -902,96 +1327,202 @@
                 </div>
                 {% endif %}
 
-                {# --- PRODUCT GALLERY (scrolls normally) --- #}
-                <div class="section-card overflow-hidden !p-0">
-                    <!-- Gallery Header -->
-                    <div class="bg-gradient-to-r from-slate-50 to-gray-50 px-5 py-4 border-b border-gray-100">
-                        <div class="flex items-center justify-between">
-                            <div class="flex items-center gap-2.5">
-                                <div class="w-8 h-8 rounded-lg bg-white shadow-sm border border-gray-200 flex items-center justify-center">
-                                    <svg class="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                                    </svg>
-                                </div>
-                                <div>
-                                    <p class="text-xs font-extrabold text-slate-800 tracking-tight">Product Gallery</p>
-                                    <p class="text-[10px] text-gray-400 font-medium">
-                                        {% set img_count = (1 if product.image_path else 0) + (product.additional_images|length if product.additional_images else 0) %}
-                                        {{ img_count }} image{{ 's' if img_count != 1 else '' }}
-                                    </p>
-                                </div>
+                {# ════════ Tabbed Live Preview / Gallery / Source ════════ #}
+                <div class="sticky top-28 bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden flex flex-col"
+                     style="height: calc(100vh - 9rem);">
+
+                    {# Tab strip #}
+                    <div class="border-b border-gray-100 flex bg-gradient-to-r from-slate-50 to-gray-50 shrink-0">
+                        <button type="button" @click="activeTab = 'preview'"
+                            :class="activeTab === 'preview' ? 'border-red-500 text-red-700 bg-white' : 'border-transparent text-slate-500 hover:text-slate-800'"
+                            class="flex-1 px-3 py-3 text-[11px] font-bold uppercase tracking-wider border-b-2 transition-colors flex items-center justify-center gap-1.5">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                            Live Preview
+                        </button>
+                        <button type="button" @click="activeTab = 'gallery'"
+                            :class="activeTab === 'gallery' ? 'border-red-500 text-red-700 bg-white' : 'border-transparent text-slate-500 hover:text-slate-800'"
+                            class="flex-1 px-3 py-3 text-[11px] font-bold uppercase tracking-wider border-b-2 transition-colors flex items-center justify-center gap-1.5">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                            Gallery
+                        </button>
+                        {% if _source_files %}
+                        <button type="button" @click="activeTab = 'source'"
+                            :class="activeTab === 'source' ? 'border-red-500 text-red-700 bg-white' : 'border-transparent text-slate-500 hover:text-slate-800'"
+                            class="flex-1 px-3 py-3 text-[11px] font-bold uppercase tracking-wider border-b-2 transition-colors flex items-center justify-center gap-1.5">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                            Source
+                        </button>
+                        {% endif %}
+                    </div>
+
+                    {# ─── LIVE PREVIEW tab ─── #}
+                    <div x-show="activeTab === 'preview'" x-cloak class="flex-1 flex flex-col overflow-hidden">
+                        <div class="border-b border-gray-100 px-3 py-2 flex items-center justify-between bg-slate-50/50 shrink-0">
+                            <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                                Reflects last saved state
+                            </p>
+                            <div class="flex items-center gap-2">
+                                <button type="button" @click="refreshPreview()"
+                                    class="px-2.5 py-1 rounded-lg text-[10px] font-bold text-slate-600 hover:text-slate-900 hover:bg-white border border-slate-200 transition-colors flex items-center gap-1"
+                                    title="Re-render the preview from the latest saved state">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                                    Refresh
+                                </button>
+                                <a href="{{ url_for('web.download_specsheet_csv', product_id=product.id) }}"
+                                    class="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 transition-colors flex items-center gap-1"
+                                    title="Export the SpecSheet as CSV">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
+                                    CSV
+                                </a>
+                                <a href="{{ url_for('web.download_specsheet', product_id=product.id) }}"
+                                    class="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-red-600 hover:bg-red-700 text-white transition-colors flex items-center gap-1"
+                                    title="Download the current saved state as a PDF">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                                    PDF
+                                </a>
                             </div>
                         </div>
-                        <!-- Action Buttons -->
-                        <div class="flex items-center gap-2 mt-3">
-                            <input type="file" id="imageUpload" accept="image/*" class="hidden" onchange="uploadImage(this)">
-                            <button type="button" onclick="document.getElementById('imageUpload').click()"
-                                class="flex-1 text-[11px] font-bold text-slate-600 bg-white hover:bg-gray-50 border border-gray-200 px-3 py-2 rounded-lg transition-all flex items-center justify-center gap-1.5">
-                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
-                                </svg>
-                                Upload
-                            </button>
+                        <div class="flex-1 overflow-hidden bg-gray-100">
+                            <iframe :src="`{{ url_for('web.preview_specsheet_html', product_id=product.id) }}?t=${previewBust}`"
+                                    class="w-full h-full bg-white" frameborder="0"
+                                    title="Live SpecSheet Preview"></iframe>
                         </div>
                     </div>
 
-                    <div class="p-4">
-                        <!-- Main Image -->
-                        <div id="mainImageContainer" class="mb-3 group relative">
-                            <div class="aspect-[4/3] bg-white rounded-xl flex items-center justify-center overflow-hidden border-2 border-gray-100 relative shadow-sm hover:shadow-md transition-shadow">
-                                {% if product.image_path %}
-                                <img src="{{ url_for('static', filename=product.image_path) }}"
-                                    class="object-contain w-full h-full p-3 mix-blend-multiply gallery-clickable"
-                                    onclick="event.stopPropagation(); openLightbox(this.src, galleryImagesSpec)">
-                                <button type="button" onclick="deleteImage('{{ product.image_path }}')"
-                                    class="absolute top-2.5 right-2.5 bg-white/95 text-red-500 p-1.5 rounded-lg shadow-md opacity-0 group-hover:opacity-100 transition-all hover:bg-red-50 hover:scale-110 backdrop-blur-sm border border-gray-100">
-                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                    </svg>
-                                </button>
-                                <span class="absolute bottom-2.5 left-2.5 bg-gradient-to-r from-slate-800 to-slate-700 text-white text-[9px] font-bold px-2.5 py-1 rounded-md uppercase tracking-wider shadow-sm">★ Main</span>
-                                {% else %}
-                                <div class="flex flex-col items-center gap-2 py-6">
-                                    <div class="w-12 h-12 rounded-2xl bg-gray-50 border-2 border-dashed border-gray-200 flex items-center justify-center">
-                                        <svg class="w-6 h-6 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                    {# ─── GALLERY tab ─── #}
+                    <div x-show="activeTab === 'gallery'" x-cloak class="flex-1 overflow-y-auto">
+                        <div class="bg-gradient-to-r from-slate-50 to-gray-50 px-5 py-4 border-b border-gray-100">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-2.5">
+                                    <div class="w-8 h-8 rounded-lg bg-white shadow-sm border border-gray-200 flex items-center justify-center">
+                                        <svg class="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                                         </svg>
                                     </div>
-                                    <p class="text-[11px] text-gray-400 font-medium">No main image</p>
+                                    <div>
+                                        <p class="text-xs font-extrabold text-slate-800 tracking-tight">Product Gallery</p>
+                                        <p class="text-[10px] text-gray-400 font-medium">
+                                            {% set img_count = (1 if product.image_path else 0) + (product.additional_images|length if product.additional_images else 0) %}
+                                            {{ img_count }} image{{ 's' if img_count != 1 else '' }}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2 mt-3">
+                                <input type="file" id="imageUpload" accept="image/*" class="hidden" onchange="uploadImage(this)">
+                                <button type="button" onclick="document.getElementById('imageUpload').click()"
+                                    class="flex-1 text-[11px] font-bold text-slate-600 bg-white hover:bg-gray-50 border border-gray-200 px-3 py-2 rounded-lg transition-all flex items-center justify-center gap-1.5">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                                    </svg>
+                                    Upload
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="p-4">
+                            <div id="mainImageContainer" class="mb-3 group relative">
+                                <div class="aspect-[4/3] bg-white rounded-xl flex items-center justify-center overflow-hidden border-2 border-gray-100 relative shadow-sm hover:shadow-md transition-shadow">
+                                    {% if product.image_path %}
+                                    <img src="{{ url_for('static', filename=product.image_path) }}"
+                                        class="object-contain w-full h-full p-3 mix-blend-multiply gallery-clickable"
+                                        onclick="event.stopPropagation(); openLightbox(this.src, galleryImagesSpec)">
+                                    <button type="button" onclick="deleteImage('{{ product.image_path }}')"
+                                        class="absolute top-2.5 right-2.5 bg-white/95 text-red-500 p-1.5 rounded-lg shadow-md opacity-0 group-hover:opacity-100 transition-all hover:bg-red-50 hover:scale-110 backdrop-blur-sm border border-gray-100">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                        </svg>
+                                    </button>
+                                    <span class="absolute bottom-2.5 left-2.5 bg-gradient-to-r from-slate-800 to-slate-700 text-white text-[9px] font-bold px-2.5 py-1 rounded-md uppercase tracking-wider shadow-sm">★ Main</span>
+                                    {% else %}
+                                    <div class="flex flex-col items-center gap-2 py-6">
+                                        <div class="w-12 h-12 rounded-2xl bg-gray-50 border-2 border-dashed border-gray-200 flex items-center justify-center">
+                                            <svg class="w-6 h-6 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                            </svg>
+                                        </div>
+                                        <p class="text-[11px] text-gray-400 font-medium">No main image</p>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <div id="additionalImagesContainer">
+                                {% if product.additional_images %}
+                                <div class="grid grid-cols-2 gap-2">
+                                    {% for img_path in product.additional_images %}
+                                    <div class="aspect-square bg-white rounded-xl flex items-center justify-center overflow-hidden border border-gray-100 relative group cursor-pointer hover:border-red-200 hover:shadow-sm transition-all">
+                                        <img src="{{ url_for('static', filename=img_path) }}" class="object-cover w-full h-full hover:scale-105 transition-transform duration-300 gallery-clickable"
+                                            onclick="event.stopPropagation(); openLightbox(this.src, galleryImagesSpec)">
+                                        <button type="button" onclick="deleteImage('{{ img_path }}')"
+                                            class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent flex items-end justify-center pb-3 text-white opacity-0 group-hover:opacity-100 transition-all duration-200">
+                                            <span class="flex items-center gap-1 text-[10px] font-bold bg-red-500/90 px-2.5 py-1 rounded-md backdrop-blur-sm">
+                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                </svg>
+                                                Remove
+                                            </span>
+                                        </button>
+                                        <span class="absolute top-1.5 right-1.5 bg-white/80 text-[8px] font-bold text-gray-500 w-5 h-5 rounded-md flex items-center justify-center backdrop-blur-sm border border-gray-100">{{ loop.index }}</span>
+                                    </div>
+                                    {% endfor %}
                                 </div>
                                 {% endif %}
                             </div>
                         </div>
+                    </div>
 
-                        <!-- Additional Images Grid -->
-                        <div id="additionalImagesContainer">
-                            {% if product.additional_images %}
-                            <div class="grid grid-cols-2 gap-2">
-                                {% for img_path in product.additional_images %}
-                                <div class="aspect-square bg-white rounded-xl flex items-center justify-center overflow-hidden border border-gray-100 relative group cursor-pointer hover:border-indigo-200 hover:shadow-sm transition-all">
-                                    <img src="{{ url_for('static', filename=img_path) }}" class="object-cover w-full h-full hover:scale-105 transition-transform duration-300 gallery-clickable"
-                                        onclick="event.stopPropagation(); openLightbox(this.src, galleryImagesSpec)">
-                                    <button type="button" onclick="deleteImage('{{ img_path }}')"
-                                        class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent flex items-end justify-center pb-3 text-white opacity-0 group-hover:opacity-100 transition-all duration-200">
-                                        <span class="flex items-center gap-1 text-[10px] font-bold bg-red-500/90 px-2.5 py-1 rounded-md backdrop-blur-sm">
-                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                            </svg>
-                                            Remove
-                                        </span>
-                                    </button>
-                                    <span class="absolute top-1.5 right-1.5 bg-white/80 text-[8px] font-bold text-gray-500 w-5 h-5 rounded-md flex items-center justify-center backdrop-blur-sm border border-gray-100">{{ loop.index }}</span>
+                    {# ─── SOURCE tab ─── #}
+                    {% if _source_files %}
+                    <div x-show="activeTab === 'source'" x-cloak class="flex-1 flex flex-col overflow-hidden">
+                        {% if _source_files | length > 1 %}
+                        <div class="border-b border-gray-100 flex overflow-x-auto bg-slate-50/50 shrink-0">
+                            {% for src in _source_files %}
+                            <button type="button" @click="activeSrc = {{ loop.index0 }}"
+                                class="px-3 py-2 text-[10px] font-semibold border-b-2 whitespace-nowrap transition-colors"
+                                :class="activeSrc === {{ loop.index0 }} ? 'border-red-500 text-red-700 bg-white' : 'border-transparent text-slate-500 hover:text-slate-800'">
+                                {{ loop.index }}. {{ src.split('/')[-1] | truncate(20, True, '…') }}
+                            </button>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        <div class="flex-1 overflow-hidden bg-gray-100">
+                            {% for src in _source_files %}
+                            {% set _ext = src.rsplit('.', 1)[-1] | lower %}
+                            <div x-show="activeSrc === {{ loop.index0 }}" class="h-full">
+                                {% if _ext == 'pdf' %}
+                                <iframe src="{{ url_for('static', filename=src) }}#view=FitH"
+                                        class="w-full h-full" frameborder="0"></iframe>
+                                {% elif _ext in ['jpg','jpeg','png','webp','gif','bmp'] %}
+                                <div class="h-full overflow-auto p-3 flex items-start justify-center bg-[#F8F9FC]">
+                                    <img src="{{ url_for('static', filename=src) }}" class="max-w-full rounded-lg shadow border border-slate-200">
                                 </div>
-                                {% endfor %}
+                                {% else %}
+                                <div class="h-full flex flex-col items-center justify-center p-6 text-center">
+                                    <p class="text-xs text-slate-500 mb-3">Inline preview not supported.</p>
+                                    <a href="{{ url_for('static', filename=src) }}" target="_blank" class="text-xs font-bold text-red-600 hover:text-red-800 underline">Open in new tab →</a>
+                                </div>
+                                {% endif %}
                             </div>
-                            {% endif %}
+                            {% endfor %}
                         </div>
                     </div>
-                </div>
+                    {% endif %}
 
-                {# --- FORBIDDEN WORDS (sticky — stays pinned on scroll) --- #}
+                </div>{# closes sticky tabs panel #}
+            </div>{# closes lg:col-span-6 wrapper #}
+
+        </div>{# closes mt-8 grid #}
+    </form>
+</div>{# closes max-w-screen-2xl mx-auto pb-32 outer wrapper #}
+
+{# --- LEGACY (hidden) — original sticky forbidden-words block, kept dead to
+       avoid breaking any inline script references; the active version now
+       lives above Header Information. Will be deleted in a follow-up sweep. --- #}
+<div style="display:none" aria-hidden="true">
+        {# --- FORBIDDEN WORDS (sticky — stays pinned on scroll) --- #}
                 <div class="sticky top-28" style="overflow-wrap: break-word; word-wrap: break-word;">
                 <div class="section-card p-5" x-data="forbiddenQuickAdd()" x-init="init()">
                     <div class="flex justify-between items-center mb-3">
@@ -1130,12 +1661,7 @@
                     </div>
                 </div>
                 </div> {# end sticky forbidden words wrapper #}
-
-            </div>
-
-        </div>
-    </form>
-</div>
+</div>{# end legacy hidden wrapper #}
 
 <style>
     /* Modern Scroll Spy Nav */
@@ -1305,6 +1831,26 @@
         max-width: 100%;
     }
 
+    /* Forbidden-words live linter — applied by forbiddenQuickAdd._installLinters */
+    .fw-lint-block {
+        border-color: #fca5a5 !important;
+        box-shadow: 0 0 0 3px rgba(254, 226, 226, 0.6) !important;
+    }
+    .fw-lint-warn {
+        border-color: #fcd34d !important;
+        box-shadow: 0 0 0 3px rgba(254, 243, 199, 0.6) !important;
+    }
+    .fw-badge-block {
+        background-color: #fef2f2;
+        color: #b91c1c;
+        border: 1px solid #fecaca;
+    }
+    .fw-badge-warn {
+        background-color: #fffbeb;
+        color: #b45309;
+        border: 1px solid #fde68a;
+    }
+
     /* Ensure the sidebar column never clips at zoom */
     .lg\:col-span-3 {
         overflow: visible;
@@ -1415,19 +1961,33 @@
 
         // 2. SEO / Customer Content
         else if (section === 'seo') {
+            // The SEO inputs are now bound via Alpine `x-model` to the
+            // seoSection() component (so the live SERP preview updates as
+            // they change). Setting `.value` directly doesn't notify Alpine,
+            // so we also dispatch an `input` event on each field.
+            const setAndNotify = (name, val) => {
+                if (val === null || val === undefined) return;
+                const el = document.getElementsByName(name)[0];
+                if (!el) return;
+                el.value = val;
+                el.dispatchEvent(new Event('input', { bubbles: true }));
+            };
             const metaTitle = getVal('meta_title');
             if (metaTitle !== null) {
-                document.getElementsByName('seo_meta_title')[0].value = metaTitle;
-                document.getElementsByName('seo_meta_description')[0].value = getVal('meta_description');
-                document.getElementsByName('seo_keywords')[0].value = getVal('keywords');
-                document.getElementById('input-seo').value = getVal('refined_description');
+                setAndNotify('seo_meta_title', metaTitle);
+                setAndNotify('seo_meta_description', getVal('meta_description'));
+                setAndNotify('seo_keywords', getVal('keywords'));
+                const refined = getVal('refined_description');
+                const inputSeo = document.getElementById('input-seo');
+                if (inputSeo && refined !== null) inputSeo.value = refined;
             } else {
                 // Fallback for sections that shifted but might still have the old textarea
                 try {
                     const data = JSON.parse(rawValue);
-                    if (data.meta_title) document.getElementsByName('seo_meta_title')[0].value = data.meta_title;
+                    if (data.meta_title) setAndNotify('seo_meta_title', data.meta_title);
                 } catch (e) {
-                    document.getElementById('input-seo').value = rawValue;
+                    const inputSeo = document.getElementById('input-seo');
+                    if (inputSeo) inputSeo.value = rawValue;
                 }
             }
         }
@@ -1631,6 +2191,10 @@
             const result = await response.json();
             if (result.status === 'success') {
                 updateSaveStatus('saved');
+                /* Bust the iframe cache so the Live Preview tab re-renders
+                   from the latest saved spec_data. The hook is wired by the
+                   right-column Alpine x-data block. */
+                if (window.__refreshSpecPreview) window.__refreshSpecPreview();
             } else {
                 updateSaveStatus('error');
             }
@@ -1749,7 +2313,7 @@
         function enableNeedReview() {
             btn.disabled = false;
             btn.classList.remove('bg-gray-300', 'text-gray-500', 'cursor-not-allowed');
-            btn.classList.add('bg-indigo-600', 'hover:bg-indigo-700', 'text-white');
+            btn.classList.add('bg-red-600', 'hover:bg-red-700', 'text-white');
             // Remove listeners after first activation
             form.removeEventListener('input', enableNeedReview);
         }
@@ -1784,69 +2348,180 @@
         return {
             selectedCategory: '',
             newWord: '',
-            words: {},
+            words: {},                    // { catName: [{word, replace_with, severity, ...}, ...] }
             categories: [],
+            productCategory: '',          // resolved Magento category_3 for THIS product
             catDropOpen: false,
             catSearch: '',
             reworkConfirm: false,
             reworking: false,
             reworkProgress: 0,
             reworkMessage: 'Preparing...',
-            
+
+            // Compiled linter cache: rebuilt whenever `words` or `productCategory`
+            // changes, then consumed by lintText() / lintHits() everywhere.
+            _compiledRules: [],
+
             get totalWords() {
                 let count = 0;
-                for (const cat in this.words) count += this.words[cat].length;
+                for (const cat in this.words) {
+                    const list = this.words[cat];
+                    if (Array.isArray(list)) count += list.length;
+                }
                 return count;
             },
-            
+
             get filteredCategories() {
                 if (!this.catSearch.trim()) return this.categories;
                 const q = this.catSearch.trim().toLowerCase();
                 return this.categories.filter(c => c.toLowerCase().includes(q));
             },
-            
+
+            // Words actually enforced for THIS product = product category + __global__,
+            // category-specific entries override globals on a word collision.
+            get effectiveRules() {
+                const merged = {};
+                const globals = Array.isArray(this.words['__global__']) ? this.words['__global__'] : [];
+                globals.forEach(e => { if (e && e.word) merged[e.word] = e; });
+                const cat = this.productCategory;
+                if (cat && Array.isArray(this.words[cat])) {
+                    this.words[cat].forEach(e => { if (e && e.word) merged[e.word] = e; });
+                }
+                return Object.values(merged);
+            },
+
             async init() {
-                // 1. Load existing forbidden words
+                // 1. Load existing forbidden words (objects, not strings)
                 try {
                     const res = await fetch('/api/forbidden_words');
-                    this.words = await res.json();
+                    const raw = await res.json();
+                    // Normalize legacy strings → objects so the rest of the
+                    // component can assume the rich shape.
+                    this.words = {};
+                    Object.keys(raw || {}).forEach(cat => {
+                        const list = Array.isArray(raw[cat]) ? raw[cat] : [];
+                        this.words[cat] = list.map(e =>
+                            typeof e === 'string'
+                                ? { word: e, replace_with: '', severity: 'block' }
+                                : e
+                        );
+                    });
                 } catch (e) { this.words = {}; }
-                
+
                 // 2. Load all Cat C categories from the Magento category tree
                 try {
                     const res = await fetch('/api/magento_categories');
                     const tree = await res.json();
                     const allCatC = new Set();
-                    
-                    // Extract all leaf (Cat C) categories from tree: CatA -> CatB -> [CatC, ...]
                     for (const catA of Object.keys(tree)) {
                         const catBMap = tree[catA];
                         if (typeof catBMap === 'object' && !Array.isArray(catBMap)) {
                             for (const catB of Object.keys(catBMap)) {
                                 const catCList = catBMap[catB];
-                                if (Array.isArray(catCList)) {
-                                    catCList.forEach(c => allCatC.add(c));
-                                }
+                                if (Array.isArray(catCList)) catCList.forEach(c => allCatC.add(c));
                             }
                         }
                     }
-                    
-                    // Also include any categories that already have forbidden words (custom ones)
-                    Object.keys(this.words).forEach(c => allCatC.add(c));
-                    
+                    Object.keys(this.words).forEach(c => {
+                        if (c !== '__global__') allCatC.add(c);
+                    });
                     this.categories = [...allCatC].sort();
                 } catch (e) {
-                    // Fallback: just use categories from existing forbidden words
-                    this.categories = Object.keys(this.words).sort();
+                    this.categories = Object.keys(this.words).filter(c => c !== '__global__').sort();
                 }
-                
-                // 3. Try to pre-select the product's own category_3
+
+                // 3. Resolve the product's category_3 so the linter knows
+                //    which per-cat rules to enforce.
                 const cat3Input = document.querySelector('input[name="category_3"], select[name="category_3"]');
-                if (cat3Input && cat3Input.value && this.categories.includes(cat3Input.value)) {
-                    this.selectedCategory = cat3Input.value;
+                if (cat3Input && cat3Input.value) {
+                    this.productCategory = cat3Input.value;
+                    if (this.categories.includes(cat3Input.value)) {
+                        this.selectedCategory = cat3Input.value;
+                    }
                 }
+
+                this._rebuildCompiledRules();
+                // Expose globally so the lightweight per-input linter widgets
+                // (alpine x-data='{}' siblings) can pull lint results without
+                // duplicating the rule load.
+                window.__forbiddenLinter = this;
+                this._installLinters();
             },
-            
+
+            _rebuildCompiledRules() {
+                // Mirror the Python scrubber's suffix list for client-side parity.
+                const SUFFIXES = ['ments','ment','able','ings','ing','ies','ied',
+                                  'ers','ed','es','er','ly','s'];
+                const escape = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                this._compiledRules = this.effectiveRules.map(e => ({
+                    entry: e,
+                    re: new RegExp('\\b' + escape(e.word) + '(?:' + SUFFIXES.join('|') + ')?\\b', 'gi'),
+                }));
+            },
+
+            // Public: lint a string, return [{word, severity, replace_with, count}, ...]
+            lintText(text) {
+                if (!text || !this._compiledRules.length) return [];
+                const found = {};
+                this._compiledRules.forEach(({ entry, re }) => {
+                    re.lastIndex = 0;
+                    const matches = text.match(re);
+                    if (matches && matches.length) {
+                        found[entry.word] = {
+                            word: entry.word,
+                            severity: entry.severity,
+                            replace_with: entry.replace_with || '',
+                            count: matches.length,
+                        };
+                    }
+                });
+                return Object.values(found);
+            },
+
+            // Wire light-touch listeners on inputs we want to lint live. We
+            // attach to text inputs/textareas marked with `data-fw-lint` plus a
+            // small badge node `[data-fw-badge="<input-name>"]` adjacent to the
+            // field. Keeps the markup additive — fields without the attribute
+            // are unaffected.
+            _installLinters() {
+                const refresh = () => {
+                    document.querySelectorAll('[data-fw-lint]').forEach(el => {
+                        const hits = this.lintText(el.value || el.textContent || '');
+                        const badge = document.querySelector(`[data-fw-badge="${el.name || el.id}"]`);
+                        if (!badge) return;
+                        if (!hits.length) {
+                            badge.classList.add('hidden');
+                            badge.textContent = '';
+                            el.classList.remove('fw-lint-block', 'fw-lint-warn');
+                            return;
+                        }
+                        const blocks = hits.filter(h => h.severity === 'block');
+                        const warns  = hits.filter(h => h.severity === 'warn');
+                        const parts = [];
+                        if (blocks.length) parts.push(`⛔ ${blocks.length} blocked`);
+                        if (warns.length)  parts.push(`⚠ ${warns.length} cautioned`);
+                        badge.textContent = parts.join(' · ');
+                        badge.title = hits
+                            .map(h => `${h.word}×${h.count}` + (h.replace_with ? ` → "${h.replace_with}"` : ''))
+                            .join('\n');
+                        badge.classList.remove('hidden');
+                        badge.classList.toggle('fw-badge-block', blocks.length > 0);
+                        badge.classList.toggle('fw-badge-warn',  blocks.length === 0 && warns.length > 0);
+                        el.classList.toggle('fw-lint-block', blocks.length > 0);
+                        el.classList.toggle('fw-lint-warn',  blocks.length === 0 && warns.length > 0);
+                    });
+                };
+                // Initial sweep, then debounced live updates.
+                let t;
+                const debounced = () => { clearTimeout(t); t = setTimeout(refresh, 180); };
+                document.addEventListener('input', e => {
+                    if (e.target && e.target.matches && e.target.matches('[data-fw-lint]')) debounced();
+                }, true);
+                // Also watch x-model-driven changes (Alpine fires `input` too).
+                setTimeout(refresh, 200);
+                this._lintRefresh = refresh;
+            },
+
             async addWord() {
                 const word = this.newWord.trim().toLowerCase();
                 if (!word || !this.selectedCategory) return;
@@ -1860,10 +2535,12 @@
                     if (data.ok) {
                         this.words[this.selectedCategory] = data.words;
                         this.newWord = '';
+                        this._rebuildCompiledRules();
+                        if (this._lintRefresh) this._lintRefresh();
                     }
                 } catch (e) { console.error(e); }
             },
-            
+
             async removeWord(word) {
                 try {
                     const res = await fetch('/api/forbidden_words', {
@@ -1872,7 +2549,11 @@
                         body: JSON.stringify({ category: this.selectedCategory, word })
                     });
                     const data = await res.json();
-                    if (data.ok) this.words[this.selectedCategory] = data.words;
+                    if (data.ok) {
+                        this.words[this.selectedCategory] = data.words;
+                        this._rebuildCompiledRules();
+                        if (this._lintRefresh) this._lintRefresh();
+                    }
                 } catch (e) { console.error(e); }
             },
             
@@ -1943,7 +2624,7 @@
     <div
         class="bg-white rounded-3xl w-full max-w-md p-8 shadow-2xl transform scale-100 transition-all text-center mx-4">
         <div
-            class="w-20 h-20 bg-indigo-50 text-indigo-600 rounded-3xl flex items-center justify-center mb-6 mx-auto shadow-sm ring-4 ring-indigo-50/50">
+            class="w-20 h-20 bg-red-50 text-red-600 rounded-3xl flex items-center justify-center mb-6 mx-auto shadow-sm ring-4 ring-red-50/50">
             <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                     d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -1962,7 +2643,7 @@
                 Go Back
             </button>
             <button type="button" onclick="confirmSubmit(event)"
-                class="flex-1 px-6 py-3.5 bg-indigo-600 text-white rounded-2xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200 active:scale-95 flex items-center justify-center gap-2">
+                class="flex-1 px-6 py-3.5 bg-red-600 text-white rounded-2xl font-bold hover:bg-red-700 transition-all shadow-lg shadow-red-200 active:scale-95 flex items-center justify-center gap-2">
                 <span>Submit Now</span>
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -2011,7 +2692,7 @@
     // Show generating banner
     const banner = document.createElement('div');
     banner.innerHTML = `
-        <div class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-indigo-600 text-white px-6 py-3 rounded-xl shadow-2xl flex items-center gap-3">
+        <div class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-red-600 text-white px-6 py-3 rounded-xl shadow-2xl flex items-center gap-3">
             <svg class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>

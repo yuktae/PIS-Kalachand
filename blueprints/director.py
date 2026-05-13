@@ -13,6 +13,8 @@ from model import db, Product, ProductVersion
 from helpers import (
     get_current_username, save_version_snapshot,
     _diff_and_log_changes, normalize_pis_data, load_forbidden_words,
+    get_product_category, set_product_category,
+    get_product_category_label, CATEGORY_UNCATEGORISED,
 )
 from utils.history import log_event
 from utils.ai_generation import generate_ai_revision, generate_comprehensive_spec_data
@@ -30,11 +32,20 @@ def dashboard_director():
     pending_pis  = Product.query.filter_by(workflow_stage='pending_director_pis').filter(Product.deleted_at.is_(None)).all()
     pending_spec = Product.query.filter_by(workflow_stage='pending_director_spec').filter(Product.deleted_at.is_(None)).all()
 
+    # Order by `last_edited_at` — bumped on every UPDATE so autosaves,
+    # approvals, change-requests, category writes, and stage transitions
+    # all surface the product to the top. Fallback to created_at for any
+    # row where the column is NULL.
     director_excluded = ['marketing_draft', 'marketing_in_progress']
-    all_products = Product.query.filter(
-        ~Product.workflow_stage.in_(director_excluded),
-        Product.deleted_at.is_(None)
-    ).order_by(Product.created_at.desc()).all()
+    all_products = (
+        Product.query
+        .filter(~Product.workflow_stage.in_(director_excluded),
+                Product.deleted_at.is_(None))
+        .order_by(
+            db.func.coalesce(Product.last_edited_at, Product.created_at).desc()
+        )
+        .all()
+    )
 
     total_products = len(all_products)
     finalized_count = sum(1 for p in all_products if p.workflow_stage == 'finalized')
@@ -44,12 +55,26 @@ def dashboard_director():
     metrics = {
         'total_products': total_products,
         'pending_reviews': len(pending_pis) + len(pending_spec),
+        'pending_pis': len(pending_pis),
+        'pending_spec': len(pending_spec),
         'finalized': finalized_count,
         'in_progress': in_progress_count
     }
+
+    # Categories actually present in the director's view so the filter
+    # dropdown only offers options that will yield results. "Uncategorised"
+    # is pinned last so real Magento categories list alphabetically first.
+    available_categories = sorted({
+        get_product_category_label(p) for p in all_products
+    } - {CATEGORY_UNCATEGORISED})
+    if any(get_product_category_label(p) == CATEGORY_UNCATEGORISED for p in all_products):
+        available_categories.append(CATEGORY_UNCATEGORISED)
+
     return render_template('dashboard_director.html',
                            pending_pis=pending_pis, pending_spec=pending_spec,
-                           all_products=all_products, metrics=metrics)
+                           all_products=all_products, metrics=metrics,
+                           available_categories=available_categories,
+                           uncategorised_label=CATEGORY_UNCATEGORISED)
 
 
 @director_bp.route('/dashboard/director/archive')
@@ -142,7 +167,7 @@ def review_director_pis(product_id):
 
             if sections_to_revise:
                 pid = product.id
-                _app = current_app._get_current_object()
+                _app = current_app._get_current_object()  # type: ignore[attr-defined]
 
                 def _generate_revisions(app_ctx, product_id, sections):
                     with app_ctx:
@@ -176,6 +201,12 @@ def review_director_pis(product_id):
             preserved_image_path = product.image_path
             preserved_additional_images = product.additional_images
 
+            # Seed categories from the canonical column — set by bulk
+            # enrichment for imported products, NULL for single-import.
+            # In the latter case generate_comprehensive_spec_data's classifier
+            # fallback will fill them and we capture back into canonical
+            # in the bg thread below.
+            seed_cat = get_product_category(product)
             initial_spec_data = {
                 'header_info': product.pis_data.get('header_info', {}),
                 'customer_friendly_description': product.pis_data.get('seo_data', {}).get('seo_long_description', ''),
@@ -189,7 +220,11 @@ def review_director_pis(product_id):
                     'meta_description': product.pis_data.get('seo_data', {}).get('meta_description', ''),
                     'keywords': product.pis_data.get('seo_data', {}).get('generated_keywords', '')
                 },
-                'categories': {'category_1': '', 'category_2': '', 'category_3': ''},
+                'categories': {
+                    'category_1': seed_cat['category_1'],
+                    'category_2': seed_cat['category_2'],
+                    'category_3': seed_cat['category_3'],
+                },
                 '_spec_generating': True
             }
             product.spec_data = initial_spec_data
@@ -206,14 +241,21 @@ def review_director_pis(product_id):
 
             pid = product.id
             pis_data_copy = copy.deepcopy(product.pis_data)
-            _app = current_app._get_current_object()
+            _app = current_app._get_current_object()  # type: ignore[attr-defined]
 
-            def _generate_specsheet_bg(app_ctx, product_id, pis_data):
+            def _generate_specsheet_bg(app_ctx, product_id, pis_data, canonical_cat):
                 with app_ctx:
                     try:
                         all_fw = load_forbidden_words()
                         combined_forbidden = list(set(w for words in all_fw.values() for w in words))
-                        spec_data_generated = generate_comprehensive_spec_data(pis_data, forbidden_words=combined_forbidden)
+                        # Pass canonical category through — prevents the AI
+                        # classifier from being re-run when the product was
+                        # already classified by bulk enrichment.
+                        spec_data_generated = generate_comprehensive_spec_data(
+                            pis_data,
+                            forbidden_words=combined_forbidden,
+                            categories=canonical_cat if canonical_cat.get('category_1') else None,
+                        )
                         spec_data_generated['technical_specifications'] = pis_data.get('technical_specifications', {})
                         spec_data_generated['header_info'] = pis_data.get('header_info', {})
                         spec_data_generated.pop('_spec_generating', None)
@@ -221,6 +263,17 @@ def review_director_pis(product_id):
                         if p:
                             p.spec_data = spec_data_generated
                             flag_modified(p, 'spec_data')
+                            # If the generator's AI classifier filled in
+                            # categories (single-import, no canonical yet),
+                            # promote them to the canonical column so future
+                            # reads/filters see them.
+                            if not p.category_1:
+                                gen_cats = (spec_data_generated.get('categories') or {})
+                                if gen_cats.get('category_1'):
+                                    set_product_category(p,
+                                        gen_cats.get('category_1', ''),
+                                        gen_cats.get('category_2', ''),
+                                        gen_cats.get('category_3', ''))
                             save_version_snapshot(p, label='SpecSheet auto-generated', is_major=True)
                             db.session.commit()
                     except Exception as e:
@@ -238,7 +291,7 @@ def review_director_pis(product_id):
 
             t = threading.Thread(
                 target=_generate_specsheet_bg,
-                args=(_app.app_context(), pid, pis_data_copy),
+                args=(_app.app_context(), pid, pis_data_copy, seed_cat),
                 daemon=True
             )
             t.start()
@@ -295,16 +348,24 @@ def review_director_spec(product_id):
             product.seo_keywords = request.form.get('seo_keywords')
         if request.form.get('internal_web_keywords'):
             updated_spec_data['internal_web_keywords'] = request.form.get('internal_web_keywords')
-        if request.form.get('category_1'):
-            if 'categories' not in updated_spec_data: updated_spec_data['categories'] = {}
-            updated_spec_data['categories']['category_1'] = request.form.get('category_1')
-            updated_spec_data['categories']['category_2'] = request.form.get('category_2')
-            updated_spec_data['categories']['category_3'] = request.form.get('category_3')
-
         product.pis_data  = updated_pis_data
         product.spec_data = updated_spec_data
         flag_modified(product, 'pis_data')
         flag_modified(product, 'spec_data')
+
+        # Canonical category write — helper updates Product.category_1/2/3
+        # and mirrors to spec_data.categories + pis_data.category_data so
+        # legacy readers stay in sync. Skipped when the form didn't submit
+        # category fields (e.g. PIS review where the section is absent).
+        if request.form.get('category_1'):
+            set_product_category(
+                product,
+                request.form.get('category_1'),
+                request.form.get('category_2', ''),
+                request.form.get('category_3', ''),
+            )
+            updated_spec_data = product.spec_data
+            updated_pis_data = product.pis_data
 
         if action == 'review':
             comments_map = {
@@ -321,7 +382,10 @@ def review_director_spec(product_id):
             for section, comment in comments_map.items():
                 if comment and comment.strip():
                     if section == 'seo_optimization':
-                        original = product.spec_data.get('seo') if product.spec_data else {}
+                        # `spec_data.get('seo')` can be None when the key is
+                        # absent — coerce to {} so the `refined_description`
+                        # write below always lands on a real dict.
+                        original = (product.spec_data.get('seo') if product.spec_data else None) or {}
                         if product.spec_data and 'customer_friendly_description' in product.spec_data:
                             original['refined_description'] = product.spec_data['customer_friendly_description']
                     elif section == 'product_classification':

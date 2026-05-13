@@ -23,7 +23,9 @@ from model import db, Product, ProductVersion, FieldChangeLog, User, Job, Produc
 from helpers import (
     get_current_username, save_version_snapshot,
     _get_field_section, load_forbidden_words, save_forbidden_words,
+    load_recent_forbidden_hits, GLOBAL_CATEGORY_KEY, VALID_SEVERITIES,
     proforma_to_pis_data, extract_raw_text_from_files,
+    set_product_category,
 )
 from utils.history import log_event
 from utils.web_scraping import scrape_url_data, scrape_url_data_deep
@@ -733,11 +735,16 @@ def api_save_draft(product_id):
     if 'internal_web_keywords' in data:
         updated_spec_data['internal_web_keywords'] = data.get('internal_web_keywords')
 
+    # Categories are written via set_product_category once the assignments
+    # below are complete — keeps the canonical column + JSON mirror in sync
+    # with whatever the inline editor / autosave just submitted.
+    _pending_categories = None
     if 'category_1' in data:
-        updated_spec_data.setdefault('categories', {})
-        updated_spec_data['categories']['category_1'] = data.get('category_1')
-        updated_spec_data['categories']['category_2'] = data.get('category_2')
-        updated_spec_data['categories']['category_3'] = data.get('category_3')
+        _pending_categories = (
+            data.get('category_1'),
+            data.get('category_2') or '',
+            data.get('category_3') or '',
+        )
 
     if 'director_general_comments' in data:
         comments = data.get('director_general_comments')
@@ -763,6 +770,12 @@ def api_save_draft(product_id):
     product.spec_data = updated_spec_data
     flag_modified(product, 'pis_data')
     flag_modified(product, 'spec_data')
+
+    # Apply category last so the helper sees the fresh spec_data/pis_data
+    # state when it mirrors the canonical value into the JSON shapes.
+    if _pending_categories is not None:
+        set_product_category(product, *_pending_categories)
+
     db.session.commit()
     return {"status": "success"}
 
@@ -804,41 +817,105 @@ def api_magento_categories():
 
 
 # ── FORBIDDEN WORDS ───────────────────────────────────────────────────────────
+#
+# The on-disk shape is normalized on every read so the API always returns
+# objects of the form { word, replace_with, severity, reason?, added_by?,
+# added_at? }. Legacy string entries written by older versions are upgraded
+# transparently on first read.
+
+def _fw_json(payload, status=200):
+    """Compact JSON responder for the forbidden-words endpoints. Centralized
+    so we keep one consistent content-type and don't drift."""
+    return json.dumps(payload), status, {'Content-Type': 'application/json'}
+
+
+def _fw_extract_payload(body):
+    """Pull the editable entry fields out of a JSON body. Returns a dict
+    suitable for handing straight to _normalize_word_entry (it ignores
+    keys it doesn't recognize, so this is intentionally generous)."""
+    return {
+        'word':         (body.get('word') or '').strip().lower(),
+        'replace_with': (body.get('replace_with') or '').strip(),
+        'severity':     (body.get('severity') or 'block').strip().lower(),
+        'reason':       (body.get('reason') or '').strip()[:120],
+    }
+
 
 @api_bp.route('/api/forbidden_words', methods=['GET'])
 def api_get_forbidden_words():
-    return json.dumps(load_forbidden_words()), 200, {'Content-Type': 'application/json'}
+    """Return the full forbidden-words map. Shape:
+        { "<category>": [{ word, replace_with, severity, ... }, ...] }
+    Plus the reserved "__global__" key for site-wide rules."""
+    return _fw_json(load_forbidden_words())
 
 
 @api_bp.route('/api/forbidden_words', methods=['POST'])
 def api_add_forbidden_word():
-    body = request.get_json(force=True)
-    category = body.get('category', '').strip()
-    word     = body.get('word', '').strip().lower()
-    if not category or not word:
-        return json.dumps({"error": "Category and word required"}), 400, {'Content-Type': 'application/json'}
+    """Add (or upsert) a forbidden-word entry in a category. The category
+    may be a regular leaf-category name or the reserved "__global__" key."""
+    body = request.get_json(force=True) or {}
+    category = (body.get('category') or '').strip()
+    payload  = _fw_extract_payload(body)
+    if not category or not payload['word']:
+        return _fw_json({'error': 'Category and word required'}, 400)
+    if payload['severity'] not in VALID_SEVERITIES:
+        return _fw_json({'error': f'severity must be one of {list(VALID_SEVERITIES)}'}, 400)
+
+    # Auto-stamp governance fields so the manager UI can show who added what.
+    payload['added_by'] = get_current_username()
+    payload['added_at'] = datetime.now(timezone.utc).isoformat(timespec='seconds')
+
     data = load_forbidden_words()
-    data.setdefault(category, [])
-    if word not in data[category]:
-        data[category].append(word)
+    bucket = list(data.get(category) or [])
+    # Upsert: if the word already exists in this category, replace the entry;
+    # otherwise append. Keeps governance fields fresh on re-add.
+    replaced = False
+    for i, existing in enumerate(bucket):
+        if existing.get('word') == payload['word']:
+            bucket[i] = payload
+            replaced = True
+            break
+    if not replaced:
+        bucket.append(payload)
+    data[category] = bucket
     save_forbidden_words(data)
-    return json.dumps({"ok": True, "words": data[category]}), 200, {'Content-Type': 'application/json'}
+    # Re-load so the response reflects what's actually on disk after
+    # normalization (consistent with what the GET endpoint would return).
+    fresh = load_forbidden_words()
+    return _fw_json({'ok': True, 'words': fresh.get(category, [])})
 
 
 @api_bp.route('/api/forbidden_words', methods=['DELETE'])
 def api_remove_forbidden_word():
-    body = request.get_json(force=True)
-    category = body.get('category', '').strip()
-    word     = body.get('word', '').strip().lower()
+    """Remove a single word from a category. If the category becomes empty
+    it is dropped from the map so the file stays tidy."""
+    body = request.get_json(force=True) or {}
+    category = (body.get('category') or '').strip()
+    word     = (body.get('word') or '').strip().lower()
     if not category or not word:
-        return json.dumps({"error": "Category and word required"}), 400, {'Content-Type': 'application/json'}
+        return _fw_json({'error': 'Category and word required'}, 400)
+
     data = load_forbidden_words()
-    if category in data and word in data[category]:
-        data[category].remove(word)
-        if not data[category]:
-            del data[category]
+    bucket = [e for e in (data.get(category) or []) if e.get('word') != word]
+    if bucket:
+        data[category] = bucket
+    elif category in data:
+        del data[category]
     save_forbidden_words(data)
-    return json.dumps({"ok": True, "words": data.get(category, [])}), 200, {'Content-Type': 'application/json'}
+    fresh = load_forbidden_words()
+    return _fw_json({'ok': True, 'words': fresh.get(category, [])})
+
+
+@api_bp.route('/api/forbidden_words/recent', methods=['GET'])
+def api_forbidden_words_recent_hits():
+    """Surface the top-N most frequently scrubbed words over the rolling
+    history window. Powers the "Recently Caught" panel in the manager UI."""
+    try:
+        limit = int(request.args.get('limit', 10))
+    except ValueError:
+        limit = 10
+    limit = max(1, min(limit, 50))
+    return _fw_json({'hits': load_recent_forbidden_hits(limit=limit)})
 
 
 # ── VERSION HISTORY ───────────────────────────────────────────────────────────

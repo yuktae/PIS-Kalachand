@@ -278,6 +278,14 @@ Output strictly a JSON object:
 SOURCE DATA (PIS sales arguments – factual, internal):
 {sales_arguments_json}
 
+PRODUCT CONTEXT (use this to write smarter SEO — never invent values not listed here):
+- Brand:          {brand}
+- Product name:   {product_name}
+- Model number:   {model_number}
+- Category path:  {category_path}
+- Key specs:      {key_specs}
+- Variant labels: {variant_labels}
+
 TASK:
 Rewrite EACH sales argument into a customer-friendly, benefit-driven feature.
 
@@ -292,26 +300,135 @@ CRITICAL RULES:
 
 Also create:
 1. A detailed 3-4 paragraph customer-facing product description focused on lifestyle benefits and technical excellence.
-2. SEO metadata optimized for MAURITIUS market specific keywords.
+2. SEO metadata, written like a senior e-commerce SEO — NOT keyword-stuffed marketing copy.
 
-SEO REQUIREMENTS:
-- Keywords MUST focus on Mauritius-specific search terms
-- Include local buying intent keywords like "buy in Mauritius", "Mauritius price", "delivery in Mauritius"
-- Add product category + "Mauritius" combinations
-- Include brand name + location combinations
-- Target both English and common local search patterns
+═══════════════════════════════════════════════════════════════════
+SEO METADATA — write like a senior e-commerce SEO
+═══════════════════════════════════════════════════════════════════
 
-OUTPUT JSON FORMAT:
+▸ META TITLE — target 50–58 characters (mobile-safe)
+   Formula:  [Brand] [Primary spec] [Product type] — [Buying modifier] | J. Kalachand
+
+   Rules:
+   • Front-load the brand + headline spec (the words a buyer types).
+   • Include ONE buying modifier: "Buy in Mauritius" OR "Mauritius price"
+     OR "Free delivery". Choose whichever fits the char budget.
+   • Always end with " | J. Kalachand" (brand-defensive).
+   • NEVER repeat the product page H1 verbatim — vary phrasing.
+   • If "{brand}" is "Unknown" or empty, omit the brand slot and use
+     the product type as the front-loaded keyword.
+
+   ✓ Good: "Xiaomi 32" HD Smart TV — Buy in Mauritius | J. Kalachand"  (55 chars)
+   ✗ Bad:  "32-inch HD Smart TV with Google TV | J. Kalachand Mauritius"  (no brand front-load, generic)
+
+▸ META DESCRIPTION — target 140–156 characters (HARD MAX 160)
+   Formula (4 micro-segments, separated by " · " or commas):
+   1. HOOK — one customer benefit using the head keyword
+   2. PROOF — ONE concrete spec a buyer cares about (size, capacity, watts)
+   3. TRUST/LOCAL signal — delivery, warranty, in-stock, or "island-wide"
+   4. CALL TO ACTION — "Order online", "Shop now", "View price"
+
+   Hard rules:
+   • 140 chars MIN, 156 chars MAX. Count before you output.
+   • NEVER use marketing fluff: "experience", "discover", "immerse yourself".
+   • Include the primary keyword AND the brand.
+   • Include at least ONE numeric detail (size, capacity, watts, warranty years).
+
+   ✓ Good: "Xiaomi 32" HD smart TV with Google TV & voice search. Free delivery in Mauritius, 1-year warranty. Order online at J. Kalachand."  (147 chars)
+
+▸ KEYWORDS — produce a TIERED list (still output as a single comma-separated string)
+   Build the list in this order:
+   1. Head (2-3):           "{{category}} Mauritius", "{{brand}} {{category}}"
+   2. Long-tail (3-5):      use model number + key spec combinations
+   3. Buying-intent (2-3):  "buy {{category}} Mauritius",
+                            "{{category}} price Mauritius",
+                            "{{brand}} Mauritius delivery"
+   4. Bilingual (1-2):      include the FR-MU equivalent when applicable
+                            (TV→télé, fridge→frigo, washing machine→lave-linge,
+                             oven→four, microwave→micro-ondes)
+   5. Brand-defensive (1):  "{{model_number}} J Kalachand"
+
+   Total 10–14 keywords. Quality > quantity. Comma-separated, lowercase.
+
+▸ AVOID
+   • The word "Mauritius" more than 2× across title + description combined.
+   • Generic adjectives: "amazing", "premium", "best-in-class", "stunning".
+   • Repeating the product H1 verbatim in the title.
+   • Going over the character limits — this is a hard fail.
+
+═══════════════════════════════════════════════════════════════════
+
+OUTPUT JSON FORMAT (schema unchanged — keep these exact keys):
 {{
     "customer_friendly_description": "A detailed 3-4 paragraph persuasive and factual description...",
     "key_features": ["Customer-friendly rewrite of argument 1", "Customer-friendly rewrite of argument 2", ...],
-    "internal_web_keywords": "comma-separated list of short keywords for internal website search (e.g., 'fridge, samsung, refrigerator, silver')",
+    "internal_web_keywords": "comma-separated short keywords for internal site search (e.g., 'fridge, samsung, refrigerator, silver')",
     "seo": {{
-        "meta_title": "Product Name | Mauritius (60 chars max)",
-        "meta_description": "Compelling description with Mauritius location (160 chars max)",
-        "keywords": "product+mauritius, brand+mauritius, buy+mauritius, delivery+mauritius, mauritius price, island-wide, etc."
+        "meta_title": "50–58 chars, formula above",
+        "meta_description": "140–156 chars, formula above",
+        "keywords": "tiered, 10–14 comma-separated, lowercase"
     }}
-}}"""
+}}
+
+Before returning, VERIFY:
+• meta_title.length is between 50 and 60 inclusive.
+• meta_description.length is between 140 and 160 inclusive.
+• keywords has at least 10 comma-separated entries.
+If any check fails, rewrite that field until it passes."""
+    },
+    {
+        "id": "seo_regeneration",
+        "name": "SEO-Only Regeneration",
+        "description": "Regenerates ONLY the SEO metadata (meta_title, meta_description, keywords) for an existing SpecSheet — used by the 'Regenerate SEO' button so the rest of the spec_data is left untouched.",
+        "category": "Content Creation",
+        "prompt": """You are a Senior Marketing Copywriter and SEO Specialist for J. Kalachand, Mauritius.
+
+You are regenerating ONLY the SEO metadata for an existing product page. The rest of the product copy is already approved — do not rewrite it.
+
+PRODUCT CONTEXT:
+- Brand:                {brand}
+- Product name:         {product_name}
+- Model number:         {model_number}
+- Category path:        {category_path}
+- Key specs:            {key_specs}
+- Variant labels:       {variant_labels}
+- Current description:  {current_description}
+
+▸ META TITLE — target 50–58 characters (mobile-safe)
+   Formula:  [Brand] [Primary spec] [Product type] — [Buying modifier] | J. Kalachand
+   • Front-load the brand + headline spec.
+   • Include ONE buying modifier: "Buy in Mauritius" / "Mauritius price" / "Free delivery".
+   • Always end with " | J. Kalachand".
+   • If "{brand}" is "Unknown" or empty, lead with the product type instead.
+
+▸ META DESCRIPTION — target 140–156 characters (HARD MAX 160)
+   Formula (4 micro-segments, separated by " · " or commas):
+   1. HOOK — one customer benefit using a head keyword
+   2. PROOF — ONE concrete spec a buyer cares about
+   3. TRUST/LOCAL signal — delivery, warranty, in-stock, or "island-wide"
+   4. CALL TO ACTION — "Order online", "Shop now", "View price"
+   • NEVER use fluff words: "experience", "discover", "immerse".
+   • Include at least one numeric detail.
+
+▸ KEYWORDS — tiered list, 10–14 entries, comma-separated, lowercase
+   1. Head (2-3):           "{{category}} Mauritius", "{{brand}} {{category}}"
+   2. Long-tail (3-5):      model number + spec combinations
+   3. Buying-intent (2-3):  "buy {{category}} Mauritius", "{{category}} price Mauritius"
+   4. Bilingual (1-2):      FR-MU equivalent (TV→télé, fridge→frigo, washing machine→lave-linge)
+   5. Brand-defensive (1):  "{{model_number}} J Kalachand"
+
+OUTPUT strictly this JSON shape (no extra keys, no commentary):
+{{
+    "meta_title":       "50–58 chars",
+    "meta_description": "140–156 chars",
+    "keywords":         "10–14 comma-separated, lowercase"
+}}
+
+Before returning, VERIFY:
+• meta_title.length between 50 and 60.
+• meta_description.length between 140 and 160.
+• keywords has at least 10 comma-separated entries.
+Rewrite any field that fails the check."""
     },
     {
         "id": "spec_optimization",

@@ -1383,13 +1383,22 @@
         form.addEventListener('input', enableNeedReview);
     })();
 
-    function confirmSubmit(event) {
+    function confirmSubmit(event, mode) {
         const form = document.getElementById('verifyForm');
-        // If this draft is part of a bulk batch (and there's more than one),
-        // submit-to-Director applies to EVERY draft in the batch.
+        // `mode` is set by the modal's choice buttons:
+        //   'individual' → submit just this PIS  (submit_director)
+        //   'batch'      → submit every draft in the bulk batch (submit_director_batch)
+        // Fallback (legacy callers without a mode) picks based on batch size.
         const headerBtn = document.getElementById('needReviewBtn');
         const batchSize = parseInt(headerBtn?.dataset?.batchSize || '0', 10);
-        const actionValue = batchSize > 1 ? 'submit_director_batch' : 'submit_director';
+        let actionValue;
+        if (mode === 'batch') {
+            actionValue = 'submit_director_batch';
+        } else if (mode === 'individual') {
+            actionValue = 'submit_director';
+        } else {
+            actionValue = batchSize > 1 ? 'submit_director_batch' : 'submit_director';
+        }
         const input = document.createElement('input');
         input.type = 'hidden';
         input.name = 'action';
@@ -1612,25 +1621,55 @@
 
         <h3 class="font-bold text-2xl text-slate-900 mb-3 tracking-tight">Ready for Review?</h3>
         {% if batch_id and batch_size > 1 %}
-        <p class="text-sm text-slate-500 mb-8 leading-relaxed px-4">
-            You are about to send <span class="font-bold text-slate-900">all {{ batch_size }} PIS</span>
-            in this bulk batch to the Director. Your current edits to
-            <span class="font-bold text-slate-900">{{ product.model_name }}</span> will be saved first,
-            then every draft in the batch is submitted together.
+        <p class="text-sm text-slate-500 mb-6 leading-relaxed px-4">
+            This PIS is part of a bulk batch of <span class="font-bold text-slate-900">{{ batch_size }} drafts</span>.
+            Choose whether to send <span class="font-bold text-slate-900">{{ product.model_name }}</span>
+            on its own, or submit the entire batch together.
         </p>
+
+        {# Two-choice action stack — individual vs. batch. Each button
+           passes its own mode to confirmSubmit() so the backend gets the
+           matching action value (submit_director / submit_director_batch). #}
+        <div class="flex flex-col gap-3 mb-3">
+            <button type="button" onclick="confirmSubmit(event, 'individual')"
+                class="w-full px-5 py-3.5 bg-white border-2 border-slate-200 text-slate-800 rounded-2xl font-bold hover:bg-slate-50 hover:border-slate-300 transition-all active:scale-[0.99] flex items-center justify-between gap-3 text-left">
+                <span class="min-w-0">
+                    <span class="block text-sm">Submit just this PIS</span>
+                    <span class="block text-[11px] font-medium text-slate-400 mt-0.5 truncate">Only {{ product.model_name }} goes to the Director</span>
+                </span>
+                <svg class="w-4 h-4 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                </svg>
+            </button>
+
+            <button type="button" onclick="confirmSubmit(event, 'batch')"
+                class="w-full px-5 py-3.5 bg-red-600 text-white rounded-2xl font-bold hover:bg-red-700 transition-all shadow-lg shadow-red-200 active:scale-[0.99] flex items-center justify-between gap-3 text-left">
+                <span class="min-w-0">
+                    <span class="block text-sm">Submit all {{ batch_size }} PIS</span>
+                    <span class="block text-[11px] font-medium text-red-100 mt-0.5">Every draft in this batch is sent together</span>
+                </span>
+                <svg class="w-4 h-4 text-white shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"/>
+                </svg>
+            </button>
+        </div>
+
+        <button type="button" onclick="closeSubmitModal()"
+            class="w-full px-6 py-2.5 text-slate-500 hover:text-slate-800 text-sm font-bold transition-colors">
+            Go Back
+        </button>
         {% else %}
         <p class="text-sm text-slate-500 mb-8 leading-relaxed px-4">
             You are about to send <span class="font-bold text-slate-900">{{ product.model_name }}</span> to the
             Director. They will be notified to review and approve this PIS.
         </p>
-        {% endif %}
 
         <div class="flex flex-col sm:flex-row gap-3">
             <button type="button" onclick="closeSubmitModal()"
                 class="flex-1 px-6 py-3.5 bg-slate-100 text-slate-600 rounded-2xl font-bold hover:bg-slate-200 transition-all active:scale-95">
                 Go Back
             </button>
-            <button type="button" onclick="confirmSubmit(event)"
+            <button type="button" onclick="confirmSubmit(event, 'individual')"
                 class="flex-1 px-6 py-3.5 bg-red-600 text-white rounded-2xl font-bold hover:bg-red-700 transition-all shadow-lg shadow-red-200 active:scale-95 flex items-center justify-center gap-2">
                 <span>Submit Now</span>
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1639,6 +1678,7 @@
                 </svg>
             </button>
         </div>
+        {% endif %}
     </div>
 </div>
 

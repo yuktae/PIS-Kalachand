@@ -59,6 +59,12 @@ class Product(db.Model):
     workflow_stage = db.Column(db.String(50), default='marketing_draft', index=True)
 
     created_at = db.Column(db.DateTime, default=_utcnow_naive)
+    # Bumped automatically on every UPDATE to this row (autosaves, approvals,
+    # category writes, workflow transitions — anything that flushes a change
+    # to the DB). Used by the dashboard galleries to surface the most
+    # recently touched product first. Indexed for the ORDER BY.
+    last_edited_at = db.Column(db.DateTime, default=_utcnow_naive,
+                                onupdate=_utcnow_naive, index=True)
     # Soft-delete: set to a timestamp when "deleted", NULL means active
     deleted_at = db.Column(db.DateTime, nullable=True, index=True)
 
@@ -77,6 +83,17 @@ class Product(db.Model):
     director_pis_comments = db.Column(db.Text)
     director_spec_comments = db.Column(db.Text)
     additional_images = db.Column(JSONB, default=list)
+
+    # Canonical product category — single source of truth. Previously lived
+    # in three different JSONB shapes (pis_data.category_data,
+    # spec_data.categories, and ghost pis_data.category_A/B/C) that could
+    # drift apart. All readers/writers now go through helpers.get_product_category
+    # / set_product_category which keep these columns authoritative and
+    # mirror to the legacy JSON locations during the transition.
+    category_1 = db.Column(db.String(100), nullable=True, index=True)
+    category_2 = db.Column(db.String(100), nullable=True)
+    category_3 = db.Column(db.String(100), nullable=True)
+    magento_category_id = db.Column(db.Integer, nullable=True, index=True)
 
     # GIN indexes for fast JSONB containment queries (audit trail & search)
     __table_args__ = (

@@ -45,7 +45,7 @@
             justify-content: space-between;
             align-items: flex-start;
             margin-bottom: 30px;
-            gap: 400px;
+            gap: 40px;
         }
 
         .header-left {
@@ -305,17 +305,20 @@
                 <div style="margin-top: 25px;">
                     <div class="section-title">Product Classification</div>
                     <div class="category-badges">
-                        {% if spec_data.get('categories', {}).get('category_1') %}
+                        {# Canonical category via the unified helper —
+                           single source of truth across the system. #}
+                        {% set _cat = product_category(product) %}
+                        {% if _cat.category_1 %}
                         <span class="category-badge"><span style="color: #64748b; font-weight: 500;">Category A:</span>
-                            {{ spec_data.categories.category_1 }}</span>
+                            {{ _cat.category_1 }}</span>
                         {% endif %}
-                        {% if spec_data.get('categories', {}).get('category_2') %}
+                        {% if _cat.category_2 %}
                         <span class="category-badge"><span style="color: #64748b; font-weight: 500;">Category B:</span>
-                            {{ spec_data.categories.category_2 }}</span>
+                            {{ _cat.category_2 }}</span>
                         {% endif %}
-                        {% if spec_data.get('categories', {}).get('category_3') %}
+                        {% if _cat.category_3 %}
                         <span class="category-badge"><span style="color: #64748b; font-weight: 500;">Category C:</span>
-                            {{ spec_data.categories.category_3 }}</span>
+                            {{ _cat.category_3 }}</span>
                         {% endif %}
                     </div>
                 </div>

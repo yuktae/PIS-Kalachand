@@ -2,1801 +2,2179 @@
   {
     "cat_A": "Home & Garden",
     "cat_B": "Ceilings & Floorings",
-    "cat_C": "Tiles"
+    "cat_C": "Tiles",
+    "magento_id": 2262
   },
   {
     "cat_A": "Home & Garden",
     "cat_B": "Ceilings & Floorings",
-    "cat_C": "Laminate Flooring"
+    "cat_C": "Laminate Flooring",
+    "magento_id": 2288
   },
   {
     "cat_A": "Home & Garden",
     "cat_B": "Ceilings & Floorings",
-    "cat_C": "Luxury Vinyl Flooring (LVT)"
+    "cat_C": "Luxury Vinyl Flooring (LVT)",
+    "magento_id": 2539
   },
   {
     "cat_A": "Home & Garden",
     "cat_B": "Ceilings & Floorings",
-    "cat_C": "Stone Plastic Composite (SPC)"
+    "cat_C": "Stone Plastic Composite (SPC)",
+    "magento_id": 3049
   },
   {
     "cat_A": "Home & Garden",
     "cat_B": "Ceilings & Floorings",
-    "cat_C": "Carpet Tiles"
+    "cat_C": "Carpet Tiles",
+    "magento_id": 2619
   },
   {
     "cat_A": "Home & Garden",
     "cat_B": "Kitchen",
-    "cat_C": "Taps"
+    "cat_C": "Taps",
+    "magento_id": 2483
   },
   {
     "cat_A": "Home & Garden",
     "cat_B": "Kitchen",
-    "cat_C": "Quartz & Granite"
+    "cat_C": "Quartz & Granite",
+    "magento_id": 2535
   },
   {
     "cat_A": "Home & Garden",
     "cat_B": "Kitchen",
-    "cat_C": "Stainless Steel Sinks"
+    "cat_C": "Stainless Steel Sinks",
+    "magento_id": 2540
   },
   {
     "cat_A": "Home & Garden",
     "cat_B": "Kitchen",
-    "cat_C": "Buffet & Display"
+    "cat_C": "Buffet & Display",
+    "magento_id": 2542
   },
   {
     "cat_A": "Home & Garden",
     "cat_B": "Cleaning & Bins",
-    "cat_C": "Mops"
+    "cat_C": "Mops",
+    "magento_id": 2259
   },
   {
     "cat_A": "Home & Garden",
     "cat_B": "Cleaning & Bins",
-    "cat_C": "Cleaning Accessories"
+    "cat_C": "Cleaning Accessories",
+    "magento_id": 2294
   },
   {
     "cat_A": "Home & Garden",
     "cat_B": "Cleaning & Bins",
-    "cat_C": "Brooms & Sweepers"
+    "cat_C": "Brooms & Sweepers",
+    "magento_id": 2300
   },
   {
     "cat_A": "Home & Garden",
     "cat_B": "Cleaning & Bins",
-    "cat_C": "Bins"
+    "cat_C": "Bins",
+    "magento_id": 2554
   },
   {
     "cat_A": "Home & Garden",
     "cat_B": "Cleaning & Bins",
-    "cat_C": "Steam Mops"
+    "cat_C": "Steam Mops",
+    "magento_id": 4887
   },
   {
     "cat_A": "Home & Garden",
     "cat_B": "Laundry & Storage",
-    "cat_C": "Wicker Baskets"
+    "cat_C": "Wicker Baskets",
+    "magento_id": 2239
   },
   {
     "cat_A": "Home & Garden",
     "cat_B": "Laundry & Storage",
-    "cat_C": "Ironing & Laundry"
+    "cat_C": "Ironing & Laundry",
+    "magento_id": 2252
   },
   {
     "cat_A": "Home & Garden",
     "cat_B": "Laundry & Storage",
-    "cat_C": "Multi-Purpose Storage"
+    "cat_C": "Multi-Purpose Storage",
+    "magento_id": 2284
   },
   {
     "cat_A": "Home & Garden",
     "cat_B": "Laundry & Storage",
-    "cat_C": "Plastic Baskets"
+    "cat_C": "Plastic Baskets",
+    "magento_id": 2371
   },
   {
     "cat_A": "Home & Garden",
     "cat_B": "Bathroom",
-    "cat_C": "Wash Basin"
+    "cat_C": "Wash Basin",
+    "magento_id": 2237
   },
   {
     "cat_A": "Home & Garden",
     "cat_B": "Bathroom",
-    "cat_C": "Bathroom Accessories"
+    "cat_C": "Bathroom Accessories",
+    "magento_id": 2329
   },
   {
     "cat_A": "Home & Garden",
     "cat_B": "Bathroom",
-    "cat_C": "Automatic Dispensers & Hand Dryers"
+    "cat_C": "Automatic Dispensers & Hand Dryers",
+    "magento_id": 2345
   },
   {
     "cat_A": "Home & Garden",
     "cat_B": "Bathroom",
-    "cat_C": "Toilets & Bidets"
+    "cat_C": "Toilets & Bidets",
+    "magento_id": 2359
   },
   {
     "cat_A": "Home & Garden",
     "cat_B": "Bathroom",
-    "cat_C": "Shower Enclosures & Bathtubs"
+    "cat_C": "Shower Enclosures & Bathtubs",
+    "magento_id": 2481
   },
   {
     "cat_A": "Home & Garden",
     "cat_B": "Bathroom",
-    "cat_C": "Shower Columns & Heads"
+    "cat_C": "Shower Columns & Heads",
+    "magento_id": 2884
   },
   {
     "cat_A": "Home & Garden",
     "cat_B": "Bathroom",
-    "cat_C": "Gas Water Heaters"
+    "cat_C": "Gas Water Heaters",
+    "magento_id": 2507
   },
   {
     "cat_A": "Home & Garden",
     "cat_B": "Bathroom",
-    "cat_C": "Electric Water Heaters"
+    "cat_C": "Electric Water Heaters",
+    "magento_id": 2736
   },
   {
     "cat_A": "Home & Garden",
     "cat_B": "Bathroom",
-    "cat_C": "Washbasin Cabinets"
+    "cat_C": "Washbasin Cabinets",
+    "magento_id": 2549
   },
   {
     "cat_A": "Home & Garden",
     "cat_B": "Bathroom",
-    "cat_C": "Solar Water Heaters"
+    "cat_C": "Solar Water Heaters",
+    "magento_id": 2567
   },
   {
     "cat_A": "Home & Garden",
     "cat_B": "Bathroom",
-    "cat_C": "Taps & Mixers"
+    "cat_C": "Taps & Mixers",
+    "magento_id": 2612
   },
   {
     "cat_A": "Home & Garden",
     "cat_B": "Bathroom",
-    "cat_C": "Wall Mirrors"
+    "cat_C": "Wall Mirrors",
+    "magento_id": 2696
   },
   {
     "cat_A": "Home & Garden",
     "cat_B": "Home Deco",
-    "cat_C": "Artificial Plants & Pots"
+    "cat_C": "Artificial Plants & Pots",
+    "magento_id": 2232
   },
   {
     "cat_A": "Home & Garden",
     "cat_B": "Home Deco",
-    "cat_C": "Buddha Statues"
+    "cat_C": "Buddha Statues",
+    "magento_id": 2530
   },
   {
     "cat_A": "Home & Garden",
     "cat_B": "Home Deco",
-    "cat_C": "Wall Clocks"
+    "cat_C": "Wall Clocks",
+    "magento_id": 2233
   },
   {
     "cat_A": "Home & Garden",
     "cat_B": "Home Deco",
-    "cat_C": "Table Clocks"
+    "cat_C": "Table Clocks",
+    "magento_id": 2420
   },
   {
     "cat_A": "Home & Garden",
     "cat_B": "Home Deco",
-    "cat_C": "Mirrors"
+    "cat_C": "Mirrors",
+    "magento_id": 2251
   },
   {
     "cat_A": "Home & Garden",
     "cat_B": "Home Deco",
-    "cat_C": "Lighting"
+    "cat_C": "Lighting",
+    "magento_id": 2377
   },
   {
     "cat_A": "Home & Garden",
     "cat_B": "Home Deco",
-    "cat_C": "Rugs"
+    "cat_C": "Rugs",
+    "magento_id": 2374
   },
   {
     "cat_A": "Home & Garden",
     "cat_B": "Home Deco",
-    "cat_C": "Door Mats"
+    "cat_C": "Door Mats",
+    "magento_id": 2308
   },
   {
     "cat_A": "Home & Garden",
     "cat_B": "Home Deco",
-    "cat_C": "Christmas Tree"
+    "cat_C": "Christmas Tree",
+    "magento_id": 5798
   },
   {
     "cat_A": "Home & Garden",
     "cat_B": "DIY & Garden",
-    "cat_C": "Artificial Grass"
+    "cat_C": "Artificial Grass",
+    "magento_id": 2235
   },
   {
     "cat_A": "Home & Garden",
     "cat_B": "DIY & Garden",
-    "cat_C": "Hand Tools"
+    "cat_C": "Hand Tools",
+    "magento_id": 2240
   },
   {
     "cat_A": "Home & Garden",
     "cat_B": "DIY & Garden",
-    "cat_C": "Ladders & Trolleys"
+    "cat_C": "Ladders & Trolleys",
+    "magento_id": 2348
   },
   {
     "cat_A": "Home & Garden",
     "cat_B": "DIY & Garden",
-    "cat_C": "Pressure Cleaners"
+    "cat_C": "Pressure Cleaners",
+    "magento_id": 2349
   },
   {
     "cat_A": "Home & Garden",
     "cat_B": "DIY & Garden",
-    "cat_C": "Lighting"
+    "cat_C": "Lighting",
+    "magento_id": 2393
   },
   {
     "cat_A": "Home & Garden",
     "cat_B": "DIY & Garden",
-    "cat_C": "BBQ Grills"
+    "cat_C": "BBQ Grills",
+    "magento_id": 2514
   },
   {
     "cat_A": "Home & Garden",
     "cat_B": "DIY & Garden",
-    "cat_C": "Garden Tools"
+    "cat_C": "Garden Tools",
+    "magento_id": 2557
   },
   {
     "cat_A": "Home & Garden",
     "cat_B": "Security",
-    "cat_C": "Safes"
+    "cat_C": "Safes",
+    "magento_id": 2401
   },
   {
     "cat_A": "Home & Garden",
     "cat_B": "Security",
-    "cat_C": "CCTV Cameras"
+    "cat_C": "CCTV Cameras",
+    "magento_id": 2480
   },
   {
     "cat_A": "Furniture",
     "cat_B": "Living & Dining",
-    "cat_C": "Sofas"
+    "cat_C": "Sofas",
+    "magento_id": 2289
   },
   {
     "cat_A": "Furniture",
     "cat_B": "Living & Dining",
-    "cat_C": "Sofa Beds"
+    "cat_C": "Sofa Beds",
+    "magento_id": 2518
   },
   {
     "cat_A": "Furniture",
     "cat_B": "Living & Dining",
-    "cat_C": "Recliner Sofas"
+    "cat_C": "Recliner Sofas",
+    "magento_id": 2277
   },
   {
     "cat_A": "Furniture",
     "cat_B": "Living & Dining",
-    "cat_C": "Armchairs"
+    "cat_C": "Armchairs",
+    "magento_id": 2495
   },
   {
     "cat_A": "Furniture",
     "cat_B": "Living & Dining",
-    "cat_C": "Dining Tables & Chairs"
+    "cat_C": "Dining Tables & Chairs",
+    "magento_id": 2269
   },
   {
     "cat_A": "Furniture",
     "cat_B": "Living & Dining",
-    "cat_C": "Coffee Tables & Side Tables"
+    "cat_C": "Coffee Tables & Side Tables",
+    "magento_id": 2270
   },
   {
     "cat_A": "Furniture",
     "cat_B": "Living & Dining",
-    "cat_C": "Casual & Designer Chairs"
+    "cat_C": "Casual & Designer Chairs",
+    "magento_id": 2281
   },
   {
     "cat_A": "Furniture",
     "cat_B": "Living & Dining",
-    "cat_C": "Bar Stools & Tables"
+    "cat_C": "Bar Stools & Tables",
+    "magento_id": 2290
   },
   {
     "cat_A": "Furniture",
     "cat_B": "Living & Dining",
-    "cat_C": "TV Racks"
+    "cat_C": "TV Racks",
+    "magento_id": 2505
   },
   {
     "cat_A": "Furniture",
     "cat_B": "Living & Dining",
-    "cat_C": "Sideboards & Buffet Tables"
+    "cat_C": "Sideboards & Buffet Tables",
+    "magento_id": 2639
   },
   {
     "cat_A": "Furniture",
     "cat_B": "Living & Dining",
-    "cat_C": "Console Table"
+    "cat_C": "Console Table",
+    "magento_id": 2888
   },
   {
     "cat_A": "Furniture",
     "cat_B": "Living & Dining",
-    "cat_C": "Cabinets"
+    "cat_C": "Cabinets",
+    "magento_id": 2322
   },
   {
     "cat_A": "Furniture",
     "cat_B": "Living & Dining",
-    "cat_C": "Bookshelves"
+    "cat_C": "Bookshelves",
+    "magento_id": 2532
   },
   {
     "cat_A": "Furniture",
     "cat_B": "Living & Dining",
-    "cat_C": "Accent Table"
+    "cat_C": "Accent Table",
+    "magento_id": 3077
+  },
+  {
+    "cat_A": "Furniture",
+    "cat_B": "Living & Dining",
+    "cat_C": "Dining",
+    "magento_id": 5812
   },
   {
     "cat_A": "Furniture",
     "cat_B": "Bedroom",
-    "cat_C": "Beds"
+    "cat_C": "Beds",
+    "magento_id": 2278
   },
   {
     "cat_A": "Furniture",
     "cat_B": "Bedroom",
-    "cat_C": "Bedroom Sets"
+    "cat_C": "Bedroom Sets",
+    "magento_id": 2318
   },
   {
     "cat_A": "Furniture",
     "cat_B": "Bedroom",
-    "cat_C": "Benches"
+    "cat_C": "Benches",
+    "magento_id": 2250
   },
   {
     "cat_A": "Furniture",
     "cat_B": "Bedroom",
-    "cat_C": "Mattresses & Pillows"
+    "cat_C": "Mattresses & Pillows",
+    "magento_id": 2302
   },
   {
     "cat_A": "Furniture",
     "cat_B": "Bedroom",
-    "cat_C": "Wardrobes"
+    "cat_C": "Wardrobes",
+    "magento_id": 2485
   },
   {
     "cat_A": "Furniture",
     "cat_B": "Bedroom",
-    "cat_C": "Mirror and Jewelry cabinets"
+    "cat_C": "Mirror and Jewelry cabinets",
+    "magento_id": 2499
   },
   {
     "cat_A": "Furniture",
     "cat_B": "Bedroom",
-    "cat_C": "Shoe Cabinets"
+    "cat_C": "Shoe Cabinets",
+    "magento_id": 2640
   },
   {
     "cat_A": "Furniture",
     "cat_B": "Outdoor",
-    "cat_C": "Sofas"
+    "cat_C": "Sofas",
+    "magento_id": 2285
   },
   {
     "cat_A": "Furniture",
     "cat_B": "Outdoor",
-    "cat_C": "Lounge Sofa & Chairs"
+    "cat_C": "Lounge Sofa & Chairs",
+    "magento_id": 2496
   },
   {
     "cat_A": "Furniture",
     "cat_B": "Outdoor",
-    "cat_C": "Dining"
+    "cat_C": "Dining",
+    "magento_id": 2254
   },
   {
     "cat_A": "Furniture",
     "cat_B": "Outdoor",
-    "cat_C": "Inflatable Pool Floats"
+    "cat_C": "Inflatable Pool Floats",
+    "magento_id": 2461
   },
   {
     "cat_A": "Furniture",
     "cat_B": "Outdoor",
-    "cat_C": "Hanging Chairs"
+    "cat_C": "Hanging Chairs",
+    "magento_id": 2562
+  },
+  {
+    "cat_A": "Furniture",
+    "cat_B": "Outdoor",
+    "cat_C": "Coffee Tables & Side Tables",
+    "magento_id": 5813
+  },
+  {
+    "cat_A": "Furniture",
+    "cat_B": "Outdoor",
+    "cat_C": "Dining Tables & Chairs",
+    "magento_id": 5814
   },
   {
     "cat_A": "Furniture",
     "cat_B": "Office",
-    "cat_C": "Office Chairs"
+    "cat_C": "Office Chairs",
+    "magento_id": 2272
   },
   {
     "cat_A": "Furniture",
     "cat_B": "Office",
-    "cat_C": "Visitor Chairs"
+    "cat_C": "Visitor Chairs",
+    "magento_id": 2588
   },
   {
     "cat_A": "Furniture",
     "cat_B": "Office",
-    "cat_C": "Desks & Computer Tables"
+    "cat_C": "Desks & Computer Tables",
+    "magento_id": 2423
   },
   {
     "cat_A": "Furniture",
     "cat_B": "Office",
-    "cat_C": "Meeting & Multifunction Tables"
+    "cat_C": "Meeting & Multifunction Tables",
+    "magento_id": 2431
   },
   {
     "cat_A": "Furniture",
     "cat_B": "Office",
-    "cat_C": "Filing Cabinets"
+    "cat_C": "Filing Cabinets",
+    "magento_id": 2441
   },
   {
     "cat_A": "Furniture",
     "cat_B": "Office",
-    "cat_C": "Metal Filing Cabinets & Lockers"
+    "cat_C": "Metal Filing Cabinets & Lockers",
+    "magento_id": 2404
   },
   {
     "cat_A": "Furniture",
     "cat_B": "Office",
-    "cat_C": "Office Accessories"
+    "cat_C": "Office Accessories",
+    "magento_id": 2440
   },
   {
     "cat_A": "Furniture",
     "cat_B": "Kids & Teen",
-    "cat_C": "Bedroom Sets"
+    "cat_C": "Bedroom Sets",
+    "magento_id": 2265
   },
   {
     "cat_A": "Furniture",
     "cat_B": "Kids & Teen",
-    "cat_C": "Baby Cots & Playpens"
+    "cat_C": "Baby Cots & Playpens",
+    "magento_id": 2510
   },
   {
     "cat_A": "Furniture",
     "cat_B": "Plastic",
-    "cat_C": "Chairs & Armchairs"
+    "cat_C": "Chairs & Armchairs",
+    "magento_id": 2321
   },
   {
     "cat_A": "Furniture",
     "cat_B": "Plastic",
-    "cat_C": "Tables"
+    "cat_C": "Tables",
+    "magento_id": 2550
   },
   {
     "cat_A": "Furniture",
     "cat_B": "Portable massage tables",
-    "cat_C": "Massage Tables"
+    "cat_C": "Massage Tables",
+    "magento_id": 2501
   },
   {
     "cat_A": "Furniture",
     "cat_B": "Cleaning & Bins",
-    "cat_C": "Bins"
+    "cat_C": "Bins",
+    "magento_id": 4898
   },
   {
     "cat_A": "Appliances",
     "cat_B": "Home Appliances",
-    "cat_C": "Gas Tables"
+    "cat_C": "Gas Tables",
+    "magento_id": 2293
   },
   {
     "cat_A": "Appliances",
     "cat_B": "Home Appliances",
-    "cat_C": "Free Standing Cookers"
+    "cat_C": "Free Standing Cookers",
+    "magento_id": 2307
   },
   {
     "cat_A": "Appliances",
     "cat_B": "Home Appliances",
-    "cat_C": "Microwave Ovens"
+    "cat_C": "Microwave Ovens",
+    "magento_id": 2334
   },
   {
     "cat_A": "Appliances",
     "cat_B": "Home Appliances",
-    "cat_C": "Cooker Hoods"
+    "cat_C": "Cooker Hoods",
+    "magento_id": 2344
   },
   {
     "cat_A": "Appliances",
     "cat_B": "Home Appliances",
-    "cat_C": "Freezers"
+    "cat_C": "Freezers",
+    "magento_id": 2372
   },
   {
     "cat_A": "Appliances",
     "cat_B": "Home Appliances",
-    "cat_C": "Built-in Ovens"
+    "cat_C": "Built-in Ovens",
+    "magento_id": 2378
   },
   {
     "cat_A": "Appliances",
     "cat_B": "Home Appliances",
-    "cat_C": "Refrigerators"
+    "cat_C": "Refrigerators",
+    "magento_id": 2396
   },
   {
     "cat_A": "Appliances",
     "cat_B": "Home Appliances",
-    "cat_C": "Built-in Hobs"
+    "cat_C": "Built-in Hobs",
+    "magento_id": 2405
   },
   {
     "cat_A": "Appliances",
     "cat_B": "Home Appliances",
-    "cat_C": "Washing Machines"
+    "cat_C": "Washing Machines",
+    "magento_id": 2493
   },
   {
     "cat_A": "Appliances",
     "cat_B": "Home Appliances",
-    "cat_C": "Wine & Beverage Cooler"
+    "cat_C": "Wine & Beverage Cooler",
+    "magento_id": 2498
   },
   {
     "cat_A": "Appliances",
     "cat_B": "Home Appliances",
-    "cat_C": "Tumble Dryer"
+    "cat_C": "Tumble Dryer",
+    "magento_id": 2684
   },
   {
     "cat_A": "Appliances",
     "cat_B": "Home Appliances",
-    "cat_C": "Dishwasher"
+    "cat_C": "Dishwasher",
+    "magento_id": 3001
   },
   {
     "cat_A": "Appliances",
     "cat_B": "Small Kitchen Appliances",
-    "cat_C": "Air Fryers"
+    "cat_C": "Air Fryers",
+    "magento_id": 2511
   },
   {
     "cat_A": "Appliances",
     "cat_B": "Small Kitchen Appliances",
-    "cat_C": "Small Ovens"
+    "cat_C": "Small Ovens",
+    "magento_id": 2409
   },
   {
     "cat_A": "Appliances",
     "cat_B": "Small Kitchen Appliances",
-    "cat_C": "Mixers & Blenders"
+    "cat_C": "Mixers & Blenders",
+    "magento_id": 2368
   },
   {
     "cat_A": "Appliances",
     "cat_B": "Small Kitchen Appliances",
-    "cat_C": "Food Processors & Multi Cookers"
+    "cat_C": "Food Processors & Multi Cookers",
+    "magento_id": 2469
   },
   {
     "cat_A": "Appliances",
     "cat_B": "Small Kitchen Appliances",
-    "cat_C": "Food Steamers"
+    "cat_C": "Food Steamers",
+    "magento_id": 2470
   },
   {
     "cat_A": "Appliances",
     "cat_B": "Small Kitchen Appliances",
-    "cat_C": "Kettles & Thermo Pots"
+    "cat_C": "Kettles & Thermo Pots",
+    "magento_id": 2380
   },
   {
     "cat_A": "Appliances",
     "cat_B": "Small Kitchen Appliances",
-    "cat_C": "Toasters"
+    "cat_C": "Toasters",
+    "magento_id": 2491
   },
   {
     "cat_A": "Appliances",
     "cat_B": "Small Kitchen Appliances",
-    "cat_C": "Juicers"
+    "cat_C": "Juicers",
+    "magento_id": 2497
   },
   {
     "cat_A": "Appliances",
     "cat_B": "Small Kitchen Appliances",
-    "cat_C": "Coffee Machines"
+    "cat_C": "Coffee Machines",
+    "magento_id": 2512
   },
   {
     "cat_A": "Appliances",
     "cat_B": "Small Kitchen Appliances",
-    "cat_C": "Rice Cookers"
+    "cat_C": "Rice Cookers",
+    "magento_id": 2516
   },
   {
     "cat_A": "Appliances",
     "cat_B": "Small Kitchen Appliances",
-    "cat_C": "Sandwich & Waffle Grills"
+    "cat_C": "Sandwich & Waffle Grills",
+    "magento_id": 2552
   },
   {
     "cat_A": "Appliances",
     "cat_B": "Small Kitchen Appliances",
-    "cat_C": "Soup Maker"
+    "cat_C": "Soup Maker",
+    "magento_id": 4877
   },
   {
     "cat_A": "Appliances",
     "cat_B": "Small Kitchen Appliances",
-    "cat_C": "Dehydrator"
+    "cat_C": "Dehydrator",
+    "magento_id": 4891
   },
   {
     "cat_A": "Appliances",
     "cat_B": "Small Kitchen Appliances",
-    "cat_C": "Yoghurt Maker"
+    "cat_C": "Yoghurt Maker",
+    "magento_id": 4892
   },
   {
     "cat_A": "Appliances",
     "cat_B": "Small Kitchen Appliances",
-    "cat_C": "Cooking Appliances"
+    "cat_C": "Cooking Appliances",
+    "magento_id": 4902
   },
   {
     "cat_A": "Appliances",
     "cat_B": "Other Appliances",
-    "cat_C": "Sewing Machines"
+    "cat_C": "Sewing Machines",
+    "magento_id": 2299
   },
   {
     "cat_A": "Appliances",
     "cat_B": "Other Appliances",
-    "cat_C": "Vacuum Cleaners"
+    "cat_C": "Vacuum Cleaners",
+    "magento_id": 2361
   },
   {
     "cat_A": "Appliances",
     "cat_B": "Other Appliances",
-    "cat_C": "Steam Irons"
+    "cat_C": "Steam Irons",
+    "magento_id": 2458
   },
   {
     "cat_A": "Appliances",
     "cat_B": "Other Appliances",
-    "cat_C": "Insect Killers"
+    "cat_C": "Insect Killers",
+    "magento_id": 2476
   },
   {
     "cat_A": "Appliances",
     "cat_B": "Other Appliances",
-    "cat_C": "Torches & Lanterns"
+    "cat_C": "Torches & Lanterns",
+    "magento_id": 2515
   },
   {
     "cat_A": "Appliances",
     "cat_B": "Cooling & Heating",
-    "cat_C": "Air Conditioners"
+    "cat_C": "Air Conditioners",
+    "magento_id": 2356
   },
   {
     "cat_A": "Appliances",
     "cat_B": "Cooling & Heating",
-    "cat_C": "Heaters"
+    "cat_C": "Heaters",
+    "magento_id": 2437
   },
   {
     "cat_A": "Appliances",
     "cat_B": "Cooling & Heating",
-    "cat_C": "Dehumidifiers"
+    "cat_C": "Dehumidifiers",
+    "magento_id": 2543
   },
   {
     "cat_A": "Appliances",
     "cat_B": "Cooling & Heating",
-    "cat_C": "Fans"
+    "cat_C": "Fans",
+    "magento_id": 2306
   },
   {
     "cat_A": "Appliances",
     "cat_B": "Beverage & Showcase Chest Freezer",
-    "cat_C": "Beverage & Showcase Chest Freezer"
+    "cat_C": "Beverage & Showcase Chest Freezer",
+    "magento_id": 2911
   },
   {
     "cat_A": "Electronics",
     "cat_B": "Televisions",
-    "cat_C": "32\" - 43\""
+    "cat_C": "32\" - 43\"",
+    "magento_id": 2609
   },
   {
     "cat_A": "Electronics",
     "cat_B": "Televisions",
-    "cat_C": "46\" - 50\""
+    "cat_C": "46\" - 50\"",
+    "magento_id": 2365
   },
   {
     "cat_A": "Electronics",
     "cat_B": "Televisions",
-    "cat_C": "55\" - 58\""
+    "cat_C": "55\" - 58\"",
+    "magento_id": 2366
   },
   {
     "cat_A": "Electronics",
     "cat_B": "Televisions",
-    "cat_C": "65\" - 86\""
+    "cat_C": "65\" - 86\"",
+    "magento_id": 2369
   },
   {
     "cat_A": "Electronics",
     "cat_B": "Televisions",
-    "cat_C": "Accessories"
+    "cat_C": "Accessories",
+    "magento_id": 2606
   },
   {
     "cat_A": "Electronics",
     "cat_B": "Computers & Mobiles",
-    "cat_C": "Laptops"
+    "cat_C": "Laptops",
+    "magento_id": 2331
   },
   {
     "cat_A": "Electronics",
     "cat_B": "Computers & Mobiles",
-    "cat_C": "Monitors"
+    "cat_C": "Monitors",
+    "magento_id": 2335
   },
   {
     "cat_A": "Electronics",
     "cat_B": "Computers & Mobiles",
-    "cat_C": "Mobiles"
+    "cat_C": "Mobiles",
+    "magento_id": 2492
   },
   {
     "cat_A": "Electronics",
     "cat_B": "Computers & Mobiles",
-    "cat_C": "Tablets"
+    "cat_C": "Tablets",
+    "magento_id": 2559
   },
   {
     "cat_A": "Electronics",
     "cat_B": "Computers & Mobiles",
-    "cat_C": "Accessories"
+    "cat_C": "Accessories",
+    "magento_id": 2566
   },
   {
     "cat_A": "Electronics",
     "cat_B": "Gaming ",
-    "cat_C": "Gaming Consoles"
+    "cat_C": "Gaming Consoles",
+    "magento_id": 2547
   },
   {
     "cat_A": "Electronics",
     "cat_B": "Printers & Machines",
-    "cat_C": "Printers & Fax Machines"
+    "cat_C": "Printers & Fax Machines",
+    "magento_id": 2433
   },
   {
     "cat_A": "Electronics",
     "cat_B": "Printers & Machines",
-    "cat_C": "Scanners"
+    "cat_C": "Scanners",
+    "magento_id": 2679
   },
   {
     "cat_A": "Electronics",
     "cat_B": "Printers & Machines",
-    "cat_C": "Printer Refills"
+    "cat_C": "Printer Refills",
+    "magento_id": 2387
   },
   {
     "cat_A": "Electronics",
     "cat_B": "Printers & Machines",
-    "cat_C": "Tank Series Printers (Inkjet)"
+    "cat_C": "Tank Series Printers (Inkjet)",
+    "magento_id": 2533
   },
   {
     "cat_A": "Electronics",
     "cat_B": "Printers & Machines",
-    "cat_C": "Paper Shredders"
+    "cat_C": "Paper Shredders",
+    "magento_id": 2553
   },
   {
     "cat_A": "Electronics",
     "cat_B": "Printers & Machines",
-    "cat_C": "Labelling Machines"
+    "cat_C": "Labelling Machines",
+    "magento_id": 2276
   },
   {
     "cat_A": "Electronics",
     "cat_B": "Printers & Machines",
-    "cat_C": "Laminating Machines"
+    "cat_C": "Laminating Machines",
+    "magento_id": 3069
   },
   {
     "cat_A": "Electronics",
     "cat_B": "Printers & Machines",
-    "cat_C": "Calculators"
+    "cat_C": "Calculators",
+    "magento_id": 2432
   },
   {
     "cat_A": "Electronics",
     "cat_B": "Printers & Machines",
-    "cat_C": "Money Detectors"
+    "cat_C": "Money Detectors",
+    "magento_id": 2488
   },
   {
     "cat_A": "Electronics",
     "cat_B": "Printers & Machines",
-    "cat_C": "Employee Time Clocks"
+    "cat_C": "Employee Time Clocks",
+    "magento_id": 2410
   },
   {
     "cat_A": "Houseware",
     "cat_B": "Cookware",
-    "cat_C": "Aluminium Topes"
+    "cat_C": "Aluminium Topes",
+    "magento_id": 2782
   },
   {
     "cat_A": "Houseware",
     "cat_B": "Cookware",
-    "cat_C": "Cooking Pots & Kadhai "
+    "cat_C": "Cooking Pots & Kadhai ",
+    "magento_id": 2780
   },
   {
     "cat_A": "Houseware",
     "cat_B": "Cookware",
-    "cat_C": "Frypans & Tawas"
+    "cat_C": "Frypans & Tawas",
+    "magento_id": 2711
   },
   {
     "cat_A": "Houseware",
     "cat_B": "Cookware",
-    "cat_C": "Saucepan & Milkpan"
+    "cat_C": "Saucepan & Milkpan",
+    "magento_id": 2713
   },
   {
     "cat_A": "Houseware",
     "cat_B": "Cookware",
-    "cat_C": "Cooking Sets"
+    "cat_C": "Cooking Sets",
+    "magento_id": 2779
   },
   {
     "cat_A": "Houseware",
     "cat_B": "Cookware",
-    "cat_C": "Woks, Grill Pans & Steamers"
+    "cat_C": "Woks, Grill Pans & Steamers",
+    "magento_id": 2781
   },
   {
     "cat_A": "Houseware",
     "cat_B": "Cookware",
-    "cat_C": "Pressure Cookers"
+    "cat_C": "Pressure Cookers",
+    "magento_id": 2716
   },
   {
     "cat_A": "Houseware",
     "cat_B": "Cookware",
-    "cat_C": "Ovenware"
+    "cat_C": "Ovenware",
+    "magento_id": 2715
   },
   {
     "cat_A": "Houseware",
     "cat_B": "Cookware",
-    "cat_C": "Casserole"
+    "cat_C": "Casserole",
+    "magento_id": 2860
   },
   {
     "cat_A": "Houseware",
     "cat_B": "Cookware",
-    "cat_C": "Woks"
+    "cat_C": "Woks",
+    "magento_id": 3068
   },
   {
     "cat_A": "Houseware",
     "cat_B": "Drinkware",
-    "cat_C": "Drink Dispenser & Accessories"
+    "cat_C": "Drink Dispenser & Accessories",
+    "magento_id": 2733
   },
   {
     "cat_A": "Houseware",
     "cat_B": "Drinkware",
-    "cat_C": "Jugs & Pitchers"
+    "cat_C": "Jugs & Pitchers",
+    "magento_id": 2788
   },
   {
     "cat_A": "Houseware",
     "cat_B": "Drinkware",
-    "cat_C": "Glassware"
+    "cat_C": "Glassware",
+    "magento_id": 2739
   },
   {
     "cat_A": "Houseware",
     "cat_B": "Drinkware",
-    "cat_C": "Water Bottles"
+    "cat_C": "Water Bottles",
+    "magento_id": 2740
   },
   {
     "cat_A": "Houseware",
     "cat_B": "Drinkware",
-    "cat_C": "Water Purifiers & Accessories"
+    "cat_C": "Water Purifiers & Accessories",
+    "magento_id": 2741
   },
   {
     "cat_A": "Houseware",
     "cat_B": "Drinkware",
-    "cat_C": "Vacuum Flasks"
+    "cat_C": "Vacuum Flasks",
+    "magento_id": 2742
   },
   {
     "cat_A": "Houseware",
     "cat_B": "Drinkware",
-    "cat_C": "Teapots"
+    "cat_C": "Teapots",
+    "magento_id": 2734
   },
   {
     "cat_A": "Houseware",
     "cat_B": "Drinkware",
-    "cat_C": "Mugs"
+    "cat_C": "Mugs",
+    "magento_id": 2738
   },
   {
     "cat_A": "Houseware",
     "cat_B": "Drinkware",
-    "cat_C": "Ice Chest & Cooler Bags"
+    "cat_C": "Ice Chest & Cooler Bags",
+    "magento_id": 2785
   },
   {
     "cat_A": "Houseware",
     "cat_B": "Preserving, Storage & Organisation",
-    "cat_C": "Jars"
+    "cat_C": "Jars",
+    "magento_id": 2795
   },
   {
     "cat_A": "Houseware",
     "cat_B": "Preserving, Storage & Organisation",
-    "cat_C": "Preserve Jars & Twist-Top Jars"
+    "cat_C": "Preserve Jars & Twist-Top Jars",
+    "magento_id": 2796
   },
   {
     "cat_A": "Houseware",
     "cat_B": "Preserving, Storage & Organisation",
-    "cat_C": "Storage Canisters"
+    "cat_C": "Storage Canisters",
+    "magento_id": 2797
   },
   {
     "cat_A": "Houseware",
     "cat_B": "Preserving, Storage & Organisation",
-    "cat_C": "Clip-top Jars & Bottles"
+    "cat_C": "Clip-top Jars & Bottles",
+    "magento_id": 2822
   },
   {
     "cat_A": "Houseware",
     "cat_B": "Preserving, Storage & Organisation",
-    "cat_C": "Spice Jars"
+    "cat_C": "Spice Jars",
+    "magento_id": 2847
   },
   {
     "cat_A": "Houseware",
     "cat_B": "Preserving, Storage & Organisation",
-    "cat_C": "Breakfast, Yoghurt & Fermentation Jar Set"
+    "cat_C": "Breakfast, Yoghurt & Fermentation Jar Set",
+    "magento_id": 2794
   },
   {
     "cat_A": "Houseware",
     "cat_B": "Preserving, Storage & Organisation",
-    "cat_C": "Glass Containers"
+    "cat_C": "Glass Containers",
+    "magento_id": 2848
   },
   {
     "cat_A": "Houseware",
     "cat_B": "Preserving, Storage & Organisation",
-    "cat_C": "Dish Drying Racks"
+    "cat_C": "Dish Drying Racks",
+    "magento_id": 2336
   },
   {
     "cat_A": "Houseware",
     "cat_B": "Preserving, Storage & Organisation",
-    "cat_C": "Insulated Ware"
+    "cat_C": "Insulated Ware",
+    "magento_id": 2398
   },
   {
     "cat_A": "Houseware",
     "cat_B": "Preserving, Storage & Organisation",
-    "cat_C": "Dispenser"
+    "cat_C": "Dispenser",
+    "magento_id": 4875
   },
   {
     "cat_A": "Houseware",
     "cat_B": "SHOP BY BRAND",
-    "cat_C": "Ravenhead"
+    "cat_C": "Ravenhead",
+    "magento_id": 2763
   },
   {
     "cat_A": "Houseware",
     "cat_B": "SHOP BY BRAND",
-    "cat_C": "Price & Kensington"
+    "cat_C": "Price & Kensington",
+    "magento_id": 2764
   },
   {
     "cat_A": "Houseware",
     "cat_B": "SHOP BY BRAND",
-    "cat_C": "Rossetti"
+    "cat_C": "Rossetti",
+    "magento_id": 2765
   },
   {
     "cat_A": "Houseware",
     "cat_B": "SHOP BY BRAND",
-    "cat_C": "Kilner"
+    "cat_C": "Kilner",
+    "magento_id": 2766
   },
   {
     "cat_A": "Houseware",
     "cat_B": "SHOP BY BRAND",
-    "cat_C": "Mason Cash"
+    "cat_C": "Mason Cash",
+    "magento_id": 2767
   },
   {
     "cat_A": "Houseware",
     "cat_B": "SHOP BY BRAND",
-    "cat_C": "Typhoon"
+    "cat_C": "Typhoon",
+    "magento_id": 2768
   },
   {
     "cat_A": "Houseware",
     "cat_B": "SHOP BY BRAND",
-    "cat_C": "Viners"
+    "cat_C": "Viners",
+    "magento_id": 2769
   },
   {
     "cat_A": "Houseware",
     "cat_B": "SHOP BY BRAND",
-    "cat_C": "Prestige"
+    "cat_C": "Prestige",
+    "magento_id": 2770
   },
   {
     "cat_A": "Houseware",
     "cat_B": "SHOP BY BRAND",
-    "cat_C": "Vinod"
+    "cat_C": "Vinod",
+    "magento_id": 2772
   },
   {
     "cat_A": "Houseware",
     "cat_B": "Serveware",
-    "cat_C": "Serving Bowls"
+    "cat_C": "Serving Bowls",
+    "magento_id": 2744
   },
   {
     "cat_A": "Houseware",
     "cat_B": "Serveware",
-    "cat_C": "Copperware"
+    "cat_C": "Copperware",
+    "magento_id": 2747
   },
   {
     "cat_A": "Houseware",
     "cat_B": "Serveware",
-    "cat_C": "Serving Boards, Platters & Food Covers"
+    "cat_C": "Serving Boards, Platters & Food Covers",
+    "magento_id": 2748
   },
   {
     "cat_A": "Houseware",
     "cat_B": "Serveware",
-    "cat_C": "Salt & Pepper Mills"
+    "cat_C": "Salt & Pepper Mills",
+    "magento_id": 2749
   },
   {
     "cat_A": "Houseware",
     "cat_B": "Serveware",
-    "cat_C": "Serving Boards"
+    "cat_C": "Serving Boards",
+    "magento_id": 3002
   },
   {
     "cat_A": "Houseware",
     "cat_B": "Tableware",
-    "cat_C": "Dinner Sets & Plates"
+    "cat_C": "Dinner Sets & Plates",
+    "magento_id": 2773
   },
   {
     "cat_A": "Houseware",
     "cat_B": "Tableware",
-    "cat_C": "Cutlery"
+    "cat_C": "Cutlery",
+    "magento_id": 2775
   },
   {
     "cat_A": "Houseware",
     "cat_B": "Tableware",
-    "cat_C": "Placemats & Coaster"
+    "cat_C": "Placemats & Coaster",
+    "magento_id": 2746
   },
   {
     "cat_A": "Houseware",
     "cat_B": "Tableware",
-    "cat_C": "Dinner Plates"
+    "cat_C": "Dinner Plates",
+    "magento_id": 3071
   },
   {
     "cat_A": "Houseware",
     "cat_B": "Tableware",
-    "cat_C": "Storage Canisters"
+    "cat_C": "Storage Canisters",
+    "magento_id": 5794
   },
   {
     "cat_A": "Houseware",
     "cat_B": "Bakeware",
-    "cat_C": "Mixing & Batter Bowls"
+    "cat_C": "Mixing & Batter Bowls",
+    "magento_id": 2729
   },
   {
     "cat_A": "Houseware",
     "cat_B": "Bakeware",
-    "cat_C": "Cake Decoration"
+    "cat_C": "Cake Decoration",
+    "magento_id": 2730
   },
   {
     "cat_A": "Houseware",
     "cat_B": "Bakeware",
-    "cat_C": "Baking Trays"
+    "cat_C": "Baking Trays",
+    "magento_id": 2732
   },
   {
     "cat_A": "Houseware",
     "cat_B": "Bakeware",
-    "cat_C": "Baking Tools & Accessories"
+    "cat_C": "Baking Tools & Accessories",
+    "magento_id": 2731
   },
   {
     "cat_A": "Houseware",
     "cat_B": "Food Preparation & Accessories",
-    "cat_C": "Kitchen Knives"
+    "cat_C": "Kitchen Knives",
+    "magento_id": 2717
   },
   {
     "cat_A": "Houseware",
     "cat_B": "Food Preparation & Accessories",
-    "cat_C": "Kitchen Tools & Accessories"
+    "cat_C": "Kitchen Tools & Accessories",
+    "magento_id": 2718
   },
   {
     "cat_A": "Houseware",
     "cat_B": "Food Preparation & Accessories",
-    "cat_C": "Chopping Boards"
+    "cat_C": "Chopping Boards",
+    "magento_id": 2777
   },
   {
     "cat_A": "Houseware",
     "cat_B": "Food Preparation & Accessories",
-    "cat_C": "Kitchen Scales"
+    "cat_C": "Kitchen Scales",
+    "magento_id": 2719
   },
   {
     "cat_A": "Houseware",
     "cat_B": "Food Preparation & Accessories",
-    "cat_C": "Oil Bottles & Drizzlers"
+    "cat_C": "Oil Bottles & Drizzlers",
+    "magento_id": 2783
   },
   {
     "cat_A": "Houseware",
     "cat_B": "Food Preparation & Accessories",
-    "cat_C": "Organizer"
+    "cat_C": "Organizer",
+    "magento_id": 4880
   },
   {
     "cat_A": "Houseware",
     "cat_B": "Coffee Maker & Kettles",
-    "cat_C": "Italian Stovetop Coffee Maker"
+    "cat_C": "Italian Stovetop Coffee Maker",
+    "magento_id": 2750
   },
   {
     "cat_A": "Houseware",
     "cat_B": "Coffee Maker & Kettles",
-    "cat_C": "French Press Coffee Maker"
+    "cat_C": "French Press Coffee Maker",
+    "magento_id": 2790
   },
   {
     "cat_A": "Houseware",
     "cat_B": "Coffee Maker & Kettles",
-    "cat_C": "Stovetop Kettle"
+    "cat_C": "Stovetop Kettle",
+    "magento_id": 2751
   },
   {
     "cat_A": "Houseware",
     "cat_B": "Barware",
-    "cat_C": "Cocktail Shaker & Buckets"
+    "cat_C": "Cocktail Shaker & Buckets",
+    "magento_id": 2743
   },
   {
     "cat_A": "Houseware",
     "cat_B": "Barware",
-    "cat_C": "Bar Accessories"
+    "cat_C": "Bar Accessories",
+    "magento_id": 2787
   },
   {
     "cat_A": "Mechanical",
     "cat_B": "Motorcycles",
-    "cat_C": "Motorcycles"
+    "cat_C": "Motorcycles",
+    "magento_id": 2472
   },
   {
     "cat_A": "Mechanical",
     "cat_B": "Motorcycles",
-    "cat_C": "Accessories"
+    "cat_C": "Accessories",
+    "magento_id": 3010
   },
   {
     "cat_A": "Mechanical",
     "cat_B": "Electric Bikes",
-    "cat_C": "Electric Bikes"
+    "cat_C": "Electric Bikes",
+    "magento_id": 2392
   },
   {
     "cat_A": "Mechanical",
     "cat_B": "Scooters",
-    "cat_C": "Scooters"
+    "cat_C": "Scooters",
+    "magento_id": 2581
   },
   {
     "cat_A": "Mechanical",
     "cat_B": "Helmets",
-    "cat_C": "Helmets"
+    "cat_C": "Helmets",
+    "magento_id": 2538
   },
   {
     "cat_A": "Mechanical",
     "cat_B": "Lifting Equipment",
-    "cat_C": "Lifting Equipment"
+    "cat_C": "Lifting Equipment",
+    "magento_id": 2403
   },
   {
     "cat_A": "Mechanical",
     "cat_B": "Marine",
-    "cat_C": "2 Stroke Outboard Engines"
+    "cat_C": "2 Stroke Outboard Engines",
+    "magento_id": 2451
   },
   {
     "cat_A": "Mechanical",
     "cat_B": "Marine",
-    "cat_C": "4 Stroke Outboard Engines"
+    "cat_C": "4 Stroke Outboard Engines",
+    "magento_id": 2460
   },
   {
     "cat_A": "Mechanical",
     "cat_B": "Power Products",
-    "cat_C": "Generators"
+    "cat_C": "Generators",
+    "magento_id": 2454
   },
   {
     "cat_A": "Mechanical",
     "cat_B": "Power Products",
-    "cat_C": "Brush Cutters & Chainsaws"
+    "cat_C": "Brush Cutters & Chainsaws",
+    "magento_id": 2545
   },
   {
     "cat_A": "Mechanical",
     "cat_B": "Power Products",
-    "cat_C": "Water Pumps"
+    "cat_C": "Water Pumps",
+    "magento_id": 2579
   },
   {
     "cat_A": "Mechanical",
     "cat_B": "Power Products",
-    "cat_C": "Lawnmower"
+    "cat_C": "Lawnmower",
+    "magento_id": 4895
   },
   {
     "cat_A": "Leisure",
     "cat_B": "Baby & Kids",
-    "cat_C": "Tricycles & Bicycles"
+    "cat_C": "Tricycles & Bicycles",
+    "magento_id": 2296
   },
   {
     "cat_A": "Leisure",
     "cat_B": "Baby & Kids",
-    "cat_C": "Ride-On Toys"
+    "cat_C": "Ride-On Toys",
+    "magento_id": 2311
   },
   {
     "cat_A": "Leisure",
     "cat_B": "Baby & Kids",
-    "cat_C": "Foot to Floor Toys"
+    "cat_C": "Foot to Floor Toys",
+    "magento_id": 2314
   },
   {
     "cat_A": "Leisure",
     "cat_B": "Baby & Kids",
-    "cat_C": "Remote Control Cars"
+    "cat_C": "Remote Control Cars",
+    "magento_id": 2223
   },
   {
     "cat_A": "Leisure",
     "cat_B": "Baby & Kids",
-    "cat_C": "Baby Strollers & Carriers"
+    "cat_C": "Baby Strollers & Carriers",
+    "magento_id": 2360
   },
   {
     "cat_A": "Leisure",
     "cat_B": "Baby & Kids",
-    "cat_C": "Booster Car Seat"
+    "cat_C": "Booster Car Seat",
+    "magento_id": 3048
   },
   {
     "cat_A": "Leisure",
     "cat_B": "Baby & Kids",
-    "cat_C": "Baby High Chair"
+    "cat_C": "Baby High Chair",
+    "magento_id": 4882
   },
   {
     "cat_A": "Leisure",
     "cat_B": "Baby & Kids",
-    "cat_C": "Baby Accessories"
+    "cat_C": "Baby Accessories",
+    "magento_id": 4889
   },
   {
     "cat_A": "Leisure",
     "cat_B": "Indoor",
-    "cat_C": "Table Tennis"
+    "cat_C": "Table Tennis",
+    "magento_id": 2218
   },
   {
     "cat_A": "Leisure",
     "cat_B": "Indoor",
-    "cat_C": "Pool Tables"
+    "cat_C": "Pool Tables",
+    "magento_id": 2386
   },
   {
     "cat_A": "Leisure",
     "cat_B": "Indoor",
-    "cat_C": "Baby Foot & Games"
+    "cat_C": "Baby Foot & Games",
+    "magento_id": 2445
   },
   {
     "cat_A": "Leisure",
     "cat_B": "Indoor",
-    "cat_C": "Playstation"
+    "cat_C": "Playstation",
+    "magento_id": 4626
   },
   {
     "cat_A": "Leisure",
     "cat_B": "Outdoor",
-    "cat_C": "Table Tennis "
+    "cat_C": "Table Tennis ",
+    "magento_id": 2561
   },
   {
     "cat_A": "Leisure",
     "cat_B": "Outdoor",
-    "cat_C": "Trottinettes"
+    "cat_C": "Trottinettes",
+    "magento_id": 2242
   },
   {
     "cat_A": "Leisure",
     "cat_B": "Outdoor",
-    "cat_C": "Bicycles"
+    "cat_C": "Bicycles",
+    "magento_id": 2301
   },
   {
     "cat_A": "Leisure",
     "cat_B": "Outdoor",
-    "cat_C": "Picnic Bags & Rugs"
+    "cat_C": "Picnic Bags & Rugs",
+    "magento_id": 2397
   },
   {
     "cat_A": "Leisure",
     "cat_B": "Outdoor",
-    "cat_C": "Trampoline"
+    "cat_C": "Trampoline",
+    "magento_id": 3014
   },
   {
     "cat_A": "Leisure",
     "cat_B": "Prayer Items",
-    "cat_C": "Agarbatti"
+    "cat_C": "Agarbatti",
+    "magento_id": 2341
   },
   {
     "cat_A": "Leisure",
     "cat_B": "Prayer Items",
-    "cat_C": "Diyas"
+    "cat_C": "Diyas",
+    "magento_id": 2381
   },
   {
     "cat_A": "Leisure",
     "cat_B": "Prayer Items",
-    "cat_C": "Hawan Kund"
+    "cat_C": "Hawan Kund",
+    "magento_id": 2382
   },
   {
     "cat_A": "Leisure",
     "cat_B": "Prayer Items",
-    "cat_C": "Lotas"
+    "cat_C": "Lotas",
+    "magento_id": 2385
   },
   {
     "cat_A": "Leisure",
     "cat_B": "Prayer Items",
-    "cat_C": "Gayatri Plates"
+    "cat_C": "Gayatri Plates",
+    "magento_id": 2419
   },
   {
     "cat_A": "Leisure",
     "cat_B": "Bags & Luggage",
-    "cat_C": "Luggage"
+    "cat_C": "Luggage",
+    "magento_id": 2343
   },
   {
     "cat_A": "Leisure",
     "cat_B": "Bags & Luggage",
-    "cat_C": "Laptop Bags"
+    "cat_C": "Laptop Bags",
+    "magento_id": 2399
   },
   {
     "cat_A": "Leisure",
     "cat_B": "Bags & Luggage",
-    "cat_C": "Shopping Trolley Bags"
+    "cat_C": "Shopping Trolley Bags",
+    "magento_id": 2568
   },
   {
     "cat_A": "Leisure",
     "cat_B": "Bags & Luggage",
-    "cat_C": "Backpacks"
+    "cat_C": "Backpacks",
+    "magento_id": 2589
   },
   {
     "cat_A": "Health & Styling",
     "cat_B": "Grooming",
-    "cat_C": "Men's Shavers & Trimmers"
+    "cat_C": "Men's Shavers & Trimmers",
+    "magento_id": 2211
   },
   {
     "cat_A": "Health & Styling",
     "cat_B": "Grooming",
-    "cat_C": "Lady's Shavers & Epilators"
+    "cat_C": "Lady's Shavers & Epilators",
+    "magento_id": 2245
   },
   {
     "cat_A": "Health & Styling",
     "cat_B": "Grooming",
-    "cat_C": "Hair Appliances"
+    "cat_C": "Hair Appliances",
+    "magento_id": 2260
   },
   {
     "cat_A": "Health & Styling",
     "cat_B": "Grooming",
-    "cat_C": "Manicure Sets"
+    "cat_C": "Manicure Sets",
+    "magento_id": 2447
   },
   {
     "cat_A": "Health & Styling",
     "cat_B": "Grooming",
-    "cat_C": "Magnifying Mirrors"
+    "cat_C": "Magnifying Mirrors",
+    "magento_id": 2459
   },
   {
     "cat_A": "Health & Styling",
     "cat_B": "Grooming",
-    "cat_C": "Hair Clippers"
+    "cat_C": "Hair Clippers",
+    "magento_id": 2473
   },
   {
     "cat_A": "Health & Styling",
     "cat_B": "Watches",
-    "cat_C": "Smartwatches"
+    "cat_C": "Smartwatches",
+    "magento_id": 3076
   },
   {
     "cat_A": "Health & Styling",
     "cat_B": "Watches",
-    "cat_C": "Men's Watches"
+    "cat_C": "Men's Watches",
+    "magento_id": 2267
   },
   {
     "cat_A": "Health & Styling",
     "cat_B": "Watches",
-    "cat_C": "Women's Watches"
+    "cat_C": "Women's Watches",
+    "magento_id": 2297
   },
   {
     "cat_A": "Health & Styling",
     "cat_B": "Watches",
-    "cat_C": "Kid's Watches"
+    "cat_C": "Kid's Watches",
+    "magento_id": 2925
   },
   {
     "cat_A": "Health & Styling",
     "cat_B": "Watches",
-    "cat_C": "Citizen Watches"
+    "cat_C": "Citizen Watches",
+    "magento_id": 2921
   },
   {
     "cat_A": "Health & Styling",
     "cat_B": "Watches",
-    "cat_C": "Titan Watches"
+    "cat_C": "Titan Watches",
+    "magento_id": 2922
   },
   {
     "cat_A": "Health & Styling",
     "cat_B": "Watches",
-    "cat_C": "Casio Watches"
+    "cat_C": "Casio Watches",
+    "magento_id": 2923
   },
   {
     "cat_A": "Health & Styling",
     "cat_B": "Watches",
-    "cat_C": "Q&Q Watches"
+    "cat_C": "Q&Q Watches",
+    "magento_id": 2924
   },
   {
     "cat_A": "Health & Styling",
     "cat_B": "Accessories",
-    "cat_C": "Sunglasses"
+    "cat_C": "Sunglasses",
+    "magento_id": 2394
   },
   {
     "cat_A": "Health & Styling",
     "cat_B": "Accessories",
-    "cat_C": "Men's Belts"
+    "cat_C": "Men's Belts",
+    "magento_id": 2563
   },
   {
     "cat_A": "Health & Styling",
     "cat_B": "Accessories",
-    "cat_C": "Men's Wallets"
+    "cat_C": "Men's Wallets",
+    "magento_id": 2569
   },
   {
     "cat_A": "Health & Styling",
     "cat_B": "Skinn By Titan Perfumes",
-    "cat_C": "For Men"
+    "cat_C": "For Men",
+    "magento_id": 2928
   },
   {
     "cat_A": "Health & Styling",
     "cat_B": "Skinn By Titan Perfumes",
-    "cat_C": "For Women"
+    "cat_C": "For Women",
+    "magento_id": 2930
   },
   {
     "cat_A": "Health & Styling",
     "cat_B": "Skinn By Titan Perfumes",
-    "cat_C": "Collections"
+    "cat_C": "Collections",
+    "magento_id": 2929
   },
   {
     "cat_A": "Health & Styling",
     "cat_B": "Health",
-    "cat_C": "Bathroom Scales"
+    "cat_C": "Bathroom Scales",
+    "magento_id": 2384
   },
   {
     "cat_A": "Health & Styling",
     "cat_B": "Health",
-    "cat_C": "Dental Care"
+    "cat_C": "Dental Care",
+    "magento_id": 2429
   },
   {
     "cat_A": "Health & Styling",
     "cat_B": "Health",
-    "cat_C": "Health Monitors"
+    "cat_C": "Health Monitors",
+    "magento_id": 2509
   },
   {
     "cat_A": "Health & Styling",
     "cat_B": "Massagers",
-    "cat_C": "Massagers"
+    "cat_C": "Massagers",
+    "magento_id": 2333
   },
   {
     "cat_A": "Fitness",
     "cat_B": "Cardio",
-    "cat_C": "Treadmills"
+    "cat_C": "Treadmills",
+    "magento_id": 2339
   },
   {
     "cat_A": "Fitness",
     "cat_B": "Cardio",
-    "cat_C": "Cycles"
+    "cat_C": "Cycles",
+    "magento_id": 2395
   },
   {
     "cat_A": "Fitness",
     "cat_B": "Cardio",
-    "cat_C": "Ski Trainers"
+    "cat_C": "Ski Trainers",
+    "magento_id": 2444
   },
   {
     "cat_A": "Fitness",
     "cat_B": "Cardio",
-    "cat_C": "Ellipticals"
+    "cat_C": "Ellipticals",
+    "magento_id": 2452
   },
   {
     "cat_A": "Fitness",
     "cat_B": "Cardio",
-    "cat_C": "Steppers"
+    "cat_C": "Steppers",
+    "magento_id": 2464
   },
   {
     "cat_A": "Fitness",
     "cat_B": "Cardio",
-    "cat_C": "Rowers"
+    "cat_C": "Rowers",
+    "magento_id": 2503
   },
   {
     "cat_A": "Fitness",
     "cat_B": "Weight Training",
-    "cat_C": "Barbell & Dumbbell"
+    "cat_C": "Barbell & Dumbbell",
+    "magento_id": 2595
   },
   {
     "cat_A": "Fitness",
     "cat_B": "Weight Training",
-    "cat_C": "Benches"
+    "cat_C": "Benches",
+    "magento_id": 2221
   },
   {
     "cat_A": "Fitness",
     "cat_B": "Weight Training",
-    "cat_C": "Medicine Balls"
+    "cat_C": "Medicine Balls",
+    "magento_id": 2519
   },
   {
     "cat_A": "Fitness",
     "cat_B": "Weight Training",
-    "cat_C": "Accessories"
+    "cat_C": "Accessories",
+    "magento_id": 2521
   },
   {
     "cat_A": "Fitness",
     "cat_B": "Other Machines",
-    "cat_C": "Vibration Machines"
+    "cat_C": "Vibration Machines",
+    "magento_id": 2487
   },
   {
     "cat_A": "Fitness",
     "cat_B": "Home Gym",
-    "cat_C": "Home Gyms"
+    "cat_C": "Home Gyms",
+    "magento_id": 2466
   },
   {
     "cat_A": "Fitness",
     "cat_B": "Boxing & MMA",
-    "cat_C": "Gloves & Wraps"
+    "cat_C": "Gloves & Wraps",
+    "magento_id": 2523
   },
   {
     "cat_A": "Fitness",
     "cat_B": "Boxing & MMA",
-    "cat_C": "Punching Bags & Dummies"
+    "cat_C": "Punching Bags & Dummies",
+    "magento_id": 2570
   },
   {
     "cat_A": "Fitness",
     "cat_B": "Boxing & MMA",
-    "cat_C": "Boxing Accessories"
+    "cat_C": "Boxing Accessories",
+    "magento_id": 2571
   },
   {
     "cat_A": "Fitness",
     "cat_B": "Boxing & MMA",
-    "cat_C": "Accessories"
+    "cat_C": "Accessories",
+    "magento_id": 2652
   },
   {
     "cat_A": "Fitness",
     "cat_B": "Boxing & MMA",
-    "cat_C": "Combat Section"
+    "cat_C": "Combat Section",
+    "magento_id": 4899
   },
   {
     "cat_A": "Fitness",
     "cat_B": "Accessories",
-    "cat_C": "Strength Accessories"
+    "cat_C": "Strength Accessories",
+    "magento_id": 2525
   },
   {
     "cat_A": "Fitness",
     "cat_B": "Accessories",
-    "cat_C": "Abdominal Accessories"
+    "cat_C": "Abdominal Accessories",
+    "magento_id": 2583
   },
   {
     "cat_A": "Fitness",
     "cat_B": "Accessories",
-    "cat_C": "Other Accessories"
+    "cat_C": "Other Accessories",
+    "magento_id": 2526
   },
   {
     "cat_A": "Fitness",
     "cat_B": "Accessories",
-    "cat_C": "Aerobic Steppers"
+    "cat_C": "Aerobic Steppers",
+    "magento_id": 2527
   },
   {
     "cat_A": "Fitness",
     "cat_B": "Accessories",
-    "cat_C": "Gym Balls & Yoga Mats"
+    "cat_C": "Gym Balls & Yoga Mats",
+    "magento_id": 2528
   },
   {
     "cat_A": "Fitness",
     "cat_B": "Accessories",
-    "cat_C": "Joint Supports"
+    "cat_C": "Joint Supports",
+    "magento_id": 2529
   },
   {
     "cat_A": "Fitness",
     "cat_B": "Accessories",
-    "cat_C": "Watches & Trackers"
+    "cat_C": "Watches & Trackers",
+    "magento_id": 4900
   },
   {
     "cat_A": "Fitness",
     "cat_B": "Accessories",
-    "cat_C": "Yoga & Wellness"
+    "cat_C": "Yoga & Wellness",
+    "magento_id": 4901
   },
   {
     "cat_A": "Music & AV",
     "cat_B": "Home Audio & Video",
-    "cat_C": "Amplifiers & Receivers"
+    "cat_C": "Amplifiers & Receivers",
+    "magento_id": 2326
   },
   {
     "cat_A": "Music & AV",
     "cat_B": "Home Audio & Video",
-    "cat_C": "Hi-Fi Speakers & Subs"
+    "cat_C": "Hi-Fi Speakers & Subs",
+    "magento_id": 2442
   },
   {
     "cat_A": "Music & AV",
     "cat_B": "Home Audio & Video",
-    "cat_C": "Soundbars & Sound Projectors"
+    "cat_C": "Soundbars & Sound Projectors",
+    "magento_id": 2489
   },
   {
     "cat_A": "Music & AV",
     "cat_B": "Home Audio & Video",
-    "cat_C": "Component Systems"
+    "cat_C": "Component Systems",
+    "magento_id": 2531
   },
   {
     "cat_A": "Music & AV",
     "cat_B": "Home Audio & Video",
-    "cat_C": "DVD Players & Home Cinema Speakers"
+    "cat_C": "DVD Players & Home Cinema Speakers",
+    "magento_id": 2421
   },
   {
     "cat_A": "Music & AV",
     "cat_B": "Home Audio & Video",
-    "cat_C": "CD Players & Turntables"
+    "cat_C": "CD Players & Turntables",
+    "magento_id": 2352
   },
   {
     "cat_A": "Music & AV",
     "cat_B": "Home Audio & Video",
-    "cat_C": "Party Speakers"
+    "cat_C": "Party Speakers",
+    "magento_id": 2517
   },
   {
     "cat_A": "Music & AV",
     "cat_B": "Home Audio & Video",
-    "cat_C": "Portable Audio"
+    "cat_C": "Portable Audio",
+    "magento_id": 2388
   },
   {
     "cat_A": "Music & AV",
     "cat_B": "Home Audio & Video",
-    "cat_C": "Computer Speakers"
+    "cat_C": "Computer Speakers",
+    "magento_id": 2446
   },
   {
     "cat_A": "Music & AV",
     "cat_B": "Home Audio & Video",
-    "cat_C": "Headphones & Earphones"
+    "cat_C": "Headphones & Earphones",
+    "magento_id": 2457
   },
   {
     "cat_A": "Music & AV",
     "cat_B": "Home Audio & Video",
-    "cat_C": "Audio & Video Accessories"
+    "cat_C": "Audio & Video Accessories",
+    "magento_id": 2357
   },
   {
     "cat_A": "Music & AV",
     "cat_B": "Home Audio & Video",
-    "cat_C": "Passive Speakers"
+    "cat_C": "Passive Speakers",
+    "magento_id": 2618
   },
   {
     "cat_A": "Music & AV",
     "cat_B": "Home Audio & Video",
-    "cat_C": "Stands & Accessories"
+    "cat_C": "Stands & Accessories",
+    "magento_id": 4896
   },
   {
     "cat_A": "Music & AV",
     "cat_B": "Professional Audio",
-    "cat_C": "Passive Speakers & Subs"
+    "cat_C": "Passive Speakers & Subs",
+    "magento_id": 2328
   },
   {
     "cat_A": "Music & AV",
     "cat_B": "Professional Audio",
-    "cat_C": "Active Speakers"
+    "cat_C": "Active Speakers",
+    "magento_id": 2449
   },
   {
     "cat_A": "Music & AV",
     "cat_B": "Professional Audio",
-    "cat_C": "HS Series (Studio Monitor)"
+    "cat_C": "HS Series (Studio Monitor)",
+    "magento_id": 2651
   },
   {
     "cat_A": "Music & AV",
     "cat_B": "Professional Audio",
-    "cat_C": "Installation Speakers"
+    "cat_C": "Installation Speakers",
+    "magento_id": 2494
   },
   {
     "cat_A": "Music & AV",
     "cat_B": "Professional Audio",
-    "cat_C": "Mixing Consoles"
+    "cat_C": "Mixing Consoles",
+    "magento_id": 2417
   },
   {
     "cat_A": "Music & AV",
     "cat_B": "Professional Audio",
-    "cat_C": "Powered Mixers"
+    "cat_C": "Powered Mixers",
+    "magento_id": 2456
   },
   {
     "cat_A": "Music & AV",
     "cat_B": "Professional Audio",
-    "cat_C": "Power Amplifiers"
+    "cat_C": "Power Amplifiers",
+    "magento_id": 2418
   },
   {
     "cat_A": "Music & AV",
     "cat_B": "Professional Audio",
-    "cat_C": "Processors"
+    "cat_C": "Processors",
+    "magento_id": 2564
   },
   {
     "cat_A": "Music & AV",
     "cat_B": "Professional Audio",
-    "cat_C": "Microphones & Receivers"
+    "cat_C": "Microphones & Receivers",
+    "magento_id": 2443
   },
   {
     "cat_A": "Music & AV",
     "cat_B": "Professional Audio",
-    "cat_C": "Stands & Accessories"
+    "cat_C": "Stands & Accessories",
+    "magento_id": 2551
   },
   {
     "cat_A": "Music & AV",
     "cat_B": "Professional Audio",
-    "cat_C": "Powered Amplifiers"
+    "cat_C": "Powered Amplifiers",
+    "magento_id": 2653
   },
   {
     "cat_A": "Music & AV",
     "cat_B": "Musical Instruments",
-    "cat_C": "Guitars"
+    "cat_C": "Guitars",
+    "magento_id": 2351
   },
   {
     "cat_A": "Music & AV",
     "cat_B": "Musical Instruments",
-    "cat_C": "Pianos & Keyboards"
+    "cat_C": "Pianos & Keyboards",
+    "magento_id": 2548
   },
   {
     "cat_A": "Music & AV",
     "cat_B": "Musical Instruments",
-    "cat_C": "Drums"
+    "cat_C": "Drums",
+    "magento_id": 2434
   },
   {
     "cat_A": "Music & AV",
     "cat_B": "Musical Instruments",
-    "cat_C": "Wind Instruments"
+    "cat_C": "Wind Instruments",
+    "magento_id": 2541
   },
   {
     "cat_A": "Music & AV",
     "cat_B": "Musical Instruments",
-    "cat_C": "Violins"
+    "cat_C": "Violins",
+    "magento_id": 2572
   },
   {
     "cat_A": "Music & AV",
     "cat_B": "Musical Instruments",
-    "cat_C": "Pedals & Amps"
+    "cat_C": "Pedals & Amps",
+    "magento_id": 2544
   },
   {
     "cat_A": "Music & AV",
     "cat_B": "Musical Instruments",
-    "cat_C": "Stands & Accessories"
+    "cat_C": "Stands & Accessories",
+    "magento_id": 2448
   },
   {
     "cat_A": "Music & AV",
     "cat_B": "Musical Instruments",
-    "cat_C": "CD Players"
+    "cat_C": "CD Players",
+    "magento_id": 4365
   },
   {
     "cat_A": "Music & AV",
     "cat_B": "Musical Instruments",
-    "cat_C": "CD Players"
+    "cat_C": "CD Players",
+    "magento_id": 4366
   },
   {
     "cat_A": "Music & AV",
     "cat_B": "Musical Instruments",
-    "cat_C": "Amplifiers & Receivers"
+    "cat_C": "Amplifiers & Receivers",
+    "magento_id": 4367
   },
   {
     "cat_A": "Commercial",
     "cat_B": "Office",
-    "cat_C": "Safes"
+    "cat_C": "Safes",
+    "magento_id": 2257
   },
   {
     "cat_A": "Commercial",
     "cat_B": "Office",
-    "cat_C": "Secure Filing Cabinets"
+    "cat_C": "Secure Filing Cabinets",
+    "magento_id": 2438
   },
   {
     "cat_A": "Commercial",
     "cat_B": "Office",
-    "cat_C": "Paper Shredders"
+    "cat_C": "Paper Shredders",
+    "magento_id": 2737
   },
   {
     "cat_A": "Commercial",
     "cat_B": "Office",
-    "cat_C": "Secured Key Cabinets"
+    "cat_C": "Secured Key Cabinets",
+    "magento_id": 3000
   },
   {
     "cat_A": "Commercial",
     "cat_B": "Kitchen",
-    "cat_C": "Work Tables"
+    "cat_C": "Work Tables",
+    "magento_id": 2287
   },
   {
     "cat_A": "Commercial",
     "cat_B": "Kitchen",
-    "cat_C": "Blenders"
+    "cat_C": "Blenders",
+    "magento_id": 2379
   },
   {
     "cat_A": "Commercial",
     "cat_B": "Kitchen",
-    "cat_C": "Buffet & Display"
+    "cat_C": "Buffet & Display",
+    "magento_id": 2407
   },
   {
     "cat_A": "Commercial",
     "cat_B": "Kitchen",
-    "cat_C": "Cooking Appliances"
+    "cat_C": "Cooking Appliances",
+    "magento_id": 2408
   },
   {
     "cat_A": "Commercial",
     "cat_B": "Kitchen",
-    "cat_C": "Undercounter"
+    "cat_C": "Undercounter",
+    "magento_id": 3045
   },
   {
     "cat_A": "Commercial",
     "cat_B": "Kitchen",
-    "cat_C": "Ice Machine"
+    "cat_C": "Ice Machine",
+    "magento_id": 3046
   },
   {
     "cat_A": "Commercial",
     "cat_B": "Kitchen",
-    "cat_C": "Refrigerators & Freezers"
+    "cat_C": "Refrigerators & Freezers",
+    "magento_id": 3047
   },
   {
     "cat_A": "Commercial",
     "cat_B": "Kitchen",
-    "cat_C": "Water Dispenser"
+    "cat_C": "Water Dispenser",
+    "magento_id": 3050
   },
   {
     "cat_A": "Commercial",
     "cat_B": "Power Tools",
-    "cat_C": "Welders"
+    "cat_C": "Welders",
+    "magento_id": 2390
   },
   {
     "cat_A": "Commercial",
     "cat_B": "Power Tools",
-    "cat_C": "Plasma Cutters"
+    "cat_C": "Plasma Cutters",
+    "magento_id": 2428
   },
   {
     "cat_A": "Commercial",
     "cat_B": "Power Tools",
-    "cat_C": "Disc Grinders"
+    "cat_C": "Disc Grinders",
+    "magento_id": 2439
   },
   {
     "cat_A": "Commercial",
     "cat_B": "Power Tools",
-    "cat_C": "Saws"
+    "cat_C": "Saws",
+    "magento_id": 2474
   },
   {
     "cat_A": "Commercial",
     "cat_B": "Power Tools",
-    "cat_C": "Air Compressor"
+    "cat_C": "Air Compressor",
+    "magento_id": 2859
   },
   {
     "cat_A": "Commercial",
     "cat_B": "Hand Trucks & Ladder Carts",
-    "cat_C": "Hand Trucks"
+    "cat_C": "Hand Trucks",
+    "magento_id": 2687
   },
   {
     "cat_A": "Commercial",
     "cat_B": "Hand Trucks & Ladder Carts",
-    "cat_C": "Ladder Cart"
+    "cat_C": "Ladder Cart",
+    "magento_id": 2688
   },
   {
     "cat_A": "Commercial",
     "cat_B": "Fitness",
-    "cat_C": "Treadmills"
+    "cat_C": "Treadmills",
+    "magento_id": 3056
   },
   {
     "cat_A": "Commercial",
     "cat_B": "Fitness",
-    "cat_C": "Cycles"
+    "cat_C": "Cycles",
+    "magento_id": 3057
   },
   {
     "cat_A": "Commercial",
     "cat_B": "Fitness",
-    "cat_C": "Ellipticals"
+    "cat_C": "Ellipticals",
+    "magento_id": 3058
   },
   {
     "cat_A": "Commercial",
     "cat_B": "Fitness",
-    "cat_C": "Gym Equipments"
+    "cat_C": "Gym Equipments",
+    "magento_id": 3059
   },
   {
     "cat_A": "Commercial",
     "cat_B": "Cooling & Heating",
-    "cat_C": "Air Curtains"
+    "cat_C": "Air Curtains",
+    "magento_id": 2468
   },
   {
     "cat_A": "Commercial",
     "cat_B": "Cooling & Heating",
-    "cat_C": "Air Conditioners"
+    "cat_C": "Air Conditioners",
+    "magento_id": 2477
   },
   {
     "cat_A": "Commercial",
     "cat_B": "Appliances",
-    "cat_C": "Vacuum Cleaners"
+    "cat_C": "Vacuum Cleaners",
+    "magento_id": 2574
   },
   {
     "cat_A": "Commercial",
     "cat_B": "Appliances",
-    "cat_C": "Pressure Cleaners"
+    "cat_C": "Pressure Cleaners",
+    "magento_id": 2691
   },
   {
     "cat_A": "Commercial",
     "cat_B": "DIY",
-    "cat_C": "Workstations"
+    "cat_C": "Workstations",
+    "magento_id": 2916
   },
   {
     "cat_A": "Commercial",
     "cat_B": "DIY",
-    "cat_C": "Bin Racks"
+    "cat_C": "Bin Racks",
+    "magento_id": 2917
   },
   {
     "cat_A": "Commercial",
     "cat_B": "DIY",
-    "cat_C": "Storage Cabinets"
+    "cat_C": "Storage Cabinets",
+    "magento_id": 2918
   },
   {
     "cat_A": "Commercial",
     "cat_B": "Safety",
-    "cat_C": "Fire Safety"
+    "cat_C": "Fire Safety",
+    "magento_id": 2463
   }
 ]

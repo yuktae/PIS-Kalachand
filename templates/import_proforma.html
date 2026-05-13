@@ -147,18 +147,6 @@
                     </template>
                 </div>
 
-                <!-- Internal-Kalachand toggle -->
-                <div class="flex items-center justify-between p-5 bg-slate-50/80 rounded-2xl border border-slate-100">
-                    <div class="flex flex-col">
-                        <span class="text-xs font-bold text-slate-700 uppercase tracking-widest mb-1">Internal Kalachand proforma?</span>
-                        <span class="text-[10px] text-slate-400 font-medium">Tick if this is a Kalachand-created doc (MUR pricing, no supplier letterhead) so the AI knows to research the category instead of trusting the document.</span>
-                    </div>
-                    <label class="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" x-model="bulkInternal" class="sr-only peer">
-                        <div class="w-11 h-6 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-600"></div>
-                    </label>
-                </div>
-
                 <button @click="runBulkTriage()"
                     :disabled="bulkFiles.length === 0 || bulkRunning"
                     class="w-full py-4 bg-slate-900 hover:bg-red-600 disabled:bg-slate-300 text-white font-bold rounded-full transition-all uppercase tracking-wide text-sm">
@@ -798,7 +786,6 @@
 
             // ── Bulk wizard state (Phase A) ──
             bulkFiles: [],
-            bulkInternal: false,
             bulkRunning: false,
             bulkRunningStage: '',
             bulkProgress: 0,
@@ -1010,7 +997,6 @@
                 try {
                     const fd = new FormData();
                     this.bulkFiles.forEach(f => fd.append('ai_document', f));
-                    if (this.bulkInternal) fd.append('kalachand_internal', 'on');
                     const resp = await fetch("{{ url_for('marketing.import_proforma_bulk_triage') }}",
                         { method: 'POST', body: fd });
                     const payload = await this.consumeStream(resp);
@@ -1193,7 +1179,7 @@
                         body: JSON.stringify({
                             session_token: this.bulkSessionToken,
                             feedback: this.bulkRework.trim(),
-                            origin_hint: this.bulkInternal ? 'kalachand_internal' : 'external_supplier',
+                            origin_hint: 'unknown',
                         }),
                     });
                     const payload = await this.consumeStream(resp);

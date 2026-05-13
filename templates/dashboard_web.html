@@ -10,8 +10,9 @@
 {% set approved = tasks|selectattr('workflow_stage', 'equalto', 'finalized')|list|length %}
 {% set in_process = tasks|selectattr('workflow_stage', 'equalto', 'specsheet_draft')|list|length %}
 
-<div x-data="{ 
-    filter: 'new', 
+<div x-data="{
+    filter: 'all',
+    categoryFilter: '',
     view: 'card',
     search: '',
     showGenModal: false,
@@ -81,45 +82,48 @@
             image: `{{ url_for('static', filename=p.image_path) if p.image_path else '' }}`,
             date: `{{ p.created_at.strftime('%d %b') }}`,
             stage: `{{ p.workflow_stage }}`,
+            category: `{{ product_category_label(p) }}`,
             action_url: `{{ url_for('web.create_specsheet', product_id=p.id) }}`,
             
-            {# --- UI Display Logic --- #}
+            {# --- UI Display Logic — labels + colors match the new flow:
+                   AI Generated SpecSheet · SpecSheet Draft · In Review ·
+                   Change Requested · Approved PIS #}
             {% if p.workflow_stage == 'ready_for_web' %}
-                status_bg: 'bg-green-100',
-                status_text: 'text-green-700',
-                stage_display: 'Draft SpecSheet',
+                status_bg: 'bg-yellow-50',
+                status_text: 'text-yellow-700',
+                stage_display: 'AI Generated SpecSheet',
                 action_label: 'Edit SpecSheet',
                 is_urgent: false,
                 is_modal_trigger: false,
             {% elif p.workflow_stage == 'web_changes_requested' %}
-                status_bg: 'bg-red-100',
+                status_bg: 'bg-red-50',
                 status_text: 'text-red-700',
                 stage_display: 'Change Requested',
                 action_label: 'Fix SpecSheet',
                 is_modal_trigger: false,
             {% elif p.workflow_stage == 'specsheet_draft' %}
-                status_bg: 'bg-amber-100',
+                status_bg: 'bg-amber-50',
                 status_text: 'text-amber-700',
-                stage_display: 'In Process',
+                stage_display: 'SpecSheet Draft',
                 action_label: 'Continue Editing',
                 is_urgent: false,
                 is_modal_trigger: false,
             {% elif p.workflow_stage == 'pending_director_spec' %}
-                status_bg: 'bg-blue-100',
+                status_bg: 'bg-blue-50',
                 status_text: 'text-blue-700',
-                stage_display: 'Need Review',
+                stage_display: 'In Review',
                 action_label: 'View',
                 is_urgent: false,
                 is_modal_trigger: false,
             {% elif p.workflow_stage == 'finalized' %}
-                status_bg: 'bg-indigo-100',
-                status_text: 'text-indigo-700',
-                stage_display: 'SpecSheet Approved',
+                status_bg: 'bg-green-50',
+                status_text: 'text-green-700',
+                stage_display: 'Approved PIS',
                 action_label: 'View',
                 is_urgent: false,
                 is_modal_trigger: false,
             {% else %}
-                status_bg: 'bg-gray-100',
+                status_bg: 'bg-gray-50',
                 status_text: 'text-gray-600',
                 stage_display: 'Unknown',
                 action_label: 'View',
@@ -132,12 +136,13 @@
     
     get filteredProducts() {
         return this.products.filter(p => {
-            const matchesSearch = p.model_id.toLowerCase().includes(this.search.toLowerCase()) || 
-                                  p.model_name.toLowerCase().includes(this.search.toLowerCase()) || 
+            const matchesSearch = p.model_id.toLowerCase().includes(this.search.toLowerCase()) ||
+                                  p.model_name.toLowerCase().includes(this.search.toLowerCase()) ||
                                   p.brand.toLowerCase().includes(this.search.toLowerCase());
-            
+
             if (!matchesSearch) return false;
-            
+            if (this.categoryFilter && p.category !== this.categoryFilter) return false;
+
             if (this.filter === 'all') return true;
             if (this.filter === 'new' && p.stage === 'ready_for_web') return true;
             if (this.filter === 'changes' && p.stage === 'web_changes_requested') return true;
@@ -146,141 +151,302 @@
             if (this.filter === 'in_process' && p.stage === 'specsheet_draft') return true;
             return false;
         });
-    }
+    },
+
+    /* Notification bell — same shape as the marketing dashboard, but
+       categorised for the web team's pipeline:
+         - new SpecSheets ready to draft  (stage = ready_for_web)
+         - changes requested by Director  (stage = web_changes_requested)
+         - approved SpecSheets             (stage = finalized) */
+    readNotifs: JSON.parse(localStorage.getItem('web_read_notifs') || '[]'),
+    notifKey(p) {
+        let cat = 'other';
+        if (p.stage === 'web_changes_requested') cat = 'changes';
+        else if (p.stage === 'ready_for_web') cat = 'new';
+        else if (p.stage === 'finalized') cat = 'approved';
+        return p.id + ':' + cat;
+    },
+    isUnread(p) { return !this.readNotifs.includes(this.notifKey(p)); },
+    markRead(p) {
+        const k = this.notifKey(p);
+        if (!this.readNotifs.includes(k)) {
+            this.readNotifs = [...this.readNotifs, k];
+            localStorage.setItem('web_read_notifs', JSON.stringify(this.readNotifs));
+        }
+    },
+    unreadNew()      { return this.products.filter(p => p.stage === 'ready_for_web'         && this.isUnread(p)); },
+    unreadChanges()  { return this.products.filter(p => p.stage === 'web_changes_requested' && this.isUnread(p)); },
+    unreadApproved() { return this.products.filter(p => p.stage === 'finalized'             && this.isUnread(p)); },
+    totalUnreadNotifs() { return this.unreadNew().length + this.unreadChanges().length + this.unreadApproved().length; },
 }">
 
     <!-- DEBUGGER (Only visible if you inspect or unhide) -->
     <!-- Raw Task Count: {{ tasks|length }} -->
     <!-- Task Stages: {% for t in tasks %}{{ t.workflow_stage }}, {% endfor %} -->
 
-    <!-- HERO SECTION -->
-    <div class="mb-8 relative rounded-2xl bg-white border border-gray-100 p-8 shadow-sm overflow-hidden">
-        <div
-            class="absolute inset-0 bg-[radial-gradient(#f1f5f9_1px,transparent_1px)] [background-size:16px_16px] opacity-50">
-        </div>
-        <div
-            class="absolute right-0 top-0 w-64 h-64 bg-indigo-50 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 opacity-50">
-        </div>
+    <!-- HERO SECTION — matches Marketing dashboard styling -->
+    <div class="mb-6 relative rounded-3xl bg-gradient-to-br from-white via-white to-red-50/40 border border-gray-100 p-8 shadow-sm overflow-hidden">
+        <div class="absolute inset-0 bg-[radial-gradient(#fee2e2_1px,transparent_1px)] [background-size:18px_18px] opacity-40 pointer-events-none"></div>
+        {# Decorative red accent orbs #}
+        <div class="absolute -top-12 -right-12 w-48 h-48 bg-red-100/40 rounded-full blur-3xl pointer-events-none"></div>
+        <div class="absolute -bottom-12 -left-12 w-40 h-40 bg-red-100/30 rounded-full blur-3xl pointer-events-none"></div>
 
         <div class="relative z-10 flex flex-col md:flex-row justify-between items-center gap-6">
             <div>
-                <h2 class="text-3xl font-bold text-slate-800 mb-2">Web Team Workspace</h2>
-                <p class="text-slate-500 text-sm">You have <span class="font-bold text-indigo-600">{{ total_tasks }}
+                <p class="text-[10px] font-bold text-red-600 uppercase tracking-widest mb-1">Dashboard</p>
+                <h2 class="text-3xl font-extrabold text-slate-900 tracking-tight">Hello, Web Team</h2>
+                <p class="text-slate-500 text-sm mt-1.5">You have <span class="font-bold text-red-600">{{ total_tasks }}
                         active tasks</span> in your pipeline.</p>
             </div>
 
-            <!-- Quick Stats -->
-            <div class="flex gap-3">
+            <div class="flex gap-3 items-center">
+
+                <!-- Notification Bell — adapted to web team's pipeline events -->
+                <div class="relative" x-data="{ bellOpen: false, bellStyle: {} }" @click.outside="bellOpen = false">
+                    <button type="button"
+                        @click="if (!bellOpen) { const r = $el.getBoundingClientRect(); bellStyle = { position: 'fixed', top: (r.bottom + 8) + 'px', right: (window.innerWidth - r.right) + 'px' }; } bellOpen = !bellOpen"
+                        class="relative w-10 h-10 bg-white border text-slate-500 rounded-lg hover:bg-slate-50 transition-all flex items-center justify-center shadow-sm"
+                        :class="bellOpen
+                            ? 'border-red-200 text-red-500 bg-red-50'
+                            : totalUnreadNotifs() > 0
+                                ? 'border-red-200 text-red-500'
+                                : 'border-slate-200'">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                        </svg>
+                        <span x-show="totalUnreadNotifs() > 0"
+                            class="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] bg-red-600 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1 shadow pointer-events-none"
+                            x-text="totalUnreadNotifs()">
+                        </span>
+                    </button>
+
+                    <!-- Dropdown panel — position:fixed so it escapes overflow:hidden on the hero card -->
+                    <div x-show="bellOpen"
+                        :style="bellStyle"
+                        x-transition:enter="transition ease-out duration-150"
+                        x-transition:enter-start="opacity-0 scale-95"
+                        x-transition:enter-end="opacity-100 scale-100"
+                        x-transition:leave="transition ease-in duration-100"
+                        x-transition:leave-start="opacity-100 scale-100"
+                        x-transition:leave-end="opacity-0 scale-95"
+                        class="w-80 bg-white rounded-2xl shadow-2xl border border-slate-100 z-[9999] origin-top-right"
+                        style="display:none">
+
+                        <!-- Header -->
+                        <div class="px-4 py-3 border-b border-slate-100 flex items-center justify-between rounded-t-2xl">
+                            <p class="text-xs font-bold text-slate-700 uppercase tracking-widest">Notifications</p>
+                            <span class="text-[10px] text-slate-400"
+                                x-text="totalUnreadNotifs() + ' unread'">
+                            </span>
+                        </div>
+
+                        <!-- New SpecSheets ready section -->
+                        <div x-show="unreadNew().length > 0">
+                            <p class="px-4 py-2 text-[10px] font-bold text-green-600 uppercase tracking-widest bg-green-50 border-b border-green-100">
+                                New SpecSheets ready to draft
+                            </p>
+                            <template x-for="p in unreadNew()" :key="'new-' + p.id">
+                                <button type="button"
+                                    @click="markRead(p); filter = 'new'; bellOpen = false"
+                                    class="w-full px-4 py-3 flex items-center gap-3 hover:bg-slate-50 transition-colors text-left border-b border-slate-100">
+                                    <div class="w-8 h-8 rounded-lg bg-green-50 flex items-center justify-center shrink-0">
+                                        <svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                    </div>
+                                    <div class="min-w-0 flex-1">
+                                        <p class="text-xs font-bold text-slate-800 truncate" x-text="p.model_name || p.model_id"></p>
+                                        <p class="text-[10px] text-slate-400 font-mono mt-0.5 truncate" x-text="p.model_id"></p>
+                                    </div>
+                                    <svg class="w-3.5 h-3.5 text-slate-300 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                    </svg>
+                                </button>
+                            </template>
+                        </div>
+
+                        <!-- Change Requested section -->
+                        <div x-show="unreadChanges().length > 0">
+                            <p class="px-4 py-2 text-[10px] font-bold text-red-500 uppercase tracking-widest bg-red-50 border-b border-red-100">
+                                Changes requested by Director
+                            </p>
+                            <template x-for="p in unreadChanges()" :key="'chg-' + p.id">
+                                <button type="button"
+                                    @click="markRead(p); filter = 'changes'; bellOpen = false"
+                                    class="w-full px-4 py-3 flex items-center gap-3 hover:bg-slate-50 transition-colors text-left border-b border-slate-100">
+                                    <div class="w-8 h-8 rounded-lg bg-red-50 flex items-center justify-center shrink-0">
+                                        <svg class="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                        </svg>
+                                    </div>
+                                    <div class="min-w-0 flex-1">
+                                        <p class="text-xs font-bold text-slate-800 truncate" x-text="p.model_name || p.model_id"></p>
+                                        <p class="text-[10px] text-slate-400 font-mono mt-0.5 truncate" x-text="p.model_id"></p>
+                                    </div>
+                                    <svg class="w-3.5 h-3.5 text-slate-300 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                    </svg>
+                                </button>
+                            </template>
+                        </div>
+
+                        <!-- Approved SpecSheets section -->
+                        <div x-show="unreadApproved().length > 0">
+                            <p class="px-4 py-2 text-[10px] font-bold text-indigo-600 uppercase tracking-widest bg-indigo-50 border-b border-indigo-100">
+                                Approved SpecSheets
+                            </p>
+                            <template x-for="p in unreadApproved()" :key="'apv-' + p.id">
+                                <button type="button"
+                                    @click="markRead(p); filter = 'approved'; bellOpen = false"
+                                    class="w-full px-4 py-3 flex items-center gap-3 hover:bg-slate-50 transition-colors text-left border-b border-slate-100">
+                                    <div class="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center shrink-0">
+                                        <svg class="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                    </div>
+                                    <div class="min-w-0 flex-1">
+                                        <p class="text-xs font-bold text-slate-800 truncate" x-text="p.model_name || p.model_id"></p>
+                                        <p class="text-[10px] text-slate-400 font-mono mt-0.5 truncate" x-text="p.model_id"></p>
+                                    </div>
+                                    <svg class="w-3.5 h-3.5 text-slate-300 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                    </svg>
+                                </button>
+                            </template>
+                        </div>
+
+                        <!-- Empty state -->
+                        <div x-show="totalUnreadNotifs() === 0"
+                            class="py-10 text-center">
+                            <div class="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-3">
+                                <svg class="w-6 h-6 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                                </svg>
+                            </div>
+                            <p class="text-xs font-bold text-slate-400">All caught up!</p>
+                            <p class="text-[10px] text-slate-300 mt-1">No pending notifications</p>
+                        </div>
+
+                        <!-- Footer -->
+                        <div class="px-4 py-2.5 bg-slate-50 border-t border-slate-100 rounded-b-2xl">
+                            <button type="button" @click="filter = 'all'; bellOpen = false"
+                                class="text-[10px] font-bold text-slate-400 hover:text-red-600 transition-colors w-full text-left">
+                                View all tasks →
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <!-- /Notification Bell -->
+
                 <button type="button" onclick="openGlobalPurgeModal()"
-                    class="px-4 py-2 bg-white border border-red-100 text-red-500 rounded-lg text-xs font-bold hover:bg-red-50 hover:border-red-200 transition-all flex items-center gap-2 shadow-sm">
+                    class="px-5 py-2.5 bg-white border border-red-100 text-red-500 rounded-lg text-sm font-semibold hover:bg-red-50 hover:border-red-200 transition-all flex items-center gap-2 shadow-sm">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-4v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                     </svg>
                     Clear All
                 </button>
-                <div
-                    class="px-4 py-2 bg-white/80 border border-gray-200 rounded-lg text-xs font-bold text-slate-600 shadow-sm flex items-center gap-2">
-                    <span class="w-2 h-2 rounded-full bg-green-500"></span>
-                    {{ new_specsheets }} New SpecSheets
-                </div>
-
             </div>
         </div>
     </div>
 
-    <!-- METRICS CARDS -->
-    <div class="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+    <!-- METRICS CARDS — flow: Total · AI Generated SpecSheet · SpecSheet Draft · In Review · Change Requested · Approved PIS -->
+    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
         <div
-            class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex items-center gap-4 hover:border-gray-200 transition-colors">
-            <div class="w-10 h-10 rounded-lg bg-gray-50 flex items-center justify-center text-slate-500 flex-shrink-0">
+            class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex items-center gap-3 hover:border-gray-200 transition-colors overflow-hidden">
+            <div class="w-9 h-9 rounded-lg bg-gray-50 flex items-center justify-center text-slate-500 flex-shrink-0">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
                 </svg>
             </div>
-            <div>
-                <p class="text-xs font-bold text-gray-400">TOTAL TASKS</p>
+            <div class="min-w-0">
+                <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wide">TOTAL TASKS</p>
                 <p class="text-xl font-bold text-slate-800 leading-none mt-0.5">{{ total_tasks }}</p>
             </div>
         </div>
 
-        <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex items-center gap-4 hover:border-green-200 transition-colors group cursor-pointer"
+        <!-- AI Generated SpecSheet (was Draft SpecSheet) -->
+        <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex items-center gap-3 hover:border-yellow-200 transition-colors group cursor-pointer overflow-hidden"
             @click="filter = 'new'">
             <div
-                class="w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center text-green-600 flex-shrink-0 group-hover:bg-green-100 transition-colors">
+                class="w-9 h-9 rounded-lg bg-yellow-50 flex items-center justify-center text-yellow-600 flex-shrink-0 group-hover:bg-yellow-100 transition-colors">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                 </svg>
             </div>
-            <div>
-                <p class="text-xs font-bold text-gray-400 group-hover:text-green-500 transition-colors">
-                    DRAFT SPECSHEET</p>
+            <div class="min-w-0">
+                <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wide leading-tight">AI GENERATED SPECSHEET</p>
                 <p class="text-xl font-bold text-slate-800 leading-none mt-0.5">{{ new_specsheets }}</p>
             </div>
         </div>
 
-        <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex items-center gap-4 hover:border-red-200 transition-colors group cursor-pointer"
-            @click="filter = 'changes'">
-            <div
-                class="w-10 h-10 rounded-lg bg-red-50 flex items-center justify-center text-red-600 flex-shrink-0 group-hover:bg-red-100 transition-colors">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-            </div>
-            <div>
-                <p class="text-xs font-bold text-gray-400 group-hover:text-red-500 transition-colors">
-                    CHANGE REQUESTED</p>
-                <p class="text-xl font-bold text-slate-800 leading-none mt-0.5">{{ changes_requested }}</p>
-            </div>
-        </div>
-
-        <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex items-center gap-4 hover:border-blue-200 transition-colors group cursor-pointer"
-            @click="filter = 'review'">
-            <div
-                class="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 flex-shrink-0 group-hover:bg-blue-100 transition-colors">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-            </div>
-            <div>
-                <p class="text-xs font-bold text-gray-400 group-hover:text-blue-500 transition-colors">
-                    NEED REVIEW</p>
-                <p class="text-xl font-bold text-slate-800 leading-none mt-0.5">{{ need_review }}</p>
-            </div>
-        </div>
-
-        <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex items-center gap-4 hover:border-amber-200 transition-colors group cursor-pointer"
+        <!-- SpecSheet Draft (was In Process) -->
+        <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex items-center gap-3 hover:border-amber-200 transition-colors group cursor-pointer overflow-hidden"
             @click="filter = 'in_process'">
             <div
-                class="w-10 h-10 rounded-lg bg-amber-50 flex items-center justify-center text-amber-600 flex-shrink-0 group-hover:bg-amber-100 transition-colors">
+                class="w-9 h-9 rounded-lg bg-amber-50 flex items-center justify-center text-amber-600 flex-shrink-0 group-hover:bg-amber-100 transition-colors">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
             </div>
-            <div>
-                <p class="text-xs font-bold text-gray-400 group-hover:text-amber-500 transition-colors">
-                    IN PROCESS</p>
+            <div class="min-w-0">
+                <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wide">SPECSHEET DRAFT</p>
                 <p class="text-xl font-bold text-slate-800 leading-none mt-0.5">{{ in_process }}</p>
             </div>
         </div>
 
-        <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex items-center gap-4 hover:border-indigo-200 transition-colors group cursor-pointer"
-            @click="filter = 'approved'">
+        <!-- In Review (was Need Review) -->
+        <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex items-center gap-3 hover:border-blue-200 transition-colors group cursor-pointer overflow-hidden"
+            @click="filter = 'review'">
             <div
-                class="w-10 h-10 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600 flex-shrink-0 group-hover:bg-indigo-100 transition-colors">
+                class="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 flex-shrink-0 group-hover:bg-blue-100 transition-colors">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
             </div>
-            <div>
-                <p class="text-xs font-bold text-gray-400 group-hover:text-indigo-500 transition-colors">
-                    SPECSHEET APPROVED</p>
+            <div class="min-w-0">
+                <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wide">IN REVIEW</p>
+                <p class="text-xl font-bold text-slate-800 leading-none mt-0.5">{{ need_review }}</p>
+            </div>
+        </div>
+
+        <!-- Change Requested -->
+        <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex items-center gap-3 hover:border-red-200 transition-colors group cursor-pointer overflow-hidden"
+            @click="filter = 'changes'">
+            <div
+                class="w-9 h-9 rounded-lg bg-red-50 flex items-center justify-center text-red-600 flex-shrink-0 group-hover:bg-red-100 transition-colors">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+            </div>
+            <div class="min-w-0">
+                <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wide leading-tight">CHANGE REQUESTED</p>
+                <p class="text-xl font-bold text-slate-800 leading-none mt-0.5">{{ changes_requested }}</p>
+            </div>
+        </div>
+
+        <!-- Approved PIS (was SpecSheet Approved) -->
+        <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex items-center gap-3 hover:border-green-200 transition-colors group cursor-pointer overflow-hidden"
+            @click="filter = 'approved'">
+            <div
+                class="w-9 h-9 rounded-lg bg-green-50 flex items-center justify-center text-green-600 flex-shrink-0 group-hover:bg-green-100 transition-colors">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+            </div>
+            <div class="min-w-0">
+                <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wide">APPROVED PIS</p>
                 <p class="text-xl font-bold text-slate-800 leading-none mt-0.5">{{ approved }}</p>
             </div>
         </div>
@@ -289,67 +455,138 @@
     <!-- MAIN DASHBOARD CONTENT -->
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden min-h-[500px]">
 
-        <!-- Toolbar -->
-        <div class="px-6 py-4 border-b border-gray-100 flex flex-col md:flex-row justify-between items-center gap-4">
+        {# Toolbar — Row 1: search grows to fill, category dropdown + view
+           toggle anchor the right edge. Row 2: status filter segmented
+           control across the full row, each pill flex-1. Same layout as
+           Marketing/Director for cross-portal consistency; red accent
+           matches the J. Kalachand brand colour across all portals. #}
+        <div class="px-6 py-4 border-b border-gray-100 flex flex-col gap-3.5">
 
-            <div class="flex items-center gap-4 flex-1">
-                <!-- View Toggle -->
-                <div class="flex items-center bg-gray-50 p-1 rounded-lg border border-gray-100">
+            {# Row 1 — search (grows) + category dropdown + view toggle. #}
+            <div class="flex flex-col md:flex-row md:items-center gap-3">
+
+                <div class="relative flex-1 min-w-0">
+                    <svg class="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                    <input x-model="search" type="text" placeholder="Search tasks by name, model, or brand…"
+                        class="w-full pl-10 pr-9 py-2.5 bg-gray-50 border border-gray-100 hover:border-gray-200 focus:bg-white focus:border-red-200 focus:ring-4 focus:ring-red-50 rounded-lg text-sm font-medium transition-all outline-none placeholder-gray-400">
+                    <button type="button" x-show="search" @click="search = ''"
+                        class="absolute right-2.5 top-1/2 -translate-y-1/2 w-6 h-6 rounded-md text-gray-400 hover:text-slate-600 hover:bg-gray-100 transition-colors flex items-center justify-center"
+                        title="Clear search">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="relative md:w-60">
+                    <svg class="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none transition-colors"
+                        :class="categoryFilter ? 'text-red-500' : 'text-gray-400'"
+                        fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                    </svg>
+                    <select x-model="categoryFilter"
+                        class="appearance-none w-full pl-10 pr-9 py-2.5 border rounded-lg text-sm font-medium transition-all outline-none cursor-pointer"
+                        :class="categoryFilter
+                            ? 'bg-red-50/60 border-red-200 text-slate-800 ring-4 ring-red-50/40'
+                            : 'bg-gray-50 border-gray-100 hover:border-gray-200 text-gray-500 focus:bg-white focus:border-red-200 focus:ring-4 focus:ring-red-50'">
+                        <option value="">All categories</option>
+                        {% for cat in available_categories %}
+                        <option value="{{ cat }}">{{ cat }}</option>
+                        {% endfor %}
+                    </select>
+                    <svg class="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                </div>
+
+                <div class="flex items-center bg-gray-50 p-1 rounded-lg border border-gray-100 self-start md:self-auto">
                     <button @click="view = 'card'"
-                        :class="view === 'card' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-400 hover:text-slate-600'"
-                        class="p-2 rounded-md transition-all">
+                        :class="view === 'card' ? 'bg-white text-red-600 shadow-sm' : 'text-gray-400 hover:text-slate-600'"
+                        class="p-2 rounded-md transition-all" title="Card view">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
                         </svg>
                     </button>
                     <button @click="view = 'list'"
-                        :class="view === 'list' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-400 hover:text-slate-600'"
-                        class="p-2 rounded-md transition-all">
+                        :class="view === 'list' ? 'bg-white text-red-600 shadow-sm' : 'text-gray-400 hover:text-slate-600'"
+                        class="p-2 rounded-md transition-all" title="List view">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M4 6h16M4 12h16M4 18h16" />
                         </svg>
                     </button>
                 </div>
+            </div>
 
-                <!-- Filters -->
-                <div class="flex items-center gap-1 bg-gray-50 p-1 rounded-lg border border-gray-100">
+            {# Row 2 — status filter segmented control. Flow: All → AI
+               Generated SpecSheet → SpecSheet Draft → In Review → Change
+               Requested → Approved PIS. Each pill `flex-1` so the bar
+               takes the full toolbar width. The Change-Requested pill
+               carries an unread counter from localStorage so the web team
+               sees how many director-flagged items are queued. #}
+            <div class="overflow-x-auto -mx-1 px-1">
+                <div class="flex w-full items-stretch gap-1 bg-gray-50 p-1 rounded-xl border border-gray-100">
                     <button @click="filter = 'all'"
-                        :class="filter === 'all' ? 'bg-white text-slate-800 shadow-sm font-semibold' : 'text-gray-500 hover:text-slate-600'"
-                        class="px-4 py-1.5 rounded-md text-[10px] transition-all uppercase tracking-wider">ALL</button>
+                        :class="filter === 'all' ? 'bg-white text-slate-800 shadow-sm font-semibold' : 'text-gray-500 hover:text-slate-700'"
+                        class="flex-1 px-4 py-2.5 rounded-lg text-xs transition-all whitespace-nowrap">All</button>
                     <button @click="filter = 'new'"
-                        :class="filter === 'new' ? 'bg-white text-green-600 shadow-sm font-semibold' : 'text-gray-500 hover:text-slate-600'"
-                        class="px-4 py-1.5 rounded-md text-[10px] transition-all uppercase tracking-wider whitespace-nowrap">DRAFT
-                        SPECSHEET</button>
-                    <button @click="filter = 'changes'"
-                        :class="filter === 'changes' ? 'bg-white text-red-600 shadow-sm font-semibold' : 'text-gray-500 hover:text-slate-600'"
-                        class="px-4 py-1.5 rounded-md text-[10px] transition-all uppercase tracking-wider whitespace-nowrap">CHANGE
-                        REQUESTED</button>
-                    <button @click="filter = 'review'"
-                        :class="filter === 'review' ? 'bg-white text-blue-600 shadow-sm font-semibold' : 'text-gray-500 hover:text-slate-600'"
-                        class="px-4 py-1.5 rounded-md text-[10px] transition-all uppercase tracking-wider whitespace-nowrap">NEED
-                        REVIEW</button>
+                        :class="filter === 'new' ? 'bg-white text-yellow-600 shadow-sm font-semibold' : 'text-gray-500 hover:text-slate-700'"
+                        class="flex-1 px-4 py-2.5 rounded-lg text-xs transition-all whitespace-nowrap">AI Generated SpecSheet</button>
                     <button @click="filter = 'in_process'"
-                        :class="filter === 'in_process' ? 'bg-white text-amber-600 shadow-sm font-semibold' : 'text-gray-500 hover:text-slate-600'"
-                        class="px-4 py-1.5 rounded-md text-[10px] transition-all uppercase tracking-wider whitespace-nowrap">IN
-                        PROCESS</button>
+                        :class="filter === 'in_process' ? 'bg-white text-amber-600 shadow-sm font-semibold' : 'text-gray-500 hover:text-slate-700'"
+                        class="flex-1 px-4 py-2.5 rounded-lg text-xs transition-all whitespace-nowrap">SpecSheet Draft</button>
+                    <button @click="filter = 'review'"
+                        :class="filter === 'review' ? 'bg-white text-blue-600 shadow-sm font-semibold' : 'text-gray-500 hover:text-slate-700'"
+                        class="flex-1 px-4 py-2.5 rounded-lg text-xs transition-all whitespace-nowrap">In Review</button>
+                    <button @click="filter = 'changes'"
+                        :class="filter === 'changes' ? 'bg-white text-red-600 shadow-sm font-semibold' : 'text-gray-500 hover:text-slate-700'"
+                        class="flex-1 px-4 py-2.5 rounded-lg text-xs transition-all whitespace-nowrap flex items-center justify-center gap-1.5">
+                        <span>Change Requested</span>
+                        <span x-show="unreadChanges().length > 0"
+                            class="min-w-[16px] h-[16px] bg-red-600 text-white text-[9px] font-bold rounded-full flex items-center justify-center px-1 shadow-sm"
+                            x-text="unreadChanges().length"></span>
+                    </button>
                     <button @click="filter = 'approved'"
-                        :class="filter === 'approved' ? 'bg-white text-indigo-600 shadow-sm font-semibold' : 'text-gray-500 hover:text-slate-600'"
-                        class="px-4 py-1.5 rounded-md text-[10px] transition-all uppercase tracking-wider whitespace-nowrap">SPECSHEET
-                        APPROVED</button>
+                        :class="filter === 'approved' ? 'bg-white text-green-600 shadow-sm font-semibold' : 'text-gray-500 hover:text-slate-700'"
+                        class="flex-1 px-4 py-2.5 rounded-lg text-xs transition-all whitespace-nowrap">Approved PIS</button>
                 </div>
             </div>
 
-            <!-- Search -->
-            <div class="relative w-full md:w-64">
-                <svg class="w-4 h-4 absolute left-3 top-2.5 text-gray-400" fill="none" stroke="currentColor"
-                    viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-                <input x-model="search" type="text" placeholder="Search tasks..."
-                    class="w-full pl-9 pr-4 py-2 bg-gray-50 border border-transparent focus:bg-white focus:border-indigo-100 focus:ring-4 focus:ring-indigo-50 rounded-lg text-sm font-medium transition-all outline-none placeholder-gray-400">
+            {# Active filter summary — shows what's narrowing the view and
+               lets the user remove individual filters with one click. #}
+            <div x-show="categoryFilter || search || filter !== 'all'" x-cloak
+                class="flex flex-wrap items-center gap-2 pt-1">
+                <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Active filters:</span>
+                <template x-if="filter !== 'all'">
+                    <button @click="filter = 'all'"
+                        class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-100 text-slate-700 text-xs font-semibold hover:bg-slate-200 transition-colors">
+                        <span x-text="filter === 'new' ? 'AI Generated SpecSheet' : filter === 'in_process' ? 'SpecSheet Draft' : filter === 'review' ? 'In Review' : filter === 'changes' ? 'Change Requested' : filter === 'approved' ? 'Approved PIS' : filter"></span>
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </template>
+                <template x-if="categoryFilter">
+                    <button @click="categoryFilter = ''"
+                        class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-red-50 text-red-700 text-xs font-semibold hover:bg-red-100 transition-colors">
+                        <span x-text="'Category: ' + categoryFilter"></span>
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </template>
+                <template x-if="search">
+                    <button @click="search = ''"
+                        class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-100 text-slate-700 text-xs font-semibold hover:bg-slate-200 transition-colors">
+                        <span x-text="'Search: ' + search"></span>
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </template>
+                <button @click="filter = 'all'; categoryFilter = ''; search = ''"
+                    class="text-[11px] font-bold text-red-500 hover:text-red-700 transition-colors ml-1">
+                    Clear all
+                </button>
             </div>
         </div>
 
@@ -404,7 +641,7 @@
                             <!-- Action -->
                             <template x-if="p.is_modal_trigger">
                                 <button @click="startGeneration(p.id)"
-                                    class="mt-3 w-full py-2 bg-indigo-600 text-white border-indigo-600 hover:bg-indigo-700 hover:shadow-lg shadow-indigo-200 rounded-lg font-bold text-xs flex items-center justify-center gap-2 transition-colors border">
+                                    class="mt-3 w-full py-2 bg-red-600 text-white border-red-600 hover:bg-red-700 hover:shadow-lg shadow-red-200 rounded-lg font-bold text-xs flex items-center justify-center gap-2 transition-colors border">
                                     <span x-text="p.action_label"></span>
                                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -415,7 +652,7 @@
 
                             <template x-if="!p.is_modal_trigger">
                                 <a :href="p.action_url"
-                                    class="mt-3 w-full py-2 bg-indigo-600 text-white border-indigo-600 hover:bg-indigo-700 hover:shadow-lg shadow-indigo-200 rounded-lg font-bold text-xs flex items-center justify-center gap-2 transition-colors border">
+                                    class="mt-3 w-full py-2 bg-red-600 text-white border-red-600 hover:bg-red-700 hover:shadow-lg shadow-red-200 rounded-lg font-bold text-xs flex items-center justify-center gap-2 transition-colors border">
                                     <span x-text="p.action_label"></span>
                                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -474,10 +711,7 @@
 
                                         <template x-if="p.is_modal_trigger">
                                             <button @click="startGeneration(p.id)"
-                                                class="inline-flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-bold transition-colors"
-                                                :class="p.is_urgent 
-                                                   ? 'bg-red-50 text-red-700 border border-red-100 hover:bg-red-100' 
-                                                   : 'bg-indigo-50 text-indigo-700 border border-indigo-100 hover:bg-indigo-100'">
+                                                class="inline-flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-bold transition-colors bg-red-600 text-white border border-red-600 hover:bg-red-700">
                                                 <span x-text="p.action_label"></span>
                                                 <svg class="w-3 h-3" fill="none" stroke="currentColor"
                                                     viewBox="0 0 24 24">
@@ -489,10 +723,7 @@
 
                                         <template x-if="!p.is_modal_trigger">
                                             <a :href="p.action_url"
-                                                class="inline-flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-bold transition-colors"
-                                                :class="p.is_urgent 
-                                                   ? 'bg-red-50 text-red-700 border border-red-100 hover:bg-red-100' 
-                                                   : 'bg-indigo-50 text-indigo-700 border border-indigo-100 hover:bg-indigo-100'">
+                                                class="inline-flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-bold transition-colors bg-red-600 text-white border border-red-600 hover:bg-red-700">
                                                 <span x-text="p.action_label"></span>
                                                 <svg class="w-3 h-3" fill="none" stroke="currentColor"
                                                     viewBox="0 0 24 24">
@@ -523,8 +754,8 @@
                     <h3 class="text-lg font-bold text-slate-800">No tasks found</h3>
                     <p class="text-slate-500 text-sm max-w-xs mt-1">There are no products matching your current filters.
                     </p>
-                    <button @click="filter = 'all'"
-                        class="mt-4 text-xs font-bold text-indigo-600 hover:text-indigo-700">Clear filters</button>
+                    <button @click="filter = 'all'; categoryFilter = ''; search = ''"
+                        class="mt-4 text-xs font-bold text-red-600 hover:text-red-700">Clear filters</button>
                 </div>
             </div>
         </div>
@@ -541,7 +772,7 @@
         <div class="bg-white rounded-3xl w-full max-w-md p-8 shadow-2xl transform transition-all scale-100">
             <!-- Idle State -->
             <div x-show="!generating">
-                <div class="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mb-4">
+                <div class="w-12 h-12 bg-red-50 text-red-600 rounded-2xl flex items-center justify-center mb-4">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M19.428 15.428a2 2 0 00-1.022-.547l-2.384-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
@@ -559,7 +790,7 @@
                         Cancel
                     </button>
                     <button @click="confirmGeneration"
-                        class="flex-1 bg-indigo-600 text-white py-3 rounded-xl font-bold hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-200">
+                        class="flex-1 bg-red-600 text-white py-3 rounded-xl font-bold hover:bg-red-700 transition-colors shadow-lg shadow-red-200">
                         Yes, Generate
                     </button>
                 </div>
@@ -568,9 +799,9 @@
             <!-- Loading State -->
             <div x-show="generating" class="text-center py-4">
                 <div class="relative w-16 h-16 mx-auto mb-4">
-                    <div class="absolute inset-0 border-4 border-indigo-100 rounded-full"></div>
+                    <div class="absolute inset-0 border-4 border-red-100 rounded-full"></div>
                     <div
-                        class="absolute inset-0 border-4 border-indigo-500 rounded-full border-t-transparent animate-spin">
+                        class="absolute inset-0 border-4 border-red-500 rounded-full border-t-transparent animate-spin">
                     </div>
                 </div>
                 <h3 class="font-bold text-lg text-gray-900 mb-1">Creating SpecSheet...</h3>
@@ -578,7 +809,7 @@
 
                 <!-- Progress Bar -->
                 <div class="w-full bg-gray-100 rounded-full h-2 mb-2 overflow-hidden">
-                    <div class="bg-indigo-500 h-2 rounded-full transition-all duration-300"
+                    <div class="bg-red-500 h-2 rounded-full transition-all duration-300"
                         :style="`width: ${progress}%`"></div>
                 </div>
                 <div class="flex justify-between text-[10px] text-gray-400 font-bold uppercase tracking-wide">

@@ -1,1 +1,84 @@
-{}
+{
+  "__global__": [
+    {
+      "word": "experience",
+      "replace_with": "feature",
+      "severity": "block",
+      "reason": "SEO filler — vague, hurts ranking and brand voice",
+      "added_by": "System (seed)",
+      "added_at": "2026-05-12T00:00:00+00:00"
+    },
+    {
+      "word": "discover",
+      "replace_with": "see",
+      "severity": "block",
+      "reason": "Generic AI marketing word",
+      "added_by": "System (seed)",
+      "added_at": "2026-05-12T00:00:00+00:00"
+    },
+    {
+      "word": "immerse",
+      "replace_with": "enjoy",
+      "severity": "block",
+      "reason": "Overused by AI for entertainment / display products",
+      "added_by": "System (seed)",
+      "added_at": "2026-05-12T00:00:00+00:00"
+    },
+    {
+      "word": "unleash",
+      "replace_with": "use",
+      "severity": "block",
+      "reason": "Hyperbolic — clashes with Mauritius retail tone",
+      "added_by": "System (seed)",
+      "added_at": "2026-05-12T00:00:00+00:00"
+    },
+    {
+      "word": "revolutionary",
+      "replace_with": "modern",
+      "severity": "block",
+      "reason": "Empty superlative — Google devalues hype words",
+      "added_by": "System (seed)",
+      "added_at": "2026-05-12T00:00:00+00:00"
+    },
+    {
+      "word": "seamless",
+      "replace_with": "smooth",
+      "severity": "block",
+      "reason": "AI cliché — almost never adds information",
+      "added_by": "System (seed)",
+      "added_at": "2026-05-12T00:00:00+00:00"
+    },
+    {
+      "word": "cutting-edge",
+      "replace_with": "advanced",
+      "severity": "block",
+      "reason": "Cliché; covers hyphenated compound forms too",
+      "added_by": "System (seed)",
+      "added_at": "2026-05-12T00:00:00+00:00"
+    },
+    {
+      "word": "world-class",
+      "replace_with": "premium",
+      "severity": "warn",
+      "reason": "Often unsubstantiated — flag for human review",
+      "added_by": "System (seed)",
+      "added_at": "2026-05-12T00:00:00+00:00"
+    },
+    {
+      "word": "best-in-class",
+      "replace_with": "top-tier",
+      "severity": "warn",
+      "reason": "Comparative claim — needs evidence, warn the editor",
+      "added_by": "System (seed)",
+      "added_at": "2026-05-12T00:00:00+00:00"
+    },
+    {
+      "word": "elevate",
+      "replace_with": "improve",
+      "severity": "block",
+      "reason": "AI buzzword — almost always a filler verb",
+      "added_by": "System (seed)",
+      "added_at": "2026-05-12T00:00:00+00:00"
+    }
+  ]
+}

@@ -18,6 +18,7 @@ from helpers import (
     get_current_username, save_version_snapshot,
     _diff_and_log_changes, normalize_pis_data,
     proforma_to_pis_data, extract_raw_text_from_files,
+    set_product_category, get_product_category_label, CATEGORY_UNCATEGORISED,
 )
 from utils.history import log_event
 from utils.web_scraping import scrape_url_data, scrape_url_data_deep
@@ -45,10 +46,19 @@ def dashboard_marketing():
     approved_stages = ['ready_for_web', 'specsheet_draft', 'pending_director_spec', 'web_changes_requested', 'finalized']
     marketing_stages = ['marketing_draft', 'marketing_in_progress', 'marketing_changes_requested', 'pending_director_pis'] + approved_stages
 
-    active_pipeline = Product.query.filter(
-        Product.workflow_stage.in_(marketing_stages),
-        Product.deleted_at.is_(None)
-    ).order_by(Product.created_at.desc()).all()
+    # Order by `last_edited_at` — bumped by SQLAlchemy on every UPDATE so
+    # autosaves, approvals, category writes, and stage transitions all
+    # surface the product to the top of the gallery. Falls back to
+    # created_at for safety on any row where the column is NULL.
+    active_pipeline = (
+        Product.query
+        .filter(Product.workflow_stage.in_(marketing_stages),
+                Product.deleted_at.is_(None))
+        .order_by(
+            db.func.coalesce(Product.last_edited_at, Product.created_at).desc()
+        )
+        .all()
+    )
 
     metrics = {
         'total_active': len(active_pipeline),
@@ -58,7 +68,23 @@ def dashboard_marketing():
         'in_process': sum(1 for p in active_pipeline if p.workflow_stage == 'marketing_in_progress'),
         'approved': sum(1 for p in active_pipeline if p.workflow_stage in approved_stages)
     }
-    return render_template('dashboard_marketing.html', products=active_pipeline, metrics=metrics)
+
+    # Build the list of categories actually present in the current pipeline
+    # so the filter dropdown only ever offers selections that will return
+    # results. "Uncategorised" is pinned last so it doesn't clutter the
+    # alphabetical run of real Magento top-level categories.
+    available_categories = sorted({
+        get_product_category_label(p) for p in active_pipeline
+    } - {CATEGORY_UNCATEGORISED})
+    if any(get_product_category_label(p) == CATEGORY_UNCATEGORISED for p in active_pipeline):
+        available_categories.append(CATEGORY_UNCATEGORISED)
+
+    return render_template(
+        'dashboard_marketing.html',
+        products=active_pipeline, metrics=metrics,
+        available_categories=available_categories,
+        uncategorised_label=CATEGORY_UNCATEGORISED,
+    )
 
 
 @marketing_bp.route('/product/<int:product_id>/history')
@@ -105,16 +131,21 @@ def history_marketing():
                 return icon
         return 'M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z'
 
+    # Full product lifecycle filter mapping — covers PIS creation,
+    # PIS approval, SpecSheet creation, SpecSheet approval. Each
+    # workflow_stage gets bucketed into one of these audit-log buckets so
+    # the History Log can be filtered end-to-end (Marketing → Director →
+    # Web → Director → Finalized).
     STAGE_FILTER_MAP = {
-        'marketing_draft': 'DRAFT PIS',
-        'pending_director_pis': 'NEED REVIEW',
-        'marketing_changes_requested': 'CHANGE REQUESTED',
-        'ready_for_web': 'PIS APPROVED',
-        'specsheet_draft': 'IN PROCESS',
-        'pending_director_spec': 'IN PROCESS',
-        'web_changes_requested': 'IN PROCESS',
-        'finalized': 'PIS APPROVED',
-        'marketing_in_progress': 'IN PROCESS',
+        'marketing_draft':              'PIS DRAFT',
+        'marketing_in_progress':        'PIS DRAFT',
+        'marketing_changes_requested':  'PIS CHANGES',
+        'pending_director_pis':         'PIS REVIEW',
+        'ready_for_web':                'PIS APPROVED',
+        'specsheet_draft':              'SPEC DRAFT',
+        'web_changes_requested':        'SPEC CHANGES',
+        'pending_director_spec':        'SPEC REVIEW',
+        'finalized':                    'FINALIZED',
     }
 
     # Annotated so Pyrefly doesn't widen `item['product']` to the union of
@@ -152,7 +183,7 @@ def history_marketing():
         latest_event = timeline[0]['title'] if timeline else 'Created'
         latest_date  = timeline[0]['date']  if timeline else p.created_at.strftime('%Y-%m-%d')
         latest_time  = timeline[0]['time']  if timeline else p.created_at.strftime('%H:%M')
-        filter_status = STAGE_FILTER_MAP.get(stage, 'DRAFT PIS')
+        filter_status = STAGE_FILTER_MAP.get(stage, 'PIS DRAFT')
 
         products_with_history.append({
             'product': p, 'pis_status': current_pis_status, 'filter_status': filter_status,
@@ -648,11 +679,14 @@ def import_proforma_bulk_triage():
 
     Request form fields:
         ai_document      — one or more file uploads (multipart).
-        kalachand_internal — "on" / "true" if user checked the
-                             "this is an internal Kalachand proforma" box.
         triage_feedback  — optional free-text hint applied to the rework
                            prompt (Phase A: only used as instruction context;
                            the actual rework endpoint is Phase B).
+
+    The AI triage scan auto-detects whether the document is an external
+    supplier proforma or an internal Kalachand doc — no user toggle. The
+    `origin_hint` passed downstream is always `'unknown'` so the prompt
+    has no bias to override the document evidence.
 
     Response: NDJSON stream. Final payload includes `session_token`,
     `triage` (validated dict), `cluster_groups`, and `file_names`.
@@ -676,8 +710,10 @@ def import_proforma_bulk_triage():
     if not saved_paths:
         return Response('{"error":"No files uploaded"}\n', status=400, mimetype='application/x-ndjson')
 
-    is_internal = (request.form.get('kalachand_internal') or '').strip().lower() in ('on', 'true', '1', 'yes')
-    origin_hint = 'kalachand_internal' if is_internal else 'external_supplier'
+    # Origin hint removed from the UI — the AI's triage scan detects this
+    # from the document itself (returns it in `summary.origin`). We pass
+    # 'unknown' so the prompt has no user bias to trust over the evidence.
+    origin_hint = 'unknown'
 
     def stream():
         yield bw.log_step("Bulk Step 1 — Document upload")
@@ -835,6 +871,19 @@ def import_proforma_bulk_enrich_item(batch_id: str, product_id: int):
         kw = (enriched['_seo_keywords_pending'] or '').strip()
         product.seo_keywords = kw[:255]
     flag_modified(product, 'pis_data')
+
+    # Promote the bulk classifier's category_data into the canonical column
+    # so all downstream readers (dashboards, SpecSheet generation, filters)
+    # see the same value. Skipped when the enrichment task didn't include
+    # category classification or the classifier failed.
+    bulk_cats = enriched.get('category_data') if isinstance(enriched, dict) else None
+    if isinstance(bulk_cats, dict) and (bulk_cats.get('category_1') or '').strip():
+        set_product_category(
+            product,
+            bulk_cats.get('category_1', ''),
+            bulk_cats.get('category_2', ''),
+            bulk_cats.get('category_3', ''),
+        )
 
     log_event(product.id, get_current_username(), 'AI Generated',
               'Bulk enrichment ran (image / content / category).', 'neutral')
@@ -2677,6 +2726,38 @@ def import_proforma_single_finalize():
             yield sw.log_err(f"DB save failed: {e}")
             yield sw.log_payload(error=f"DB save failed: {e}")
             return
+
+        # Classify against the Magento taxonomy so single-import products
+        # have a canonical category from day one — same end state as bulk
+        # import. Runs inline (user is already watching the progress bar)
+        # and writes through `set_product_category`, which also mirrors to
+        # the legacy JSON shapes. Failures are non-fatal: the product is
+        # already saved and SpecSheet generation has its own classifier
+        # fallback if this one didn't land.
+        yield sw.log_progress(97, "Classifying product category...")
+        try:
+            from utils.category_classifier import classify_product_category
+            classification = classify_product_category(pis) or {}
+            if classification.get('category_1'):
+                with _app.app_context():
+                    p = Product.query.get(product_id)
+                    if p:
+                        set_product_category(
+                            p,
+                            classification.get('category_1', ''),
+                            classification.get('category_2', ''),
+                            classification.get('category_3', ''),
+                        )
+                        db.session.commit()
+                yield sw.log_ok(
+                    f"Category: {classification.get('category_1','')} → "
+                    f"{classification.get('category_2','')} → "
+                    f"{classification.get('category_3','')}"
+                )
+            else:
+                yield sw.log_warn("Category classifier returned no result — leaving uncategorised.")
+        except Exception as e:
+            yield sw.log_warn(f"Category classification skipped: {e}")
 
         sw.drop_session(token)
         clear_pdf_cache()

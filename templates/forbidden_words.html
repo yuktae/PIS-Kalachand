@@ -5,196 +5,539 @@
     // Inject category tree as proper JSON to avoid Jinja HTML-escaping issues
     window.__CATEGORY_TREE__ = {{ category_tree | tojson | safe }};
 </script>
-<div x-data="forbiddenWordsManager()" x-init="init()" x-cloak>
 
-    <!-- Section Header -->
-    <div class="mb-6 relative rounded-2xl bg-white border border-gray-100 p-8 shadow-sm overflow-hidden">
-        <div class="absolute inset-0 bg-[radial-gradient(#fef2f2_1px,transparent_1px)] [background-size:16px_16px] opacity-40"></div>
-        <div class="absolute right-0 top-0 w-64 h-64 bg-red-50 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 opacity-60"></div>
-        <div class="relative z-10 flex flex-col md:flex-row justify-between items-center gap-6">
-            <div>
-                <h2 class="text-3xl font-bold text-slate-800 mb-2 flex items-center gap-3">
-                    <div class="w-10 h-10 bg-red-50 rounded-xl flex items-center justify-center text-red-500">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                        </svg>
-                    </div>
-                    Forbidden Words
-                </h2>
-                <p class="text-slate-500 text-sm">Manage words that are <strong class="text-red-600">blocked</strong> from AI-generated specsheets, organized by product category.</p>
-            </div>
-            <div class="flex items-center gap-3">
-                <div class="px-4 py-2.5 bg-red-50 border border-red-100 rounded-xl text-xs font-bold text-red-600 flex items-center gap-2 shadow-sm">
-                    <span class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
-                    <span x-text="totalWords + ' words blocked'"></span>
+<div x-data="forbiddenWordsManager()" x-init="init()" x-cloak class="space-y-6">
+
+    {# ── HERO — red-themed, mirrors archive_web.html / dashboard_web pattern ───── #}
+    <div class="relative rounded-3xl bg-gradient-to-br from-white via-white to-red-50/40 border border-gray-100 p-8 shadow-sm overflow-hidden">
+        <div class="absolute inset-0 bg-[radial-gradient(#fee2e2_1px,transparent_1px)] [background-size:18px_18px] opacity-40 pointer-events-none"></div>
+        <div class="absolute -top-12 -right-12 w-48 h-48 bg-red-100/40 rounded-full blur-3xl pointer-events-none"></div>
+        <div class="absolute -bottom-12 -left-12 w-40 h-40 bg-red-100/30 rounded-full blur-3xl pointer-events-none"></div>
+
+        <div class="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+            <div class="flex items-start gap-4">
+                <div class="w-12 h-12 bg-red-100 rounded-2xl flex items-center justify-center text-red-600 shrink-0 shadow-sm">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/>
+                    </svg>
                 </div>
+                <div>
+                    <p class="text-[10px] font-bold text-red-600 uppercase tracking-widest mb-1">Brand Guardrails</p>
+                    <h2 class="text-3xl font-extrabold text-slate-900 tracking-tight">Forbidden Words</h2>
+                    <p class="text-slate-500 text-sm mt-1.5 max-w-2xl">
+                        Keep AI-generated copy on-brand. Block words globally or per Magento category, and optionally
+                        suggest a <strong class="text-slate-700">replacement</strong> the AI should use instead.
+                    </p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-3 shrink-0">
+                <div class="px-4 py-2.5 bg-white border border-red-100 rounded-xl text-xs font-bold text-red-600 flex items-center gap-2 shadow-sm">
+                    <span class="w-2 h-2 rounded-full bg-red-500" :class="totalWords > 0 ? 'animate-pulse' : ''"></span>
+                    <span x-text="totalWords + ' word' + (totalWords === 1 ? '' : 's') + ' blocked'"></span>
+                    <span class="text-gray-300">·</span>
+                    <span x-text="totalCategories + ' categor' + (totalCategories === 1 ? 'y' : 'ies')"></span>
+                </div>
+                <button type="button" @click="openAdd('__global__')"
+                    class="flex items-center gap-2 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm shadow-red-100">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                    </svg>
+                    Add Global Word
+                </button>
             </div>
         </div>
     </div>
 
-    <!-- Category A Tabs + Content -->
-    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden min-h-[500px]">
+    {# ── GLOBAL RULES — pinned banner above the per-category tabs ───────────── #}
+    <div class="bg-gradient-to-r from-red-50/60 via-white to-white rounded-2xl border-2 border-red-100 shadow-sm overflow-hidden">
+        <div class="px-6 py-4 flex items-center justify-between gap-4 border-b border-red-100/80">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl bg-red-600 text-white flex items-center justify-center shrink-0">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                </div>
+                <div>
+                    <p class="text-[11px] font-extrabold text-red-700 uppercase tracking-widest">Global Rules</p>
+                    <p class="text-xs text-slate-500 mt-0.5">Apply to <strong>every product</strong> regardless of category — use for legal-flagged or brand-wide bans.</p>
+                </div>
+            </div>
+            <button type="button" @click="openAdd('__global__')"
+                class="flex items-center gap-1.5 px-3 py-2 bg-white border border-red-200 hover:border-red-400 text-red-600 hover:text-red-700 rounded-lg text-[11px] font-bold transition-colors shrink-0">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                </svg>
+                Add Rule
+            </button>
+        </div>
 
-        <!-- Cat A Tab Bar -->
-        <div class="px-6 py-4 border-b border-gray-100 overflow-x-auto">
-            <div class="flex items-center gap-2 min-w-max">
-                <template x-for="catA in catAList" :key="catA">
-                    <button @click="selectedCatA = catA"
-                        :class="selectedCatA === catA ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200' : 'bg-gray-50 text-slate-600 hover:bg-gray-100 border border-gray-200'"
-                        class="px-4 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap"
-                        x-text="catA"></button>
+        <div class="p-5">
+            <template x-if="!words['__global__'] || words['__global__'].length === 0">
+                <div class="text-center py-6">
+                    <div class="inline-flex w-12 h-12 rounded-full bg-red-50 text-red-400 items-center justify-center mb-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </div>
+                    <p class="text-xs text-slate-500">No global rules yet. Most teams start with 5–10 site-wide bans.</p>
+                </div>
+            </template>
+            <div class="flex flex-wrap gap-2">
+                <template x-for="entry in (words['__global__'] || [])" :key="entry.word">
+                    <div class="group inline-flex items-center gap-1.5 pl-2.5 pr-1 py-1 bg-white border rounded-lg text-xs font-semibold transition-all hover:shadow-sm"
+                        :class="entry.severity === 'warn' ? 'border-amber-200 text-amber-700' : 'border-red-200 text-red-700'"
+                        :title="formatTooltip(entry)">
+                        <span x-show="entry.severity === 'warn'" class="text-amber-500">⚠</span>
+                        <span x-show="entry.severity !== 'warn'" class="text-red-500">⛔</span>
+                        <span x-text="entry.word"></span>
+                        <span x-show="entry.replace_with" class="text-[10px] font-normal opacity-70 ml-0.5">→</span>
+                        <span x-show="entry.replace_with" x-text="entry.replace_with" class="text-[10px] font-medium opacity-80"></span>
+                        <button type="button" @click="confirmRemove('__global__', entry.word)"
+                            class="ml-1 w-5 h-5 rounded-md flex items-center justify-center text-gray-300 hover:text-red-700 hover:bg-red-50 transition-colors">✕</button>
+                    </div>
+                </template>
+            </div>
+        </div>
+    </div>
+
+    {# ── MAIN GRID — category manager (left) + recently caught (right) ──────── #}
+    <div class="grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-6">
+
+        {# === LEFT: Category-scoped manager =================================== #}
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            {# Cat A pill tabs — red active state #}
+            <div class="px-6 py-4 border-b border-gray-100 overflow-x-auto bg-slate-50/30">
+                <div class="flex items-center gap-2 min-w-max">
+                    <template x-for="catA in catAList" :key="catA">
+                        <button type="button" @click="selectedCatA = catA"
+                            :class="selectedCatA === catA
+                                ? 'bg-red-600 text-white shadow-md shadow-red-200'
+                                : 'bg-white text-slate-600 hover:bg-red-50 hover:text-red-600 border border-gray-200'"
+                            class="px-4 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2">
+                            <span x-text="catA"></span>
+                            <span x-show="catATotal(catA) > 0"
+                                :class="selectedCatA === catA ? 'bg-white/20 text-white' : 'bg-red-50 text-red-600'"
+                                class="text-[10px] px-1.5 py-0.5 rounded-full font-bold tabular-nums"
+                                x-text="catATotal(catA)"></span>
+                        </button>
+                    </template>
+                </div>
+            </div>
+
+            {# Search bar — red focus #}
+            <div class="px-6 py-3 border-b border-gray-100 bg-white">
+                <div class="relative max-w-md">
+                    <svg class="w-4 h-4 absolute left-3 top-2.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                    </svg>
+                    <input x-model="search" type="text" placeholder="Search categories or words..."
+                        class="w-full pl-9 pr-4 py-2 bg-gray-50 border border-transparent focus:bg-white focus:border-red-200 focus:ring-4 focus:ring-red-50 rounded-lg text-sm font-medium transition-all outline-none placeholder-gray-400">
+                    <button x-show="search.length > 0" @click="search = ''" class="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            {# Cat B accordions → Cat C cards #}
+            <div class="p-6 bg-slate-50/40 space-y-3">
+                <template x-if="selectedCatA && categoryTree[selectedCatA]">
+                    <div class="space-y-3">
+                        <template x-for="catB in getCatBList()" :key="selectedCatA + '__' + catB">
+                            <div x-show="matchesGroupSearch(catB, getCatCList(catB))"
+                                class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+
+                                <button @click="toggleGroup(selectedCatA + '__' + catB)"
+                                    class="w-full px-5 py-4 flex items-center justify-between hover:bg-red-50/30 transition-colors group">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-8 h-8 rounded-lg bg-red-50 flex items-center justify-center text-red-600 group-hover:bg-red-100 transition-colors">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6z"/>
+                                            </svg>
+                                        </div>
+                                        <span class="font-bold text-sm text-slate-800" x-text="catB"></span>
+                                        <span class="text-[10px] font-bold text-gray-400 bg-gray-50 px-2 py-0.5 rounded-full"
+                                            x-text="getCatCList(catB).length + ' categor' + (getCatCList(catB).length === 1 ? 'y' : 'ies')"></span>
+                                        <span x-show="catBTotal(catB) > 0"
+                                            class="text-[10px] font-bold text-red-700 bg-red-50 border border-red-100 px-2 py-0.5 rounded-full"
+                                            x-text="catBTotal(catB) + ' rule' + (catBTotal(catB) === 1 ? '' : 's')"></span>
+                                    </div>
+                                    <svg class="w-4 h-4 text-gray-400 transition-transform duration-200"
+                                        :class="openGroups[selectedCatA + '__' + catB] ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                    </svg>
+                                </button>
+
+                                <div x-show="openGroups[selectedCatA + '__' + catB]" x-collapse>
+                                    <div class="px-5 pb-5 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 gap-4">
+                                        <template x-for="catC in getCatCList(catB)" :key="catC">
+                                            <div x-show="matchesCatSearch(catC)"
+                                                class="border border-gray-100 rounded-xl p-4 bg-white hover:border-red-200 hover:shadow-sm transition-all">
+
+                                                <div class="flex items-center justify-between mb-3">
+                                                    <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wide" x-text="catC"></h4>
+                                                    <span class="text-[10px] font-bold tabular-nums px-2 py-0.5 rounded-full"
+                                                        :class="(words[catC] && words[catC].length > 0) ? 'bg-red-50 text-red-600 border border-red-100' : 'bg-gray-100 text-gray-400'"
+                                                        x-text="(words[catC] ? words[catC].length : 0) + ' rule' + ((words[catC] ? words[catC].length : 0) === 1 ? '' : 's')"></span>
+                                                </div>
+
+                                                {# Add-rule trigger button (opens drawer) #}
+                                                <button type="button" @click="openAdd(catC)"
+                                                    class="w-full mb-3 px-3 py-2 text-[11px] font-bold text-red-600 bg-red-50 hover:bg-red-100 border border-dashed border-red-200 hover:border-red-300 rounded-lg transition-colors flex items-center justify-center gap-1.5">
+                                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                                                    </svg>
+                                                    Add rule for this category
+                                                </button>
+
+                                                {# Word chips with severity icon + replace_with hint + tooltip #}
+                                                <div class="flex flex-wrap gap-1.5 min-h-[24px]">
+                                                    <template x-for="entry in (words[catC] || [])" :key="entry.word">
+                                                        <div class="group inline-flex items-center gap-1 pl-2 pr-0.5 py-0.5 border rounded-md text-[11px] font-semibold transition-all"
+                                                            :class="entry.severity === 'warn' ? 'border-amber-200 bg-amber-50 text-amber-800' : 'border-red-200 bg-red-50 text-red-700'"
+                                                            :title="formatTooltip(entry)">
+                                                            <span x-show="entry.severity === 'warn'" class="text-amber-500 text-[9px]">⚠</span>
+                                                            <span x-text="entry.word"></span>
+                                                            <span x-show="entry.replace_with" class="opacity-70 text-[9px] mx-0.5">→</span>
+                                                            <span x-show="entry.replace_with" x-text="entry.replace_with" class="text-[10px] opacity-80"></span>
+                                                            <button type="button" @click="confirmRemove(catC, entry.word)"
+                                                                class="ml-0.5 w-4 h-4 rounded flex items-center justify-center text-gray-300 hover:text-red-700 text-xs leading-none transition-colors">✕</button>
+                                                        </div>
+                                                    </template>
+                                                    <template x-if="!words[catC] || words[catC].length === 0">
+                                                        <span class="text-[10px] text-gray-400 italic py-1">No rules yet — most categories work fine without any</span>
+                                                    </template>
+                                                </div>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </template>
+                    </div>
                 </template>
             </div>
         </div>
 
-        <!-- Search Bar -->
-        <div class="px-6 py-3 border-b border-gray-100 bg-white">
-            <div class="relative max-w-md">
-                <svg class="w-4 h-4 absolute left-3 top-2.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-                <input x-model="search" type="text" placeholder="Search categories or words..."
-                    class="w-full pl-9 pr-4 py-2 bg-gray-50 border border-transparent focus:bg-white focus:border-indigo-100 focus:ring-4 focus:ring-indigo-50 rounded-lg text-sm font-medium transition-all outline-none placeholder-gray-400">
-                <button x-show="search.length > 0" @click="search = ''" class="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        {# === RIGHT: Recently Caught panel =================================== #}
+        <aside class="space-y-4">
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                <div class="px-5 py-4 border-b border-gray-100 bg-slate-50/40 flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <div class="w-8 h-8 rounded-lg bg-red-50 text-red-600 flex items-center justify-center">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <p class="text-[11px] font-extrabold text-slate-800 uppercase tracking-wider">Recently Caught</p>
+                            <p class="text-[10px] text-gray-500">Top words the scrubber has rewritten</p>
+                        </div>
+                    </div>
+                    <button type="button" @click="loadRecentHits()" title="Refresh"
+                        class="w-7 h-7 rounded-md text-gray-400 hover:text-red-600 hover:bg-red-50 flex items-center justify-center transition-colors">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="p-4">
+                    <template x-if="!recentHits || recentHits.length === 0">
+                        <p class="text-[11px] text-gray-400 italic text-center py-4">No recent activity. The scrubber will report here once SpecSheets are generated.</p>
+                    </template>
+                    <ul class="space-y-1.5">
+                        <template x-for="hit in recentHits" :key="hit.word">
+                            <li class="flex items-center justify-between text-xs">
+                                <span class="font-semibold text-slate-700" x-text="hit.word"></span>
+                                <span class="text-[10px] font-bold text-red-600 bg-red-50 px-1.5 py-0.5 rounded tabular-nums" x-text="hit.count + '×'"></span>
+                            </li>
+                        </template>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="bg-gradient-to-br from-amber-50 to-white rounded-2xl border border-amber-100 p-4">
+                <div class="flex items-start gap-2">
+                    <svg class="w-4 h-4 text-amber-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                     </svg>
-                </button>
+                    <div class="text-[11px] text-amber-900 leading-relaxed">
+                        <p class="font-bold mb-1">How rules combine</p>
+                        <p>For each product, the scrubber merges the <strong>Global</strong> rules with that product's own <strong>category</strong> rules. Category-specific entries override globals on a word collision.</p>
+                    </div>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    {# ── ADD/EDIT DRAWER — modal-ish slide-down for adding a rule ────────────── #}
+    <template x-if="addOpen">
+        <div class="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-black/40 backdrop-blur-sm p-4"
+            @click.self="addOpen = false" x-transition.opacity>
+            <div class="w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden"
+                x-transition:enter="transition ease-out duration-200"
+                x-transition:enter-start="opacity-0 translate-y-4"
+                x-transition:enter-end="opacity-100 translate-y-0">
+                <div class="px-6 py-4 bg-gradient-to-r from-red-50 to-white border-b border-red-100 flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="w-9 h-9 rounded-xl bg-red-600 text-white flex items-center justify-center">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <p class="text-[10px] font-bold text-red-600 uppercase tracking-widest">Add Rule</p>
+                            <p class="text-sm font-extrabold text-slate-800" x-text="addCategory === '__global__' ? 'Site-wide (Global)' : addCategory"></p>
+                        </div>
+                    </div>
+                    <button type="button" @click="addOpen = false" class="w-8 h-8 rounded-lg text-gray-400 hover:text-slate-700 hover:bg-gray-100 flex items-center justify-center">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="p-6 space-y-4">
+                    {# Severity toggle #}
+                    <div>
+                        <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 block">Severity</label>
+                        <div class="inline-flex rounded-xl bg-gray-100 p-1 gap-1">
+                            <button type="button" @click="addForm.severity = 'block'"
+                                :class="addForm.severity === 'block' ? 'bg-red-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-800'"
+                                class="px-4 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5">
+                                <span>⛔</span> Block
+                            </button>
+                            <button type="button" @click="addForm.severity = 'warn'"
+                                :class="addForm.severity === 'warn' ? 'bg-amber-500 text-white shadow-sm' : 'text-slate-600 hover:text-slate-800'"
+                                class="px-4 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5">
+                                <span>⚠</span> Warn only
+                            </button>
+                        </div>
+                        <p class="text-[10px] text-gray-400 mt-1.5"
+                            x-text="addForm.severity === 'block'
+                                ? 'AI is told not to use it AND any output containing it gets scrubbed.'
+                                : 'AI is told to avoid it; the human sees a warning but text is NOT auto-rewritten.'"></p>
+                    </div>
+
+                    {# Word + Replace pair #}
+                    <div class="grid grid-cols-1 md:grid-cols-[1fr_1fr] gap-3">
+                        <div>
+                            <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 block">Word to block</label>
+                            <input type="text" x-model="addForm.word" placeholder="e.g. experience"
+                                @keydown.enter.prevent="submitAdd()"
+                                class="w-full px-3 py-2 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:border-red-300 focus:ring-2 focus:ring-red-50 focus:bg-white outline-none transition-all">
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 block">Replace with <span class="font-normal lowercase opacity-70">(optional)</span></label>
+                            <input type="text" x-model="addForm.replace_with" placeholder="e.g. feature"
+                                @keydown.enter.prevent="submitAdd()"
+                                class="w-full px-3 py-2 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:border-red-300 focus:ring-2 focus:ring-red-50 focus:bg-white outline-none transition-all">
+                        </div>
+                    </div>
+
+                    {# Reason — Phase E governance field #}
+                    <div>
+                        <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 block">Reason <span class="font-normal lowercase opacity-70">(optional, ≤120 chars)</span></label>
+                        <input type="text" x-model="addForm.reason" maxlength="120" placeholder="e.g. Legal flagged Q2; SEO filler word; brand voice"
+                            class="w-full px-3 py-2 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:border-red-300 focus:ring-2 focus:ring-red-50 focus:bg-white outline-none transition-all">
+                        <p class="text-[10px] text-gray-400 mt-1">Helps the next person know <em>why</em> this word was banned.</p>
+                    </div>
+
+                    {# Live preview #}
+                    <div x-show="addForm.word.trim()" class="p-3 rounded-lg bg-slate-50 border border-slate-100">
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Preview</p>
+                        <div class="flex items-center gap-1.5">
+                            <div class="inline-flex items-center gap-1 pl-2 pr-0.5 py-0.5 border rounded-md text-[11px] font-semibold"
+                                :class="addForm.severity === 'warn' ? 'border-amber-200 bg-amber-50 text-amber-800' : 'border-red-200 bg-red-50 text-red-700'">
+                                <span x-show="addForm.severity === 'warn'" class="text-amber-500 text-[9px]">⚠</span>
+                                <span x-show="addForm.severity === 'block'" class="text-red-500 text-[9px]">⛔</span>
+                                <span x-text="addForm.word.trim().toLowerCase()"></span>
+                                <span x-show="addForm.replace_with.trim()" class="opacity-70 text-[9px] mx-0.5">→</span>
+                                <span x-show="addForm.replace_with.trim()" x-text="addForm.replace_with.trim()" class="text-[10px] opacity-80"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="px-6 py-4 bg-slate-50/50 border-t border-gray-100 flex items-center justify-between gap-3">
+                    <p class="text-[10px] text-gray-500" x-show="addError" x-text="addError"></p>
+                    <div class="flex items-center gap-2 ml-auto">
+                        <button type="button" @click="addOpen = false"
+                            class="px-4 py-2 bg-white border border-gray-200 hover:bg-gray-50 text-slate-600 rounded-lg text-xs font-bold transition-colors">
+                            Cancel
+                        </button>
+                        <button type="button" @click="submitAdd()" :disabled="!addForm.word.trim() || addSubmitting"
+                            class="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-lg text-xs font-bold transition-colors flex items-center gap-2">
+                            <svg x-show="addSubmitting" class="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                            </svg>
+                            <span x-text="addSubmitting ? 'Saving...' : 'Save Rule'"></span>
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
+    </template>
 
-        <!-- Cat B Accordion Groups -->
-        <div class="p-6 bg-slate-50/50 space-y-4">
-            <template x-if="selectedCatA && categoryTree[selectedCatA]">
-                <div class="space-y-3">
-                    <template x-for="catB in getCatBList()" :key="selectedCatA + '__' + catB">
-                        <div x-show="matchesGroupSearch(catB, getCatCList(catB))"
-                            class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-                            
-                            <!-- Cat B Header (Collapsible) -->
-                            <button @click="toggleGroup(selectedCatA + '__' + catB)"
-                                class="w-full px-5 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors group">
-                                <div class="flex items-center gap-3">
-                                    <div class="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-500 group-hover:bg-indigo-100 transition-colors">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6z" />
-                                        </svg>
-                                    </div>
-                                    <span class="font-bold text-sm text-slate-700" x-text="catB"></span>
-                                    <span class="text-[10px] font-bold text-gray-400 bg-gray-50 px-2 py-0.5 rounded-full"
-                                        x-text="getCatCList(catB).length + ' categories'"></span>
-                                </div>
-                                <svg class="w-4 h-4 text-gray-400 transition-transform duration-200" 
-                                    :class="openGroups[selectedCatA + '__' + catB] ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                                </svg>
-                            </button>
-
-                            <!-- Cat C Cards (Expanded Content) -->
-                            <div x-show="openGroups[selectedCatA + '__' + catB]">
-                                <div class="px-5 pb-5 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                                    <template x-for="catC in getCatCList(catB)" :key="catC">
-                                        <div x-show="matchesCatSearch(catC)" class="border border-gray-100 rounded-xl p-4 bg-slate-50/50 hover:border-indigo-100 transition-colors">
-                                            
-                                            <!-- Cat C Header -->
-                                            <div class="flex items-center justify-between mb-3">
-                                                <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wide" x-text="catC"></h4>
-                                                <span class="text-[10px] font-bold tabular-nums px-2 py-0.5 rounded-full"
-                                                    :class="(words[catC] && words[catC].length > 0) ? 'bg-red-50 text-red-600' : 'bg-gray-100 text-gray-400'"
-                                                    x-text="(words[catC] ? words[catC].length : 0) + ' words'"></span>
-                                            </div>
-
-                                            <!-- Input + Add -->
-                                            <div class="flex gap-2 mb-3">
-                                                <input type="text" placeholder="Type a word & press Enter..." 
-                                                    @keydown.enter="addWord(catC, $el.value); $el.value = ''"
-                                                    class="flex-1 px-3 py-2 text-xs bg-white border border-gray-200 rounded-lg focus:border-indigo-300 focus:ring-2 focus:ring-indigo-50 outline-none transition-all placeholder-gray-400">
-                                                <button @click="let el = $event.target.previousElementSibling; addWord(catC, el.value); el.value = ''"
-                                                    class="px-3 py-2 bg-indigo-600 text-white rounded-lg text-xs font-bold hover:bg-indigo-700 transition-colors flex-shrink-0 shadow-sm shadow-indigo-200">
-                                                    Add
-                                                </button>
-                                            </div>
-
-                                            <!-- Word Chips -->
-                                            <div class="flex flex-wrap gap-1.5 min-h-[28px]">
-                                                <template x-for="word in (words[catC] || [])" :key="word">
-                                                    <span class="inline-flex items-center gap-1 px-2.5 py-1 bg-red-50 text-red-700 rounded-md text-[11px] font-semibold border border-red-100 group hover:bg-red-100 transition-colors">
-                                                        <span x-text="word"></span>
-                                                        <button @click="removeWord(catC, word)"
-                                                            class="text-red-400 hover:text-red-700 transition-colors ml-0.5 text-xs leading-none">✕</button>
-                                                    </span>
-                                                </template>
-                                                <template x-if="!words[catC] || words[catC].length === 0">
-                                                    <span class="text-[10px] text-gray-400 italic py-1">No forbidden words set</span>
-                                                </template>
-                                            </div>
-                                        </div>
-                                    </template>
-                                </div>
-                            </div>
-
-                        </div>
-                    </template>
+    {# ── DELETE CONFIRMATION ─────────────────────────────────────────────────── #}
+    <template x-if="confirmDelete">
+        <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
+            @click.self="confirmDelete = null" x-transition.opacity>
+            <div class="w-full max-w-md bg-white rounded-2xl shadow-2xl p-6"
+                x-transition:enter="transition ease-out duration-150"
+                x-transition:enter-start="opacity-0 scale-95"
+                x-transition:enter-end="opacity-100 scale-100">
+                <div class="flex items-start gap-4">
+                    <div class="w-10 h-10 rounded-xl bg-red-100 text-red-600 flex items-center justify-center shrink-0">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+                        </svg>
+                    </div>
+                    <div class="flex-1">
+                        <p class="text-sm font-bold text-slate-800">Remove this rule?</p>
+                        <p class="text-xs text-slate-500 mt-1">
+                            <span class="font-semibold text-red-600" x-text="'"' + confirmDelete.word + '"'"></span>
+                            will no longer be enforced for
+                            <span class="font-semibold" x-text="confirmDelete.category === '__global__' ? 'any product' : confirmDelete.category"></span>.
+                            New SpecSheets generated from now on may include it.
+                        </p>
+                    </div>
                 </div>
-            </template>
+                <div class="mt-5 flex items-center justify-end gap-2">
+                    <button type="button" @click="confirmDelete = null"
+                        class="px-4 py-2 bg-white border border-gray-200 hover:bg-gray-50 text-slate-600 rounded-lg text-xs font-bold transition-colors">
+                        Cancel
+                    </button>
+                    <button type="button" @click="executeRemove()"
+                        class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-bold transition-colors">
+                        Remove Rule
+                    </button>
+                </div>
+            </div>
         </div>
-    </div>
+    </template>
 </div>
 
 <script>
 function forbiddenWordsManager() {
     return {
+        // Data
         categoryTree: window.__CATEGORY_TREE__ || {},
         catAList: [],
         selectedCatA: '',
         openGroups: {},
-        words: {},
+        words: {},               // { catName: [{word, replace_with, severity, reason?, added_by?, added_at?}] }
         search: '',
-        
+        recentHits: [],
+
+        // Add-rule drawer state
+        addOpen: false,
+        addCategory: '',
+        addForm: { word: '', replace_with: '', severity: 'block', reason: '' },
+        addSubmitting: false,
+        addError: '',
+
+        // Delete confirmation
+        confirmDelete: null,     // { category, word } or null
+
         get totalWords() {
             let count = 0;
             for (const cat in this.words) {
-                count += this.words[cat].length;
+                const list = this.words[cat];
+                if (Array.isArray(list)) count += list.length;
             }
             return count;
         },
-        
+
+        get totalCategories() {
+            return Object.keys(this.words).filter(c => (this.words[c] || []).length > 0).length;
+        },
+
         async init() {
-            // Build Cat A list from the injected JSON (no escaping issues)
             this.catAList = Object.keys(this.categoryTree).sort();
             this.selectedCatA = this.catAList[0] || '';
-            
+            await this.loadWords();
+            await this.loadRecentHits();
+        },
+
+        async loadWords() {
             try {
                 const res = await fetch('/api/forbidden_words');
-                this.words = await res.json();
+                const raw = await res.json();
+                // Normalize legacy strings → objects so the template can rely
+                // on the rich shape across every render.
+                this.words = {};
+                Object.keys(raw || {}).forEach(cat => {
+                    const list = Array.isArray(raw[cat]) ? raw[cat] : [];
+                    this.words[cat] = list.map(e =>
+                        typeof e === 'string'
+                            ? { word: e, replace_with: '', severity: 'block' }
+                            : e
+                    );
+                });
             } catch (e) {
                 console.error('Failed to load forbidden words:', e);
                 this.words = {};
             }
         },
-        
+
+        async loadRecentHits() {
+            try {
+                const res = await fetch('/api/forbidden_words/recent?limit=10');
+                const data = await res.json();
+                this.recentHits = (data && data.hits) || [];
+            } catch (e) {
+                this.recentHits = [];
+            }
+        },
+
         toggleGroup(key) {
             this.openGroups[key] = !this.openGroups[key];
         },
-        
+
         getCatBList() {
             if (!this.selectedCatA || !this.categoryTree[this.selectedCatA]) return [];
             return Object.keys(this.categoryTree[this.selectedCatA]).sort();
         },
-        
+
         getCatCList(catB) {
             if (!this.selectedCatA || !this.categoryTree[this.selectedCatA] || !this.categoryTree[this.selectedCatA][catB]) return [];
             return this.categoryTree[this.selectedCatA][catB];
         },
-        
+
+        // Total rules across an entire Cat A — used by the active-tab badge.
+        catATotal(catA) {
+            const tree = this.categoryTree[catA] || {};
+            let n = 0;
+            for (const catB of Object.keys(tree)) {
+                for (const catC of (tree[catB] || [])) {
+                    n += (this.words[catC] || []).length;
+                }
+            }
+            return n;
+        },
+
+        // Total rules across one Cat B — used by the accordion header chip.
+        catBTotal(catB) {
+            let n = 0;
+            for (const catC of this.getCatCList(catB)) {
+                n += (this.words[catC] || []).length;
+            }
+            return n;
+        },
+
         matchesCatSearch(catC) {
             if (!this.search.trim()) return true;
             const q = this.search.trim().toLowerCase();
             if (catC.toLowerCase().includes(q)) return true;
             const catWords = this.words[catC] || [];
-            return catWords.some(w => w.toLowerCase().includes(q));
+            return catWords.some(e => (e.word || '').toLowerCase().includes(q));
         },
-        
+
         matchesGroupSearch(catB, catCList) {
             if (!this.search.trim()) return true;
             if (!catCList) return false;
@@ -202,41 +545,87 @@ function forbiddenWordsManager() {
             if (catB.toLowerCase().includes(q)) return true;
             return catCList.some(c => this.matchesCatSearch(c));
         },
-        
-        async addWord(category, word) {
-            word = (word || '').trim().toLowerCase();
-            if (!word) return;
-            
+
+        // Add-rule drawer — opens with the category pre-selected.
+        openAdd(category) {
+            this.addCategory = category;
+            this.addForm = { word: '', replace_with: '', severity: 'block', reason: '' };
+            this.addError = '';
+            this.addOpen = true;
+        },
+
+        async submitAdd() {
+            const word = this.addForm.word.trim().toLowerCase();
+            if (!word) {
+                this.addError = 'Please enter a word.';
+                return;
+            }
+            this.addSubmitting = true;
+            this.addError = '';
             try {
                 const res = await fetch('/api/forbidden_words', {
                     method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ category, word })
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        category:     this.addCategory,
+                        word,
+                        replace_with: this.addForm.replace_with.trim(),
+                        severity:     this.addForm.severity,
+                        reason:       this.addForm.reason.trim(),
+                    })
                 });
                 const data = await res.json();
                 if (data.ok) {
-                    this.words[category] = data.words;
+                    this.words[this.addCategory] = data.words;
+                    this.addOpen = false;
+                } else {
+                    this.addError = data.error || 'Failed to save rule.';
                 }
             } catch (e) {
-                console.error('Failed to add word:', e);
+                this.addError = 'Network error — try again.';
+            } finally {
+                this.addSubmitting = false;
             }
         },
-        
-        async removeWord(category, word) {
+
+        confirmRemove(category, word) {
+            this.confirmDelete = { category, word };
+        },
+
+        async executeRemove() {
+            if (!this.confirmDelete) return;
+            const { category, word } = this.confirmDelete;
+            this.confirmDelete = null;
             try {
                 const res = await fetch('/api/forbidden_words', {
                     method: 'DELETE',
-                    headers: {'Content-Type': 'application/json'},
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ category, word })
                 });
                 const data = await res.json();
                 if (data.ok) {
-                    this.words[category] = data.words;
+                    if (data.words && data.words.length) {
+                        this.words[category] = data.words;
+                    } else {
+                        delete this.words[category];
+                    }
                 }
             } catch (e) {
                 console.error('Failed to remove word:', e);
             }
-        }
+        },
+
+        // Build a rich tooltip for chip hovers — surfaces governance metadata.
+        formatTooltip(entry) {
+            const lines = [];
+            if (entry.replace_with) lines.push(`replaced with: "${entry.replace_with}"`);
+            else lines.push('deleted from output');
+            lines.push(`severity: ${entry.severity}`);
+            if (entry.reason)   lines.push(`reason: ${entry.reason}`);
+            if (entry.added_by) lines.push(`added by: ${entry.added_by}`);
+            if (entry.added_at) lines.push(`added: ${entry.added_at.replace('T', ' ').slice(0, 16)}`);
+            return lines.join('\n');
+        },
     };
 }
 </script>

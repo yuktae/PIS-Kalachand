@@ -220,8 +220,43 @@ def get_category_ids_for_path(cat_a, cat_b, cat_c):
     """
     categories = fetch_magento_categories()
     for cat in categories:
-        if (cat.get('cat_A') == cat_a and 
-            cat.get('cat_B') == cat_b and 
+        if (cat.get('cat_A') == cat_a and
+            cat.get('cat_B') == cat_b and
             cat.get('cat_C') == cat_c):
             return cat.get('magento_id')
     return None
+
+
+def refresh_static_fallback():
+    """One-shot: pull the live Magento taxonomy and overwrite
+    `utils/product_categories.json` with it. Used when prepping for
+    deployments where IP whitelisting (or any other restriction) means
+    the running app can't reach the API and has to rely on the snapshot.
+
+    Returns the entry count written, or 0 on failure.
+    """
+    cats = fetch_magento_categories(force_refresh=True)
+    if not cats:
+        print("⚠ No categories returned — refusing to overwrite the fallback "
+              "with an empty list. The old snapshot stays in place.")
+        return 0
+
+    out_path = os.path.join(os.path.dirname(__file__), 'product_categories.json')
+    with open(out_path, 'w', encoding='utf-8') as f:
+        json.dump(cats, f, indent=2, ensure_ascii=False)
+    print(f"✅ Wrote {len(cats)} categories to {out_path}")
+    return len(cats)
+
+
+if __name__ == "__main__":
+    # Run as: python -m utils.magento_api
+    # Refreshes the static fallback JSON from the live API. Run it once
+    # now to seed a real snapshot, and whenever you want to re-snapshot
+    # later (e.g. after Magento taxonomy changes upstream).
+    # Windows console defaults to cp1252 which can't encode the emoji
+    # used in the progress prints — reconfigure to utf-8 to match the
+    # behaviour Flask applies at app boot.
+    import sys
+    if hasattr(sys.stdout, 'reconfigure'):
+        sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+    refresh_static_fallback()
