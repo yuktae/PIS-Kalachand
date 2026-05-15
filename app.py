@@ -126,6 +126,7 @@ def create_app() -> Flask:
     from blueprints.web       import web_bp
     from blueprints.admin     import admin_bp
     from blueprints.api       import api_bp
+    from blueprints.compare   import compare_bp
 
     application.register_blueprint(auth_bp)
     application.register_blueprint(marketing_bp)
@@ -133,6 +134,7 @@ def create_app() -> Flask:
     application.register_blueprint(web_bp)
     application.register_blueprint(admin_bp)
     application.register_blueprint(api_bp)
+    application.register_blueprint(compare_bp)
 
     # ── DATABASE INIT (runs once per worker boot) ────────────────────────────
     with application.app_context():

@@ -1,148 +1,145 @@
 <!DOCTYPE html>
 <html>
-
 <head>
     <meta charset="UTF-8">
-    <title>Product Information Sheet - {{ product.model_name }}</title>
+    <title>Product Information Sheet — {{ product.model_name }}</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;700;800&display=swap"
-        rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;700;800&display=swap"
+          rel="stylesheet">
 
     <style>
+        /* Paged-media first. Content flows naturally across pages; no fake
+           single-page `min-height: 297mm`. The Chromium-native footer band
+           lives in the bottom page margin set by the Python `pdf()` call. */
         @page {
             size: A4;
-            margin: 0;
+            margin: 18mm 14mm 22mm 14mm;
         }
 
-        body {
-            margin: 0;
-            padding: 0;
-            font-family: 'Inter', sans-serif;
+        html, body {
+            margin: 0; padding: 0;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
             font-size: 10px;
             color: #334155;
-            line-height: 1.5;
-            background-color: #ffffff;
+            line-height: 1.55;
+            background: #ffffff;
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
         }
-
-        .page {
-            padding: 40px;
-            position: relative;
-            min-height: 297mm;
+        /* Screen-only padding for the live HTML preview iframe. The PDF
+           renderer emulates print media, so this is zeroed out for PDFs;
+           the page margins come from Playwright's `margin={...}` instead. */
+        @media screen {
+            body { padding: 18mm 14mm; }
+        }
+        @media print {
+            body { padding: 0; }
         }
 
-        /* ---------------- HEADER ---------------- */
-        .header {
+        /* ---------------- HERO HEADER (page 1) ---------------- */
+        .hero {
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
-            margin-bottom: 30px;
-            gap: 40px;
+            gap: 28px;
+            margin-bottom: 22px;
         }
+        .hero-left  { flex: 1; min-width: 0; }
+        .hero-right { width: 235px; flex-shrink: 0; }
 
-        .header-left {
-            flex: 1;
-        }
-
-        .document-type {
+        .doc-tag {
             display: inline-block;
             background: #dc2626;
-            color: #ffffff;
+            color: #fff;
             padding: 4px 12px;
             border-radius: 6px;
             font-size: 9px;
             font-weight: 700;
-            text-transform: uppercase;
             letter-spacing: 1px;
+            text-transform: uppercase;
             margin-bottom: 12px;
         }
-
         .brand-label {
             font-size: 12px;
             font-weight: 600;
             color: #64748b;
             text-transform: uppercase;
-            letter-spacing: 1px;
+            letter-spacing: 1.5px;
             margin-bottom: 4px;
         }
-
         .product-title {
             font-family: 'Outfit', sans-serif;
             font-size: 28px;
             font-weight: 800;
-            color: #1e293b;
-            margin: 0 0 6px 0;
-            line-height: 1.1;
+            color: #0f172a;
+            margin: 0 0 4px 0;
+            line-height: 1.05;
+            letter-spacing: -0.5px;
         }
-
-        .model-number {
-            font-size: 14px;
+        .model-line {
+            font-size: 13px;
             color: #64748b;
             font-weight: 500;
+            margin-bottom: 14px;
+        }
+        .price-row { margin-top: 12px; font-size: 11px; }
+        .price-row .price-label {
+            font-weight: 700;
+            color: #dc2626;
+            margin-right: 6px;
+        }
+        .price-row .price-value {
+            font-size: 14px;
+            font-weight: 800;
+            color: #0f172a;
         }
 
-        .header-right {
-            width: 250px;
-            flex-shrink: 0;
-        }
-
-        .hero-image-wrap {
+        /* Hero image — plain white card, renderer-portable (no
+           `mix-blend-mode: multiply`, which doesn't render in WeasyPrint). */
+        .hero-image-card {
             background: #ffffff;
-            border-radius: 20px;
-            padding: 10px;
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
-            border: 1px solid #f1f5f9;
+            border: 1px solid #e2e8f0;
+            border-radius: 18px;
+            padding: 9px;
+            box-shadow: 0 6px 18px -8px rgba(15, 23, 42, 0.18);
             display: flex;
             flex-direction: column;
-            gap: 10px;
-        }
-
-        .main-image {
-            width: 100%;
-            height: auto;
-            display: block;
-            mix-blend-mode: multiply;
-            border-bottom: 1px solid #f1f5f9;
-            padding-bottom: 10px;
-        }
-
-        .image-gallery {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
             gap: 8px;
         }
-
-        .gallery-image {
+        .hero-main-image {
+            display: block;
             width: 100%;
-            aspect-ratio: 1/1;
-            object-fit: contain;
-            border-radius: 8px;
-            border: 1px solid #f1f5f9;
-            mix-blend-mode: multiply;
+            height: auto;
+            border-radius: 10px;
+        }
+        .hero-gallery {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 6px;
+        }
+        .hero-gallery-img {
+            width: 100%;
+            height: 56px;
+            object-fit: cover;
+            border-radius: 6px;
+            border: 1px solid #e2e8f0;
             background: #fff;
         }
 
-        /* ---------------- SECTION STYLE ---------------- */
-        /* Casing follows the source text verbatim so PDF section labels
-           match the edit-form labels exactly (e.g. "Description" not
-           "DESCRIPTION"). Keep a subtle letter-spacing for typographic
-           polish without forcing uppercase. */
+        /* ---------------- SECTION TITLE ---------------- */
         .section-title {
             font-family: 'Outfit', sans-serif;
             font-size: 13px;
             font-weight: 700;
             color: #dc2626;
             letter-spacing: 0.5px;
-            margin-bottom: 15px;
+            margin: 22px 0 12px 0;
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 10px;
         }
-
         .section-title::after {
             content: "";
             flex: 1;
@@ -150,169 +147,175 @@
             background: #e2e8f0;
         }
 
-        /* ---------------- GRID LAYOUT ---------------- */
-        .grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 30px;
-            margin-top: 20px;
-        }
-
         /* ---------------- CARDS ---------------- */
         .card {
             background: #f8fafc;
-            border-radius: 16px;
-            padding: 20px;
-            border: 1px solid #f1f5f9;
+            border: 1px solid #eef2f7;
+            border-radius: 14px;
+            padding: 18px 20px;
         }
-
+        .card.tinted-red {
+            background: #fef2f2;
+            border-color: #fee2e2;
+        }
+        .card.tinted-red .section-title { color: #991b1b; margin-top: 0; }
+        .card.tinted-red .section-title::after { background: #fecaca; }
         .description-text {
             font-size: 11px;
             color: #475569;
             line-height: 1.7;
             white-space: pre-wrap;
         }
+        .description-text p:first-child { margin-top: 0; }
+        .description-text p:last-child  { margin-bottom: 0; }
 
-        /* ---------------- FEATURES ---------------- */
+        /* ---------------- TOP STRIPE: features + warranty ----------------
+           Extra `margin-top` to give the warranty card breathing room from
+           the description card above it. */
+        .top-stripe {
+            display: grid;
+            grid-template-columns: 1.4fr 1fr;
+            gap: 22px;
+            margin-top: 28px;
+            break-inside: avoid;
+        }
+
         .feature-list {
             list-style: none;
             padding: 0;
             margin: 0;
         }
-
         .feature-item {
             display: flex;
+            align-items: flex-start;
             gap: 10px;
             margin-bottom: 10px;
-            align-items: flex-start;
+            font-size: 10.5px;
+            color: #334155;
+            break-inside: avoid;
         }
-
         .feature-bullet {
             width: 6px;
             height: 6px;
-            background: #ef4444;
             border-radius: 50%;
+            background: #dc2626;
             margin-top: 6px;
             flex-shrink: 0;
         }
 
-        /* ---------------- SPECS TABLE ---------------- */
-        .spec-table {
-            width: 100%;
-            border-collapse: collapse;
+        /* ---------------- TECH SPECS (always page 2) ----------------
+           Forced page break so the spec table always starts on a fresh
+           page, predictable and uncluttered. */
+        .spec-block {
+            page-break-before: always;
+            break-before: page;
         }
-
+        .spec-columns {
+            column-count: 2;
+            column-gap: 24px;
+            margin-top: 4px;
+        }
         .spec-row {
-            border-bottom: 1px solid #e2e8f0;
-        }
-
-        .spec-key {
-            padding: 8px 0;
-            color: #64748b;
-            font-weight: 600;
-            width: 40%;
-            vertical-align: top;
-        }
-
-        .spec-value {
-            padding: 8px 0;
-            color: #1e293b;
-            font-weight: 500;
-            vertical-align: top;
-        }
-
-        .no-break {
-            page-break-inside: avoid;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 6px 0;
+            border-bottom: 1px solid #eef2f7;
+            font-size: 10px;
             break-inside: avoid;
+            -webkit-column-break-inside: avoid;
         }
+        .spec-key {
+            color: #475569;
+            font-weight: 600;
+            flex: 0 0 47%;
+        }
+        .spec-value {
+            color: #0f172a;
+            font-weight: 500;
+            flex: 1;
+        }
+
+        .no-break { break-inside: avoid; }
     </style>
 </head>
 
 <body>
 
-    <div class="page">
-        <!-- HEADER -->
-        <header class="header">
-            <div class="header-left">
-                <div class="document-type">INTERNAL DOCUMENT (PIS)</div>
-                <div class="brand-label">{{ data.header_info.brand }}</div>
-                <h1 class="product-title">{{ data.header_info.product_name }}</h1>
-                <div class="model-number">MODEL: {{ data.header_info.model_number }}</div>
+    <!-- HERO HEADER -->
+    <header class="hero">
+        <div class="hero-left">
+            <div class="doc-tag">Internal Document (PIS)</div>
+            <div class="brand-label">{{ data.header_info.brand }}</div>
+            <h1 class="product-title">{{ data.header_info.product_name }}</h1>
+            <div class="model-line">MODEL: {{ data.header_info.model_number }}</div>
 
-                {% if data.header_info.price_estimate %}
-                <div style="margin-top: 20px;">
-                    <span style="font-weight: 700; color: #dc2626;">ESTIMATED PRICE:</span>
-                    <span style="font-size: 14px; font-weight: 800; color: #1e293b;">{{ data.header_info.price_estimate
-                        }}</span>
+            {% if data.header_info.price_estimate %}
+            <div class="price-row">
+                <span class="price-label">ESTIMATED PRICE</span>
+                <span class="price-value">{{ data.header_info.price_estimate }}</span>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="hero-right">
+            {% if all_images_b64 %}
+            <div class="hero-image-card">
+                <img src="{{ all_images_b64[0] }}" alt="Product" class="hero-main-image">
+                {% if all_images_b64|length > 1 %}
+                <div class="hero-gallery">
+                    {% for img_b64 in all_images_b64[1:4] %}
+                    <img src="{{ img_b64 }}" alt="Detail" class="hero-gallery-img">
+                    {% endfor %}
                 </div>
                 {% endif %}
             </div>
-
-            <div class="header-right">
-                {% if all_images_b64 %}
-                <div class="hero-image-wrap">
-                    {# Main Image #}
-                    <img src="{{ all_images_b64[0] }}" alt="Product Main Image" class="main-image">
-
-                    {# Gallery for additional images (if more than 1) #}
-                    {% if all_images_b64|length > 1 %}
-                    <div class="image-gallery">
-                        {% for img_b64 in all_images_b64[1:] %}
-                        <img src="{{ img_b64 }}" alt="Product Detail Image" class="gallery-image">
-                        {% endfor %}
-                    </div>
-                    {% endif %}
-                </div>
-                {% endif %}
-            </div>
-        </header>
-
-        <!-- DESCRIPTION/OVERVIEW -->
-        <div class="card no-break" style="margin-bottom: 30px;">
-            <div class="section-title">Description</div>
-            <div class="description-text">
-                {{ data.range_overview }}
-            </div>
+            {% endif %}
         </div>
+    </header>
 
-        <div class="grid">
-            <!-- SALES ARGUMENTS -->
-            <div class="no-break">
-                <div class="section-title">Sales Arguments</div>
-                <ul class="feature-list">
-                    {% for arg in data.sales_arguments %}
-                    <li class="feature-item">
-                        <span class="feature-bullet"></span>
-                        <span>{{ arg }}</span>
-                    </li>
-                    {% endfor %}
-                </ul>
-
-                <div class="card no-break" style="margin-top: 30px; background: #fef2f2; border-color: #fee2e2;">
-                    <div class="section-title" style="color: #991b1b;">Warranty & Service</div>
-                    <div style="font-size: 10px; color: #7f1d1d;">
-                        <strong>Period:</strong> {{ data.warranty_service.period }}<br>
-                        <strong>Coverage:</strong> {{ data.warranty_service.coverage }}
-                    </div>
-                </div>
-            </div>
-
-            <!-- TECHNICAL DETAILS -->
-            <div class="no-break">
-                <div class="section-title">Technical Specifications</div>
-                <table class="spec-table">
-                    {% for key, value in data.technical_specifications.items() %}
-                    <tr class="spec-row">
-                        <td class="spec-key">{{ key }}</td>
-                        <td class="spec-value">{{ value }}</td>
-                    </tr>
-                    {% endfor %}
-                </table>
-            </div>
-        </div>
-
+    <!-- DESCRIPTION -->
+    <div class="card no-break">
+        <div class="section-title" style="margin-top: 0;">Description</div>
+        <div class="description-text">{{ data.range_overview }}</div>
     </div>
 
-</body>
+    <!-- TOP STRIPE: sales arguments + warranty -->
+    <div class="top-stripe">
+        <div>
+            <div class="section-title">Sales Arguments</div>
+            <ul class="feature-list">
+                {% for arg in data.sales_arguments %}
+                <li class="feature-item">
+                    <span class="feature-bullet"></span>
+                    <span>{{ arg }}</span>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
 
+        <div class="card tinted-red no-break">
+            <div class="section-title">Warranty &amp; Service</div>
+            <div style="font-size: 10.5px; color: #7f1d1d;">
+                <div><strong>Period:</strong> {{ data.warranty_service.period }}</div>
+                <div style="margin-top: 4px;"><strong>Coverage:</strong> {{ data.warranty_service.coverage }}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TECH SPECS (forced onto page 2) -->
+    <section class="spec-block">
+        <div class="section-title" style="margin-top: 0;">Technical Specifications</div>
+        <div class="spec-columns">
+            {% for key, value in data.technical_specifications.items() %}
+            <div class="spec-row">
+                <span class="spec-key">{{ key }}</span>
+                <span class="spec-value">{{ value }}</span>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+
+</body>
 </html>

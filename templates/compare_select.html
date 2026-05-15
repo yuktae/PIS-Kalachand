@@ -1,0 +1,644 @@
+{% extends "base.html" %}
+
+{# Comparison Table Generator — single-page selector + preview.
+
+   The page renders the picker first. When the user clicks Generate, we POST
+   to /compare/generate, swap into preview mode in-place, and load
+   x-spreadsheet against the returned table. The preview view uses a real
+   spreadsheet engine so the user gets Excel-like selection, copy/paste, and
+   column resize.
+
+   Exports happen by POSTing the (possibly user-edited) table state back to
+   /compare/export/xlsx or /compare/export/csv — what-you-see-is-what-you-get.
+#}
+
+{% block content %}
+
+{# x-spreadsheet — open source, ~200KB, no React/Vue needed.
+   Loaded from jsDelivr like the rest of the app's CDN deps. #}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/x-data-spreadsheet@1.1.9/dist/xspreadsheet.css">
+<script src="https://cdn.jsdelivr.net/npm/x-data-spreadsheet@1.1.9/dist/xspreadsheet.js" defer></script>
+
+<style>
+    /* x-spreadsheet ships with its own table chrome; lighten the surround so
+       it sits flush inside our rounded card without two competing borders. */
+    .x-spreadsheet { border: none !important; border-radius: 14px; overflow: hidden; }
+    .x-spreadsheet-toolbar { display: none; }   /* hide their toolbar — we use ours */
+    .x-spreadsheet-bottombar { display: none; } /* hide the sheet-tabs strip */
+
+    .compare-card-tile {
+        transition: all .18s cubic-bezier(.4,0,.2,1);
+    }
+    .compare-card-tile:hover { transform: translateY(-2px); }
+    .compare-card-tile.is-selected {
+        box-shadow: 0 0 0 2px rgb(239 68 68 / 0.85), 0 10px 30px -10px rgb(239 68 68 / 0.35);
+    }
+    .compare-thumb {
+        background-image: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    }
+    .compare-spinner {
+        border-top-color: #ef4444;
+        animation: cspin .8s linear infinite;
+    }
+    @keyframes cspin { to { transform: rotate(360deg); } }
+</style>
+
+<div x-data="compareGenerator()" x-init="init()" x-cloak class="space-y-5 max-w-screen-2xl mx-auto">
+
+    {# ── HERO — same pattern as forbidden_words / admin_stats ──────────────── #}
+    <div class="relative rounded-3xl bg-gradient-to-br from-white via-white to-red-50/40 border border-gray-100 p-8 shadow-sm overflow-hidden">
+        <div class="absolute inset-0 bg-[radial-gradient(#fee2e2_1px,transparent_1px)] [background-size:18px_18px] opacity-40 pointer-events-none"></div>
+        <div class="absolute -top-12 -right-12 w-48 h-48 bg-red-100/40 rounded-full blur-3xl pointer-events-none"></div>
+        <div class="absolute -bottom-12 -left-12 w-40 h-40 bg-red-100/30 rounded-full blur-3xl pointer-events-none"></div>
+
+        <div class="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+            <div>
+                <p class="text-[10px] font-bold text-red-600 uppercase tracking-widest mb-1">Sales Tool</p>
+                <h2 class="text-3xl font-extrabold text-slate-900 tracking-tight">Comparison Table Generator</h2>
+                <p class="text-slate-500 text-sm mt-1.5">Pick {{ min_products }}–{{ max_products }} products and let the AI line up their specs side-by-side. Preview, tweak, export.</p>
+            </div>
+            <div class="flex items-center gap-2 shrink-0" x-show="mode === 'select'">
+                <span class="px-3 py-1.5 rounded-full bg-white/80 border border-gray-200 text-xs font-bold text-slate-600">
+                    <span x-text="selected.length"></span> / {{ max_products }} selected
+                </span>
+                <button type="button" @click="generate()"
+                        :disabled="selected.length < {{ min_products }} || isGenerating"
+                        :class="(selected.length < {{ min_products }} || isGenerating)
+                                ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                                : 'bg-red-600 hover:bg-red-700 text-white shadow-sm shadow-red-100'"
+                        class="flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold transition-all">
+                    <template x-if="!isGenerating">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 9h.01M12 14h.01M9 14h.01M15 17h.01M12 17h.01M9 17h.01" />
+                        </svg>
+                    </template>
+                    <template x-if="isGenerating">
+                        <div class="w-3.5 h-3.5 border-2 border-white/40 compare-spinner rounded-full"></div>
+                    </template>
+                    <span x-text="isGenerating ? 'Generating…' : 'Generate Comparison'"></span>
+                </button>
+            </div>
+            <div class="flex items-center gap-2 shrink-0" x-show="mode === 'preview'">
+                <button type="button" @click="backToSelect()"
+                        class="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all bg-white border border-gray-200 hover:bg-slate-50 text-slate-700">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                    </svg>
+                    Back to selection
+                </button>
+                {# Single Export dropdown — replaces the previous CSV +
+                   Download-Excel pair. Click toggles the menu; clicking
+                   anywhere else closes it. #}
+                <div class="relative" @click.outside="exportMenuOpen = false">
+                    <button type="button" x-ref="exportBtn" @click="toggleExportMenu()"
+                            class="flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold transition-all bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm shadow-emerald-100">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                        </svg>
+                        Export
+                        <svg class="w-3 h-3" :class="exportMenuOpen ? 'rotate-180' : ''" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </button>
+                    {# x-teleport renders this menu as a direct child of <body>
+                       so the parent hero card's `overflow-hidden` (used to
+                       clip its radial-pattern decoration) cannot clip the
+                       dropdown. Position is computed in toggleExportMenu()
+                       from the trigger's bounding rect each time the menu
+                       is opened, so it always sits flush below the button. #}
+                    <template x-teleport="body">
+                        <div x-show="exportMenuOpen" x-transition.opacity x-cloak
+                             :style="`position: fixed; top: ${exportMenuPos.top}px; left: ${exportMenuPos.left}px;`"
+                             class="w-44 bg-white rounded-xl shadow-xl border border-slate-200 overflow-hidden z-[100]"
+                             @click.outside="exportMenuOpen = false">
+                            <button type="button"
+                                    @click="exportMenuOpen=false; exportFile('xlsx')"
+                                    class="w-full px-4 py-2.5 text-xs font-bold text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 flex items-center gap-2.5 text-left">
+                                <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                                <span>Excel <span class="text-slate-400 font-normal">(.xlsx)</span></span>
+                            </button>
+                            <button type="button"
+                                    @click="exportMenuOpen=false; exportFile('csv')"
+                                    class="w-full px-4 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 text-left border-t border-slate-100">
+                                <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                                <span>CSV <span class="text-slate-400 font-normal">(.csv)</span></span>
+                            </button>
+                            <button type="button"
+                                    @click="exportMenuOpen=false; exportFile('pdf')"
+                                    class="w-full px-4 py-2.5 text-xs font-bold text-slate-700 hover:bg-red-50 hover:text-red-700 flex items-center gap-2.5 text-left border-t border-slate-100">
+                                <svg class="w-4 h-4 text-red-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                                <span>PDF <span class="text-slate-400 font-normal">(.pdf)</span></span>
+                            </button>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {# ════════════════════════════════════════════════════════════════════════
+       SELECT MODE
+       ════════════════════════════════════════════════════════════════════════ #}
+    <div x-show="mode === 'select'" class="space-y-5">
+
+        {# Search + category filter strip #}
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex flex-col md:flex-row gap-3 items-stretch md:items-center">
+            <div class="relative flex-1">
+                <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                <input type="text" x-model="search"
+                       placeholder="Search by model name, model number, or brand…"
+                       class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-red-200 focus:border-red-400">
+            </div>
+            <select x-model="categoryFilter"
+                    class="px-4 py-2.5 rounded-xl border border-gray-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-red-200 focus:border-red-400 min-w-[14rem]">
+                <option value="">All categories</option>
+                {% for c in available_categories %}
+                <option value="{{ c }}">{{ c }}</option>
+                {% endfor %}
+            </select>
+            <button type="button" @click="search=''; categoryFilter=''"
+                    class="px-3 py-2.5 rounded-xl border border-gray-200 text-xs font-bold text-slate-600 hover:bg-slate-50 transition-colors">
+                Clear filters
+            </button>
+        </div>
+
+        {# Selected pills — quick way to deselect without scrolling #}
+        <div x-show="selected.length > 0" class="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+            <div class="flex items-center justify-between mb-2">
+                <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                    Selected · <span x-text="selected.length"></span>
+                </p>
+                <button type="button" @click="clearSelection()"
+                        class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold text-slate-500 hover:text-red-600 hover:bg-red-50 transition-colors">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3" />
+                    </svg>
+                    Clear all
+                </button>
+            </div>
+            <div class="flex flex-wrap gap-2">
+                <template x-for="p in selectedProducts()" :key="p.id">
+                    <button type="button" @click="toggle(p.id)"
+                            class="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-full bg-red-50 hover:bg-red-100 text-red-700 text-xs font-bold transition-colors">
+                        <span class="w-5 h-5 rounded-full bg-white shadow-inner flex items-center justify-center text-[10px]">
+                            <img :src="p.image_url" x-show="p.image_url" class="w-full h-full object-cover rounded-full">
+                            <span x-show="!p.image_url" class="text-slate-400">·</span>
+                        </span>
+                        <span x-text="p.name"></span>
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </template>
+            </div>
+        </div>
+
+        {# Product gallery #}
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+            <template x-for="p in filteredProducts()" :key="p.id">
+                <button type="button" @click="toggle(p.id)"
+                        :class="isSelected(p.id) ? 'is-selected bg-red-50/40 border-red-200' : 'bg-white border-gray-100 hover:border-gray-200'"
+                        class="compare-card-tile relative text-left rounded-2xl border shadow-sm overflow-hidden flex flex-col">
+                    <div class="absolute top-3 right-3 z-10">
+                        <div :class="isSelected(p.id) ? 'bg-red-600 border-red-600' : 'bg-white/80 border-gray-200'"
+                             class="w-6 h-6 rounded-md border-2 flex items-center justify-center transition-colors">
+                            <svg x-show="isSelected(p.id)" class="w-4 h-4 text-white" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="compare-thumb aspect-[4/3] flex items-center justify-center">
+                        <img :src="p.image_url" x-show="p.image_url" class="w-full h-full object-contain p-3" :alt="p.name">
+                        <svg x-show="!p.image_url" class="w-12 h-12 text-slate-300" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                    </div>
+                    <div class="p-4 flex-1 flex flex-col gap-1">
+                        <p class="text-sm font-extrabold text-slate-900 line-clamp-2" x-text="p.name"></p>
+                        <p class="text-[11px] text-slate-500 line-clamp-1">
+                            <span x-text="p.brand || 'Unknown brand'"></span>
+                            <template x-if="p.model_number">
+                                <span>· <span x-text="p.model_number"></span></span>
+                            </template>
+                        </p>
+                        <div class="flex items-center gap-1.5 mt-auto pt-2">
+                            <span class="px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[10px] font-bold tracking-wide" x-text="p.category"></span>
+                            <span class="px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 text-[10px] font-bold tracking-wide" x-text="p.spec_count + ' specs'"></span>
+                        </div>
+                    </div>
+                </button>
+            </template>
+        </div>
+
+        <div x-show="filteredProducts().length === 0" class="bg-white rounded-2xl border border-dashed border-gray-200 p-12 text-center">
+            <p class="text-slate-500 text-sm">No products match your filters.</p>
+        </div>
+    </div>
+
+    {# ════════════════════════════════════════════════════════════════════════
+       PREVIEW MODE — x-spreadsheet
+       ════════════════════════════════════════════════════════════════════════ #}
+    <div x-show="mode === 'preview'" class="space-y-4">
+
+        {# Mixed-category warning #}
+        <div x-show="table && table.mixed_categories"
+             class="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-3 flex items-center gap-3">
+            <svg class="w-5 h-5 text-amber-600 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M5.07 19h13.86c1.54 0 2.5-1.67 1.73-3L13.73 4a2 2 0 00-3.46 0L3.34 16c-.77 1.33.19 3 1.73 3z" />
+            </svg>
+            <div class="text-sm">
+                <p class="font-bold text-amber-900">Mixed categories</p>
+                <p class="text-amber-700 text-xs mt-0.5">
+                    You're comparing products from <span x-text="table.category_context"></span>. The AI aligned what it could, but rows may be sparse where products don't share the same kind of specs.
+                </p>
+            </div>
+        </div>
+
+        {# Spreadsheet container — image strip + x-spreadsheet, single card.
+           The image strip's grid uses a fixed 220px first column + 1fr per
+           product so it visually lines up with the spreadsheet below
+           (which has the same column 0 = 220px, then product columns). #}
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            <div class="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <div class="w-1 h-5 bg-red-500 rounded-full"></div>
+                    <h3 class="text-sm font-bold text-slate-900">Aligned Specifications</h3>
+                    <span class="text-[11px] text-slate-500" x-text="`${table.rows.length} rows · ${table.products.length} products`"></span>
+                </div>
+                <p class="text-[10px] text-slate-400">Edit any cell — the export uses exactly what you see.</p>
+            </div>
+
+            {# Image header strip — fixed-width columns that line up exactly
+               with the spreadsheet below: 50px row-index gutter + 220px
+               spec-label column + 180px per product column. Any remaining
+               horizontal space sits empty on the right, just like the
+               spreadsheet does. #}
+            <div class="bg-slate-50 border-b border-slate-200 overflow-x-auto">
+                <div class="grid py-3"
+                     :style="`grid-template-columns: 50px 220px repeat(${table.products.length}, 180px); width: max-content; min-width: 100%;`">
+                    {# Empty cell for the row-index gutter #}
+                    <div></div>
+                    {# "Product" label aligned with the spec-label column below #}
+                    <div class="flex items-center px-3">
+                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Product</span>
+                    </div>
+                    {# One image cell per product, sized to match a 180px sheet column #}
+                    <template x-for="p in table.products" :key="'img-' + p.id">
+                        <div class="flex items-center justify-center px-2">
+                            <div class="w-[150px] h-[110px] bg-white rounded-md border border-slate-200 flex items-center justify-center overflow-hidden shadow-sm">
+                                <img :src="p.image_url" x-show="p.image_url" class="w-full h-full object-contain">
+                                <svg x-show="!p.image_url" class="w-10 h-10 text-slate-300" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+
+            <div id="compareSheet" style="height: 640px; width: 100%;"></div>
+        </div>
+    </div>
+
+    {# Toast / error #}
+    <div x-show="errorMessage" x-transition.opacity
+         class="fixed bottom-6 right-6 z-50 max-w-sm bg-white border border-red-200 shadow-lg rounded-xl px-4 py-3 flex items-start gap-3">
+        <svg class="w-5 h-5 text-red-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M5.07 19h13.86c1.54 0 2.5-1.67 1.73-3L13.73 4a2 2 0 00-3.46 0L3.34 16c-.77 1.33.19 3 1.73 3z" />
+        </svg>
+        <div class="flex-1">
+            <p class="text-sm font-bold text-slate-900">Something went wrong</p>
+            <p class="text-xs text-slate-600 mt-0.5" x-text="errorMessage"></p>
+        </div>
+        <button type="button" @click="errorMessage=''" class="text-slate-400 hover:text-slate-700">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+        </button>
+    </div>
+</div>
+
+<script>
+function compareGenerator() {
+    return {
+        // ── PICKER STATE ──────────────────────────────────────────────────
+        products: {{ products | tojson }},
+        selected: [],
+        search: '',
+        categoryFilter: '',
+
+        // ── MODE / RESULT ─────────────────────────────────────────────────
+        mode: 'select',           // 'select' | 'preview'
+        isGenerating: false,
+        exportMenuOpen: false,    // dropdown toggle for Export
+        // Position of the teleported dropdown (computed from the trigger
+        // button's bounding rect when the menu opens; menu width 176px).
+        exportMenuPos: { top: 0, left: 0 },
+        table: null,              // server response
+        sheet: null,              // x-spreadsheet instance
+        errorMessage: '',
+
+        init() { /* no-op for now — kept for symmetry with other Alpine pages */ },
+
+        // ── SELECTION ─────────────────────────────────────────────────────
+        isSelected(id) { return this.selected.includes(id); },
+        toggle(id) {
+            const i = this.selected.indexOf(id);
+            if (i >= 0) {
+                this.selected.splice(i, 1);
+                return;
+            }
+            if (this.selected.length >= {{ max_products }}) {
+                this.flash(`Maximum {{ max_products }} products per comparison.`);
+                return;
+            }
+            this.selected.push(id);
+        },
+        clearSelection() {
+            this.selected = [];
+        },
+        selectedProducts() {
+            return this.selected.map(id => this.products.find(p => p.id === id)).filter(Boolean);
+        },
+        filteredProducts() {
+            const q = this.search.trim().toLowerCase();
+            return this.products.filter(p => {
+                if (this.categoryFilter && p.category !== this.categoryFilter) return false;
+                if (!q) return true;
+                return (p.name || '').toLowerCase().includes(q)
+                    || (p.brand || '').toLowerCase().includes(q)
+                    || (p.model_number || '').toLowerCase().includes(q);
+            });
+        },
+
+        // ── GENERATE ──────────────────────────────────────────────────────
+        async generate() {
+            if (this.isGenerating) return;
+            if (this.selected.length < {{ min_products }}) return;
+            this.isGenerating = true;
+            this.errorMessage = '';
+            try {
+                const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+                const resp = await fetch('{{ url_for("compare.compare_generate") }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken,
+                    },
+                    body: JSON.stringify({ product_ids: this.selected }),
+                });
+                if (!resp.ok) {
+                    const err = await resp.json().catch(() => ({}));
+                    throw new Error(err.error || `Server returned ${resp.status}`);
+                }
+                this.table = await resp.json();
+                this.mode = 'preview';
+                this.$nextTick(() => this.mountSheet());
+            } catch (e) {
+                this.flash(e.message || 'Could not generate the comparison.');
+            } finally {
+                this.isGenerating = false;
+            }
+        },
+
+        backToSelect() {
+            this.mode = 'select';
+            this.sheet = null;
+        },
+
+        // ── SPREADSHEET MOUNTING ──────────────────────────────────────────
+        mountSheet() {
+            const container = document.getElementById('compareSheet');
+            if (!container || !window.x_spreadsheet) {
+                // Lib still loading — retry once after the deferred script lands.
+                setTimeout(() => this.mountSheet(), 200);
+                return;
+            }
+            // Defer one frame so any sibling layout (the image-strip grid
+            // above) settles before x-spreadsheet measures container.clientWidth.
+            // Without this, when the grid reflows the image cards into rows,
+            // the sheet container can be measured at width=0 and render blank.
+            requestAnimationFrame(() => {
+                if (container.clientWidth === 0) {
+                    // Layout still pending — try one more frame.
+                    requestAnimationFrame(() => this._actuallyMount(container));
+                } else {
+                    this._actuallyMount(container);
+                }
+            });
+        },
+        _actuallyMount(container) {
+            container.innerHTML = '';
+            const data = this.buildSheetData();
+            const measuredWidth = container.clientWidth || 1200;
+            // x-spreadsheet is a FACTORY function (UMD global `x_spreadsheet`).
+            // Calling it with `new` works on some bundles but not others — call
+            // it plainly and chain .loadData() per their official API.
+            this.sheet = window.x_spreadsheet('#compareSheet', {
+                showToolbar: false,
+                showGrid: true,
+                showContextmenu: true,
+                view: { height: () => 640, width: () => container.clientWidth || measuredWidth },
+                row: { len: Object.keys(data.rows).length + 4, height: 32 },
+                col: { len: this.table.products.length + 1, width: 180, indexWidth: 50 },
+            }).loadData(data);
+        },
+
+        buildSheetData() {
+            // x-spreadsheet expects { rows: { 0: {cells: {0: {text: '...'}, ...}}, ... } }
+            const rows = {};
+            const products = this.table.products;
+
+            // Row 0 — product names (header)
+            const headerCells = { 0: { text: 'Specification', style: 0 } };
+            products.forEach((p, idx) => {
+                headerCells[idx + 1] = { text: p.name, style: 0 };
+            });
+            rows[0] = { cells: headerCells, height: 40 };
+
+            // Row 1 — brand / model number
+            const subCells = { 0: { text: '', style: 1 } };
+            products.forEach((p, idx) => {
+                const sub = [p.brand, p.model_number].filter(Boolean).join(' / ');
+                subCells[idx + 1] = { text: sub, style: 1 };
+            });
+            rows[1] = { cells: subCells, height: 24 };
+
+            // Body rows — grouped by section
+            let r = 2;
+            let currentSection = null;
+            this.table.rows.forEach(row => {
+                const section = row.section || 'Other';
+                if (section !== currentSection) {
+                    const sectionCells = { 0: { text: section.toUpperCase(), style: 2 } };
+                    products.forEach((_, idx) => { sectionCells[idx + 1] = { text: '', style: 2 }; });
+                    rows[r] = { cells: sectionCells, height: 28 };
+                    r += 1;
+                    currentSection = section;
+                }
+                const label = row.unit_hint
+                    ? `${row.canonical_label} (${row.unit_hint})`
+                    : row.canonical_label;
+                const cells = { 0: { text: label, style: 3 } };
+                products.forEach((p, idx) => {
+                    const v = row.values[p.id];
+                    cells[idx + 1] = { text: (v === null || v === '' || v === undefined) ? '—' : String(v) };
+                });
+                rows[r] = { cells };
+                r += 1;
+            });
+
+            return {
+                name: 'Comparison',
+                freeze: 'B3',
+                styles: [
+                    // 0 — product name header (slate-900 bg, white)
+                    { bgcolor: '#0f172a', color: '#ffffff', font: { bold: true, size: 11 }, align: 'center', valign: 'middle' },
+                    // 1 — brand/model sub-header (slate-700 bg)
+                    { bgcolor: '#334155', color: '#cbd5e1', font: { size: 9 }, align: 'center', valign: 'middle' },
+                    // 2 — section divider (slate-200)
+                    { bgcolor: '#e2e8f0', color: '#0f172a', font: { bold: true, size: 10 }, align: 'left', valign: 'middle' },
+                    // 3 — spec label (left column)
+                    { font: { bold: true, size: 10 }, align: 'left', valign: 'middle', bgcolor: '#f8fafc' },
+                ],
+                rows,
+                cols: {
+                    0: { width: 220 },
+                },
+            };
+        },
+
+        // ── EXPORTS ───────────────────────────────────────────────────────
+        readSheetIntoTable() {
+            // Pull edits the user made in the spreadsheet back into our table
+            // dict so the export reflects what they see. x-spreadsheet's
+            // .getData() returns the same shape we loaded; we walk the cells.
+            if (!this.sheet) return this.table;
+            const sheetData = this.sheet.getData()[0] || {};
+            const rows = sheetData.rows || {};
+            const products = this.table.products;
+
+            // Header row 0 = names, row 1 = brand/model — usually unchanged but
+            // we honour any user edit on the spec column header (cell 0/0).
+            // We don't write back to products[] — those came from the DB.
+            // Walk body rows starting at index 2.
+            const outRows = [];
+            let r = 2;
+            let currentSection = null;
+            for (let i = 0; i < this.table.rows.length; i++) {
+                // Skip the section divider row that lives in the sheet but
+                // isn't a data row in our table.
+                while (rows[r] && this.isSectionDividerRow(rows[r])) {
+                    currentSection = this.extractSectionFromDivider(rows[r]);
+                    r += 1;
+                }
+                const sheetRow = rows[r];
+                if (!sheetRow) { r += 1; continue; }
+                const cells = sheetRow.cells || {};
+                const labelCell = cells['0'] || cells[0] || {};
+                const labelText = (labelCell.text || '').trim();
+                // Split label from unit_hint if user kept the "(W)" suffix
+                let canonical = labelText;
+                let unit = this.table.rows[i].unit_hint || '';
+                const m = labelText.match(/^(.*?)\s*\(([^)]+)\)\s*$/);
+                if (m && this.table.rows[i].unit_hint) {
+                    canonical = m[1].trim();
+                    unit = m[2].trim();
+                }
+                const values = {};
+                products.forEach((p, idx) => {
+                    const c = cells[String(idx + 1)] || cells[idx + 1] || {};
+                    const text = (c.text || '').trim();
+                    values[p.id] = (text === '—' || text === '') ? null : text;
+                });
+                outRows.push({
+                    canonical_label: canonical || this.table.rows[i].canonical_label,
+                    section: currentSection || this.table.rows[i].section,
+                    unit_hint: unit,
+                    values,
+                });
+                r += 1;
+            }
+            return { ...this.table, rows: outRows };
+        },
+
+        isSectionDividerRow(row) {
+            // Section dividers are the rows where every product cell is empty
+            // and the first cell is the uppercase section name. Heuristic but
+            // sufficient because the user can't easily insert their own row.
+            const cells = row.cells || {};
+            const first = (cells['0'] || cells[0] || {}).text || '';
+            if (!first || first.includes('(')) return false;
+            return first === first.toUpperCase() && first.length < 40;
+        },
+        extractSectionFromDivider(row) {
+            const cells = row.cells || {};
+            const first = (cells['0'] || cells[0] || {}).text || '';
+            // Restore Title Case approximation — the export will re-uppercase.
+            return first.replace(/\b\w/g, c => c.toUpperCase()).replace(/\s+/g, ' ').trim()
+                .split(' ').map(w => w[0] + w.slice(1).toLowerCase()).join(' ');
+        },
+
+        toggleExportMenu() {
+            // When opening, snap the menu position to right-align under the
+            // trigger button. Menu width is 176px (w-44). Recomputed every
+            // open in case the layout shifted (resize, scroll, mode swap).
+            if (!this.exportMenuOpen) {
+                const btn = this.$refs.exportBtn;
+                if (btn) {
+                    const r = btn.getBoundingClientRect();
+                    this.exportMenuPos = {
+                        top:  Math.round(r.bottom + 8),
+                        left: Math.round(r.right - 176),
+                    };
+                }
+            }
+            this.exportMenuOpen = !this.exportMenuOpen;
+        },
+
+        async exportFile(kind) {
+            const payload = this.readSheetIntoTable();
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+            const urls = {
+                xlsx: '{{ url_for("compare.compare_export_xlsx") }}',
+                csv:  '{{ url_for("compare.compare_export_csv") }}',
+                pdf:  '{{ url_for("compare.compare_export_pdf") }}',
+            };
+            const url = urls[kind] || urls.xlsx;
+            try {
+                const resp = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken,
+                    },
+                    body: JSON.stringify(payload),
+                });
+                if (!resp.ok) {
+                    const err = await resp.json().catch(() => ({}));
+                    throw new Error(err.error || `Server returned ${resp.status}`);
+                }
+                const blob = await resp.blob();
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = `comparison.${kind}`;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+            } catch (e) {
+                this.flash(e.message || 'Download failed.');
+            }
+        },
+
+        flash(msg) {
+            this.errorMessage = msg;
+            clearTimeout(this._flashTimer);
+            this._flashTimer = setTimeout(() => { this.errorMessage = ''; }, 4500);
+        },
+    };
+}
+</script>
+
+{% endblock %}

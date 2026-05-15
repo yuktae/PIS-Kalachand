@@ -30,13 +30,15 @@ from helpers import (
 )
 from utils.history import log_event
 from utils.web_scraping import scrape_url_data, scrape_url_data_deep
-from utils.ai_generation import generate_pis_data, generate_bulk_pis_data
+from utils.ai_generation import generate_pis_data, generate_bulk_pis_data, generate_proforma_data
 from utils.pdf_processing import extract_specific_image, clear_pdf_cache
 from utils.image_processing import (
     find_and_validate_image, find_image_simple, download_web_image,
     find_image_via_screenshot,
 )
 from utils.storage import store_image
+from utils import single_wizard as sw
+from utils import bulk_wizard as bw
 
 api_bp = Blueprint('api', __name__)
 
@@ -311,6 +313,514 @@ def api_pis_dismiss_job(job_id):
     return jsonify({"ok": True})
 
 
+# ── PROFORMA ASYNC WORKERS (fire-and-redirect Generate PIS) ──────────────────
+#
+# The /import_proforma single + bulk flows both end with the user clicking
+# "Generate PIS". Historically that call ran synchronously and the user
+# watched a streaming progress bar until done. Now the click enqueues a Job
+# and the response carries a redirect to /dashboard/marketing — the
+# bottom-right tracker widget (base.html) picks up the job and shows
+# per-product progress while the user keeps working in the gallery.
+#
+# Both workers persist `_source_files` / `_bulk_source_filenames` on
+# pis_data so the Edit PIS Gallery tab's Crop-from-proforma keeps working
+# after generation.
+
+
+def _single_finalize_worker(app, job_id, token, model_name,
+                            selected_image, gallery_paths, user_name):
+    """Background worker for the single-mode Generate PIS button.
+
+    Wizard now stops at the "Detected product" step — this worker owns
+    everything after the click:
+
+      1. Run the full proforma extraction (content + structured fields).
+      2. Image extraction, simplified two-tier strategy:
+         • Proforma WITH image  : extract from PDF + smart web search.
+         • Proforma WITHOUT image: scrape supplier URL + smart web search.
+         (Supplier URL is auto-discovered if the session doesn't have one.)
+         No DuckDuckGo / screenshot fallbacks — the user refines from the
+         Edit PIS gallery if these come up empty.
+      3. Persist Product + initial version snapshot + category classification.
+
+    `selected_image` / `gallery_paths` arguments are kept for backwards
+    compatibility but ignored (the old picker UI is gone).
+    """
+    with app.app_context():
+        try:
+            _update_job(job_id, status='processing', progress=5,
+                        message='Reading proforma...')
+
+            sess = sw.get_session(token)
+            if not sess:
+                _update_job(
+                    job_id, status='failed', progress=100,
+                    message='Wizard session expired — please re-upload.',
+                    completed_at=datetime.now(timezone.utc).replace(tzinfo=None).isoformat(),
+                )
+                return
+
+            file_paths   = sess.get('file_paths') or []
+            supplier_url = (sess.get('supplier_url') or '').strip()
+            brand        = (sess.get('brand') or '').strip()
+
+            upload_folder = app.config['UPLOAD_FOLDER']
+            if not os.path.isabs(upload_folder):
+                upload_folder = os.path.join(app.root_path, upload_folder)
+
+            # ── 1. Content extraction ────────────────────────────────────
+            site_data = {"text": "", "html": ""}
+            if supplier_url:
+                _update_job(job_id, progress=15, message='Scraping supplier URL...')
+                try:
+                    site_data = scrape_url_data(supplier_url)
+                except Exception as e:
+                    print(f'[single async] scrape failed (continuing): {e}')
+
+            _update_job(job_id, progress=30, message='Extracting content with AI...')
+            extracted = generate_proforma_data(
+                file_paths=file_paths, url_data=site_data,
+                extraction_mode='single', brand_hint=brand or None,
+            )
+            if not extracted:
+                _update_job(
+                    job_id, status='failed', progress=100,
+                    message='AI returned no products from this source.',
+                    completed_at=datetime.now(timezone.utc).replace(tzinfo=None).isoformat(),
+                )
+                return
+
+            raw_doc_text = extract_raw_text_from_files(file_paths) or ""
+            raw = extracted[0]
+            pis = proforma_to_pis_data(raw, raw_text=raw_doc_text,
+                                       source_files=file_paths) or {}
+            pis.setdefault('header_info', {})
+            if not pis['header_info'].get('product_name'):
+                pis['header_info']['product_name'] = model_name
+
+            header = pis.get('header_info', {}) or {}
+            final_name  = (header.get('product_name') or model_name or '').strip() or model_name
+            final_brand = (header.get('brand') or brand or '').strip() or brand
+
+            # ── 2. Image extraction — simplified two-tier ────────────────
+            candidates: list[str] = []  # relative `uploads/...` paths, deduped
+
+            # Tier 1A: try to pull the image directly from the proforma.
+            #          Works only when the PDF actually contains a product photo.
+            _update_job(job_id, progress=50, message='Looking for image in proforma...')
+            pdf_path = None
+            if file_paths:
+                try:
+                    pdf_path = extract_specific_image(file_paths[0], final_name, upload_folder)
+                except Exception as e:
+                    print(f'[single async] PDF image extract failed: {e}')
+                    pdf_path = None
+            if pdf_path:
+                candidates.append(pdf_path)
+
+            # Discover a supplier URL if the session didn't give us one —
+            # needed for Tier-1B (proforma had no image) and useful as a
+            # bias for the Tier-2 smart web search.
+            if not supplier_url:
+                _update_job(job_id, progress=58, message='Finding supplier page...')
+                try:
+                    from utils.single_wizard import discover_supplier_url
+                    sup = discover_supplier_url(final_name, final_brand or None) or {}
+                    supplier_url = (sup.get('url') or '').strip()
+                except Exception as e:
+                    print(f'[single async] supplier discovery failed: {e}')
+                    supplier_url = ''
+
+            # Tier 1B: proforma had no usable image → pull candidates from
+            # the supplier URL itself (scrape product page images).
+            if not pdf_path and supplier_url:
+                _update_job(job_id, progress=65, message='Pulling images from supplier page...')
+                try:
+                    from utils.single_wizard import extract_images_from_user_url
+                    url_results = extract_images_from_user_url(
+                        supplier_url, final_name, upload_folder, max_results=3,
+                    ) or []
+                    for r in url_results:
+                        p = r.get('path')
+                        if p and p not in candidates:
+                            candidates.append(p)
+                except Exception as e:
+                    print(f'[single async] supplier URL image extract failed: {e}')
+
+            # Tier 2 (both branches): smart web search.
+            _update_job(job_id, progress=75, message='Smart web image search...')
+            try:
+                rich_query = _build_query(pis, final_name)
+                web_url = find_and_validate_image(rich_query, supplier_url or None)
+                if web_url:
+                    web_path = download_web_image(web_url, final_name, upload_folder)
+                    if web_path and web_path not in candidates:
+                        candidates.append(web_path)
+            except Exception as e:
+                print(f'[single async] smart web search failed: {e}')
+
+            # First candidate becomes the main image; the rest go to the gallery.
+            main_image = None
+            additional_images: list[str] = []
+            if candidates:
+                main_image = store_image(candidates[0], final_name) or candidates[0]
+                additional_images = [p for p in candidates[1:] if p]
+
+            # ── 3. Save ─────────────────────────────────────────────────
+            _update_job(job_id, progress=85, message='Saving product...')
+            new_product = Product(
+                model_name=final_name, pis_data=pis,
+                image_path=main_image,
+                additional_images=additional_images,
+                seo_keywords=(pis or {}).get('seo_data', {}).get('generated_keywords', ''),
+                workflow_stage='marketing_draft',
+            )
+            db.session.add(new_product)
+            db.session.commit()
+            product_id = new_product.id
+
+            log_event(product_id, user_name, 'New Product Added',
+                      'Imported via single-item wizard (background).', 'neutral')
+            save_version_snapshot(new_product, label='Initial version', is_major=True)
+
+            # Inline category classification — keeps single-import on par with bulk.
+            _update_job(job_id, progress=93, message='Classifying product category...')
+            try:
+                from utils.category_classifier import classify_product_category
+                classification = classify_product_category(pis) or {}
+                if classification.get('category_1'):
+                    p = db.session.get(Product, product_id)
+                    if p:
+                        set_product_category(
+                            p,
+                            classification.get('category_1', ''),
+                            classification.get('category_2', ''),
+                            classification.get('category_3', ''),
+                        )
+                        db.session.commit()
+            except Exception as e:
+                print(f'[single async] category classification skipped: {e}')
+
+            sw.drop_session(token)
+            clear_pdf_cache()
+            _update_job(
+                job_id, status='completed', progress=100,
+                message=f'Saved {new_product.model_name}',
+                product_id=product_id,
+                redirect_url='/dashboard/marketing',
+                completed_at=datetime.now(timezone.utc).replace(tzinfo=None).isoformat(),
+            )
+        except Exception as e:
+            import traceback; traceback.print_exc()
+            _update_job(
+                job_id, status='failed', progress=100,
+                message=f'Generation failed: {str(e)[:100]}',
+                error=str(e),
+                completed_at=datetime.now(timezone.utc).replace(tzinfo=None).isoformat(),
+            )
+
+
+def _bulk_extract_worker(app, job_id, token, edited_groups, edited_items,
+                         user_name):
+    """Background worker for the bulk-mode Generate N PIS button.
+
+    Stages every PIS payload in MEMORY first (stub build + enrichment), then
+    persists all Product rows in a single commit at the end. The user's
+    Product Gallery therefore never sees half-baked drafts — products only
+    show up once every PIS in the batch is fully enriched (content +
+    category + image candidates).
+    """
+    import uuid as _uuid
+    with app.app_context():
+        try:
+            _update_job(job_id, status='processing', progress=5,
+                        message='Preparing drafts...')
+
+            sess = bw.get_session(token)
+            if not sess:
+                _update_job(
+                    job_id, status='failed', progress=100,
+                    message='Bulk session expired — please re-upload.',
+                    completed_at=datetime.now(timezone.utc).replace(tzinfo=None).isoformat(),
+                )
+                return
+
+            origin_hint = sess.get('origin_hint') or 'unknown'
+            source_filenames = sess.get('file_names') or []
+            triage_summary = (sess.get('triage') or {}).get('summary') or {}
+
+            batch_id = _uuid.uuid4().hex
+
+            upload_folder = app.config['UPLOAD_FOLDER']
+            if not os.path.isabs(upload_folder):
+                upload_folder = os.path.join(app.root_path, upload_folder)
+
+            # Step 1 — build every stub PIS in memory (no DB writes).
+            staged: list[dict] = []
+            for cluster_idx, cluster in enumerate(edited_groups):
+                pis = bw.build_stub_pis_from_cluster(
+                    cluster, edited_items, batch_id, origin_hint,
+                    cluster_index=cluster_idx,
+                    source_filenames=source_filenames,
+                    triage_summary=triage_summary,
+                )
+                if not pis:
+                    continue
+                model_name = pis.pop('_bulk_model_name', None) \
+                              or (pis.get('header_info', {}).get('product_name') or 'Item')
+                staged.append({
+                    'pis':           pis,
+                    'model_name':    model_name,
+                    'cluster_index': cluster_idx,
+                })
+
+            total = len(staged)
+            if total == 0:
+                _update_job(
+                    job_id, status='completed', progress=100,
+                    message='No active drafts created — every row was skipped.',
+                    redirect_url='/dashboard/marketing',
+                    completed_at=datetime.now(timezone.utc).replace(tzinfo=None).isoformat(),
+                )
+                return
+
+            # Step 2 — enrich each staged PIS in memory (content + category +
+            # image). Clusters run in parallel because each one is mostly
+            # I/O bound (Gemini calls, HTTP downloads) — sequential was the
+            # killer in the pre-Phase-3 run logs (4× the wall time of the
+            # slowest cluster).
+            #
+            # max_workers: 4 — picked to stay well under gemini-2.5-flash
+            # paid-tier RPM (~1000) and the typical browser concurrent-HTTP
+            # cap. Bump only after confirming Gemini quota headroom.
+            # Failures inside a worker keep the stub so the product still
+            # gets created at the end — partial > nothing.
+            from threading import Lock
+            _progress_lock = Lock()
+            _done = {'n': 0}
+
+            def _enrich_one(entry: dict) -> None:
+                # Worker threads do NOT inherit the parent's Flask app
+                # context, so we push a fresh one per worker. Without this,
+                # `_update_job`'s db.session.rollback() blows up with
+                # "Working outside of application context."
+                with app.app_context():
+                    display_name = entry['model_name'] or 'Draft'
+                    try:
+                        entry['pis'] = bw.enrich_product(
+                            entry['pis'], upload_folder,
+                            tasks=['content', 'category', 'image'],
+                        )
+                    except Exception as e:
+                        print(f"[bulk async] enrich failed for '{display_name}': {e}")
+                    with _progress_lock:
+                        _done['n'] += 1
+                        pct = 5 + int((_done['n'] / total) * 88)
+                        _update_job(job_id, progress=pct,
+                                    message=f"Enriching {_done['n']}/{total}: {display_name}")
+
+            with ThreadPoolExecutor(max_workers=min(4, total)) as ex:
+                list(ex.map(_enrich_one, staged))
+
+            # Step 3 — persist every Product in ONE transaction. Until this
+            # commit lands, the gallery has no idea this batch exists.
+            _update_job(job_id, progress=95, message='Saving products...')
+            created_ids: list[int] = []
+            try:
+                for entry in staged:
+                    pis = entry['pis']
+                    model_name = entry['model_name']
+                    image_path = pis.get('_image_path')
+
+                    seo_kw = (pis.get('_seo_keywords_pending')
+                              or (pis.get('seo_data') or {}).get('generated_keywords')
+                              or '')
+                    seo_kw = str(seo_kw).strip()[:255]
+
+                    # additional_images = every extracted candidate other
+                    # than the chosen main, so the Edit PIS gallery + the
+                    # PDF render show the full picker.
+                    extras: list[str] = []
+                    for c in (pis.get('_bulk_image_candidates') or []):
+                        if not isinstance(c, dict):
+                            continue
+                        cp = c.get('path')
+                        if cp and cp != image_path and cp not in extras:
+                            extras.append(cp)
+
+                    new_product = Product(
+                        model_name=model_name, pis_data=pis,
+                        image_path=image_path,
+                        additional_images=extras,
+                        seo_keywords=seo_kw,
+                        workflow_stage='marketing_draft',
+                    )
+                    db.session.add(new_product)
+                    db.session.flush()
+
+                    # Canonical category columns + magento id lookup.
+                    bulk_cats = pis.get('category_data') if isinstance(pis, dict) else None
+                    if isinstance(bulk_cats, dict) and (bulk_cats.get('category_1') or '').strip():
+                        try:
+                            set_product_category(
+                                new_product,
+                                bulk_cats.get('category_1', ''),
+                                bulk_cats.get('category_2', ''),
+                                bulk_cats.get('category_3', ''),
+                            )
+                        except Exception as e:
+                            print(f'[bulk async] category write failed for #{new_product.id}: {e}')
+
+                    log_event(
+                        new_product.id, user_name, 'New Product Added',
+                        f'Imported via bulk wizard (batch {batch_id[:8]}, '
+                        f'cluster {entry["cluster_index"] + 1}/{len(edited_groups)}).',
+                        'neutral',
+                    )
+                    save_version_snapshot(
+                        new_product,
+                        label='Initial bulk draft (enriched)',
+                        is_major=True,
+                    )
+                    created_ids.append(new_product.id)
+                db.session.commit()
+            except Exception as e:
+                db.session.rollback()
+                import traceback; traceback.print_exc()
+                _update_job(
+                    job_id, status='failed', progress=100,
+                    message=f'Failed to persist drafts: {str(e)[:100]}',
+                    error=str(e),
+                    completed_at=datetime.now(timezone.utc).replace(tzinfo=None).isoformat(),
+                )
+                return
+
+            bw.update_session(token, batch_id=batch_id,
+                              created_product_ids=created_ids)
+
+            clear_pdf_cache()
+            _update_job(
+                job_id, status='completed', progress=100,
+                message=f'Generated {len(created_ids)} product{"s" if len(created_ids) != 1 else ""}.',
+                redirect_url='/dashboard/marketing',
+                completed_at=datetime.now(timezone.utc).replace(tzinfo=None).isoformat(),
+            )
+        except Exception as e:
+            import traceback; traceback.print_exc()
+            _update_job(
+                job_id, status='failed', progress=100,
+                message=f'Bulk generation failed: {str(e)[:100]}',
+                error=str(e),
+                completed_at=datetime.now(timezone.utc).replace(tzinfo=None).isoformat(),
+            )
+
+
+@api_bp.route('/api/proforma/single/finalize_async', methods=['POST'])
+def api_single_finalize_async():
+    """Enqueue the single-mode Generate PIS. Returns 202 + redirect_url so
+    the frontend can navigate to /dashboard/marketing immediately."""
+    if session.get('role') != 'marketing':
+        return jsonify({"error": "unauthorized"}), 401
+
+    payload = request.get_json(silent=True) or {}
+    token = (payload.get('session_token') or '').strip()
+    model_name = (payload.get('model_name') or '').strip()
+    selected_image = (payload.get('selected_image') or '').strip() or None
+
+    raw_gallery = payload.get('gallery_images') or []
+    gallery_paths: list[str] = []
+    seen_g: set[str] = set()
+    for item in raw_gallery:
+        if isinstance(item, str):
+            p = item.strip()
+        elif isinstance(item, dict):
+            p = str(item.get('path') or '').strip()
+        else:
+            p = ''
+        if not p or p == selected_image or p in seen_g:
+            continue
+        seen_g.add(p)
+        gallery_paths.append(p)
+
+    if not token:
+        return jsonify({"error": "session_token required"}), 400
+    if not model_name:
+        return jsonify({"error": "model_name required"}), 400
+
+    active_count = Job.query.filter(Job.status.in_(('queued', 'processing'))).count()
+    if active_count >= 5:
+        return jsonify({"error": "Maximum 5 concurrent jobs. Please wait."}), 429
+
+    job_id = str(uuid.uuid4())[:8]
+    _app = current_app._get_current_object()  # type: ignore[attr-defined]
+    user_name = get_current_username()
+
+    db.session.add(Job(
+        id=job_id, model_name=model_name,
+        status='queued', progress=0,
+        message='Queued — waiting for slot...',
+        created_at=datetime.now(timezone.utc).replace(tzinfo=None),
+    ))
+    db.session.commit()
+
+    pis_executor.submit(_single_finalize_worker, _app, job_id, token,
+                        model_name, selected_image, gallery_paths, user_name)
+    return jsonify({
+        "ok": True, "job_id": job_id,
+        "redirect_url": "/dashboard/marketing",
+    }), 202
+
+
+@api_bp.route('/api/proforma/bulk/extract_async', methods=['POST'])
+def api_bulk_extract_async():
+    """Enqueue the bulk-mode Generate N PIS. Returns 202 + redirect_url."""
+    if session.get('role') != 'marketing':
+        return jsonify({"error": "unauthorized"}), 401
+
+    payload = request.get_json(silent=True) or {}
+    token = (payload.get('session_token') or '').strip()
+    edited_groups = payload.get('cluster_groups') or []
+    edited_items = payload.get('items') or []
+
+    if not token:
+        return jsonify({"error": "session_token required"}), 400
+    if not isinstance(edited_groups, list) or not edited_groups:
+        return jsonify({"error": "cluster_groups required"}), 400
+    if not isinstance(edited_items, list):
+        return jsonify({"error": "items required"}), 400
+
+    active_count = Job.query.filter(Job.status.in_(('queued', 'processing'))).count()
+    if active_count >= 5:
+        return jsonify({"error": "Maximum 5 concurrent jobs. Please wait."}), 429
+
+    job_id = str(uuid.uuid4())[:8]
+    _app = current_app._get_current_object()  # type: ignore[attr-defined]
+    user_name = get_current_username()
+
+    active_count_clusters = sum(
+        1 for g in edited_groups
+        if any(not (edited_items[idx].get('skip') if isinstance(edited_items[idx], dict) else False)
+               for idx in (g.get('item_indexes') or [])
+               if isinstance(idx, int) and 0 <= idx < len(edited_items))
+    )
+    label = f'Bulk · {active_count_clusters} item{"s" if active_count_clusters != 1 else ""}'
+
+    db.session.add(Job(
+        id=job_id, model_name=label,
+        status='queued', progress=0,
+        message='Queued — waiting for slot...',
+        created_at=datetime.now(timezone.utc).replace(tzinfo=None),
+    ))
+    db.session.commit()
+
+    pis_executor.submit(_bulk_extract_worker, _app, job_id, token,
+                        edited_groups, edited_items, user_name)
+    return jsonify({
+        "ok": True, "job_id": job_id,
+        "redirect_url": "/dashboard/marketing",
+    }), 202
+
+
 @api_bp.route('/api/pis/generate_bulk', methods=['POST'])
 def api_bulk_generate_async():
     supplier_url   = request.form.get('supplier_url', '').strip()
@@ -416,6 +926,54 @@ def api_delete_image(product_id):
                 imgs.remove(path_to_delete)
                 product.additional_images = imgs
                 flag_modified(product, 'additional_images')
+
+        # ── Cascade into the JSON side ─────────────────────────────────────
+        # Same path can be referenced in three other JSON locations and they
+        # all need to drop it together — otherwise the variant strip and the
+        # Edit-PIS gallery's source badges still point at a file that no
+        # longer exists in the gallery list.
+        #   1. pis_data.variants[*].image_path / image_paths   (per-variant)
+        #   2. pis_data._bulk_image_candidates                  (gallery source tags)
+        #   3. pis_data._image_path                             (default thumbnail mirror)
+        pis = dict(product.pis_data or {})
+        pis_changed = False
+
+        variants = pis.get('variants') or []
+        for v in variants:
+            if not isinstance(v, dict):
+                continue
+            # Drop from the variant's image_paths list.
+            existing = list(v.get('image_paths') or [])
+            if path_to_delete in existing:
+                existing = [p for p in existing if p != path_to_delete]
+                v['image_paths'] = existing
+                pis_changed = True
+            # Drop the variant's primary image when it matches; promote the
+            # first remaining image_paths entry if there is one.
+            if v.get('image_path') == path_to_delete:
+                v['image_path'] = existing[0] if existing else None
+                pis_changed = True
+        if pis_changed:
+            pis['variants'] = variants
+
+        candidates = pis.get('_bulk_image_candidates') or []
+        if isinstance(candidates, list):
+            filtered = [
+                c for c in candidates
+                if not (isinstance(c, dict) and c.get('path') == path_to_delete)
+            ]
+            if len(filtered) != len(candidates):
+                pis['_bulk_image_candidates'] = filtered
+                pis_changed = True
+
+        if pis.get('_image_path') == path_to_delete:
+            pis['_image_path'] = product.image_path or None
+            pis_changed = True
+
+        if pis_changed:
+            product.pis_data = pis
+            flag_modified(product, 'pis_data')
+
         fname = path_to_delete.split('/')[-1] if '/' in path_to_delete else path_to_delete
         log_event(product.id, get_current_username(), 'Photo Removed',
                   f'Removed a {deleted_type} photo: {fname}', 'neutral')
@@ -458,6 +1016,753 @@ def api_set_main_image(product_id):
     db.session.commit()
     return {"status": "success", "main_path": new_main,
             "additional_images": list(product.additional_images or [])}
+
+
+# ── PRODUCT GALLERY IMAGE ACTIONS ─────────────────────────────────────────────
+#
+# Per-product image-source menu used by the Edit PIS Gallery tab. Mirrors
+# the bulk-workspace routes (`/import_proforma/bulk/workspace/<batch>/<id>/image/*`)
+# but works on ANY Product — no batch context required.
+#
+# Each successful action also mirrors the new image into `Product.additional_images`
+# so the PIS PDF gallery picks it up automatically. Sources are tagged on
+# `pis_data._bulk_image_candidates` so the Gallery tab can show source badges.
+
+
+def _resolve_product_proforma_paths(product) -> list[str]:
+    """Resolve the proforma source files for a single Product back to absolute
+    paths on disk. Supports both single-import (`_source_files`) and bulk-import
+    (`_bulk_source_filenames`) shapes."""
+    upload_folder = current_app.config['UPLOAD_FOLDER']
+    if not os.path.isabs(upload_folder):
+        upload_folder = os.path.join(current_app.root_path, upload_folder)
+
+    pis = product.pis_data or {}
+    seen, abs_paths = set(), []
+
+    # Single-import shape: `_source_files = ["uploads/<filename>", ...]`
+    for rel in (pis.get('_source_files') or []):
+        if not isinstance(rel, str) or not rel or rel in seen:
+            continue
+        seen.add(rel)
+        basename = rel.split('/')[-1]
+        p = os.path.join(upload_folder, basename)
+        if os.path.exists(p):
+            abs_paths.append(p)
+
+    # Bulk-import shape: `_bulk_source_filenames = ["<filename>", ...]`
+    for fn in (pis.get('_bulk_source_filenames') or []):
+        if not isinstance(fn, str) or not fn or fn in seen:
+            continue
+        seen.add(fn)
+        p = os.path.join(upload_folder, fn)
+        if os.path.exists(p):
+            abs_paths.append(p)
+
+    return abs_paths
+
+
+def _draft_meta_from_product(product) -> dict:
+    """Build the routing-meta dict expected by utils/bulk_image_routing.py.
+    Shape mirrors `_draft_to_routing_meta` in blueprints/marketing.py."""
+    pis = product.pis_data or {}
+    header = pis.get('header_info') or {}
+    kind = (pis.get('_bulk_cluster_kind') or 'singleton').lower()
+    variants_full = pis.get('variants') or []
+    variants_meta = []
+    if isinstance(variants_full, list):
+        for v in variants_full:
+            if not isinstance(v, dict):
+                continue
+            variants_meta.append({
+                'label':        (v.get('label') or '').strip(),
+                'model_number': (v.get('model_number') or '').strip(),
+                'source_pages': list(v.get('source_pages') or []),
+            })
+    return {
+        'id':           product.id,
+        'name':         (header.get('product_name') or '').strip()
+                          or (pis.get('_bulk_cluster_label') or '').strip()
+                          or product.model_name
+                          or f'Product #{product.id}',
+        'brand':        (header.get('brand') or '').strip(),
+        'model_number': (header.get('model_number') or '').strip(),
+        'kind':         kind,
+        'source_pages': list(pis.get('_bulk_source_pages') or []),
+        'variants':     variants_meta,
+    }
+
+
+def _mirror_candidate_to_gallery(product, rel_path: str) -> None:
+    """Append `rel_path` to product.additional_images (de-duped vs main).
+    Does NOT promote to main — caller decides."""
+    if not rel_path:
+        return
+    extras = list(product.additional_images or [])
+    if rel_path != product.image_path and rel_path not in extras:
+        extras.append(rel_path)
+        product.additional_images = extras
+        flag_modified(product, 'additional_images')
+
+
+@api_bp.route('/api/product/<int:product_id>/image/web', methods=['POST'])
+def api_product_image_web(product_id):
+    """Search the supplier or general web for product images and append
+    candidates to the gallery. Query arg `mode=supplier|general`."""
+    if session.get('role') not in ('marketing', 'admin', 'director'):
+        return {"error": "unauthorized"}, 401
+    product = Product.query.get_or_404(product_id)
+
+    mode = (request.args.get('mode') or 'general').strip().lower()
+    if mode not in ('general', 'supplier'):
+        mode = 'general'
+
+    upload_folder = current_app.config['UPLOAD_FOLDER']
+    if not os.path.isabs(upload_folder):
+        upload_folder = os.path.join(current_app.root_path, upload_folder)
+
+    from utils import bulk_image_routing as bir
+    meta = _draft_meta_from_product(product)
+    candidates = bir.regenerate_image_via_web(meta, upload_folder,
+                                              max_results=3, mode=mode) or []
+    if not candidates:
+        return {"candidates": [], "added": [],
+                "error": f"no {mode}-mode web results"}, 200
+
+    pis = dict(product.pis_data or {})
+    existing = pis.get('_bulk_image_candidates') or []
+    seen = {c.get('path') for c in existing if isinstance(c, dict)}
+    added: list[str] = []
+    for c in candidates:
+        path = c.get('path')
+        if not path or path in seen:
+            continue
+        existing.append({
+            'path': path, 'source': 'web',
+            'page_url': c.get('page_url'),
+            'variant_sku': '', 'matched_label': '', 'confidence': 'medium',
+        })
+        seen.add(path)
+        added.append(path)
+        _mirror_candidate_to_gallery(product, path)
+    pis['_bulk_image_candidates'] = existing
+    if not product.image_path and added:
+        product.image_path = added[0]
+        pis['_image_path'] = added[0]
+    product.pis_data = pis
+    flag_modified(product, 'pis_data')
+
+    log_event(product.id, get_current_username(), 'Photo Added',
+              f'Added {len(added)} image{"s" if len(added) != 1 else ""} '
+              f'from {mode}-mode web search.', 'neutral')
+    db.session.commit()
+
+    return {
+        "image_path": product.image_path or '',
+        "added": added,
+        "candidates": existing,
+        "additional_images": list(product.additional_images or []),
+    }
+
+
+@api_bp.route('/api/product/<int:product_id>/image/extract_from_url',
+              methods=['POST'])
+def api_product_image_extract_from_url(product_id):
+    """Pull up to 3 images from a user-supplied URL. Body: {"url": "..."}."""
+    if session.get('role') not in ('marketing', 'admin', 'director'):
+        return {"error": "unauthorized"}, 401
+    product = Product.query.get_or_404(product_id)
+
+    payload = request.get_json(silent=True) or {}
+    suggested_url = (payload.get('url') or '').strip()
+    if not suggested_url:
+        return {"error": "url required"}, 400
+
+    upload_folder = current_app.config['UPLOAD_FOLDER']
+    if not os.path.isabs(upload_folder):
+        upload_folder = os.path.join(current_app.root_path, upload_folder)
+
+    from utils.single_wizard import extract_images_from_user_url
+    meta = _draft_meta_from_product(product)
+    model_name = (meta.get('name') or meta.get('model_number') or 'product').strip()
+    try:
+        results = extract_images_from_user_url(
+            suggested_url, model_name, upload_folder, max_results=3,
+        ) or []
+    except Exception as e:
+        return {"error": f"URL fetch failed: {e}"}, 502
+
+    if not results:
+        return {"candidates": [], "added": [],
+                "error": "no usable images on the suggested page"}, 200
+
+    pis = dict(product.pis_data or {})
+    existing = pis.get('_bulk_image_candidates') or []
+    seen = {c.get('path') for c in existing if isinstance(c, dict)}
+    added: list[str] = []
+    for r in results:
+        path = r.get('path')
+        if not path or path in seen:
+            continue
+        existing.append({
+            'path': path, 'source': 'user_url',
+            'page_url': suggested_url,
+            'variant_sku': '', 'matched_label': '', 'confidence': 'medium',
+        })
+        seen.add(path)
+        added.append(path)
+        _mirror_candidate_to_gallery(product, path)
+    pis['_bulk_image_candidates'] = existing
+    if not product.image_path and added:
+        product.image_path = added[0]
+        pis['_image_path'] = added[0]
+    product.pis_data = pis
+    flag_modified(product, 'pis_data')
+
+    log_event(product.id, get_current_username(), 'Photo Added',
+              f'Added {len(added)} image{"s" if len(added) != 1 else ""} '
+              f'from user-supplied URL.', 'neutral')
+    db.session.commit()
+
+    return {
+        "image_path": product.image_path or '',
+        "added": added,
+        "candidates": existing,
+        "additional_images": list(product.additional_images or []),
+    }
+
+
+@api_bp.route('/api/product/<int:product_id>/image/ai', methods=['POST'])
+def api_product_image_ai(product_id):
+    """Re-run nano-banana on the source proforma to isolate the product."""
+    if session.get('role') not in ('marketing', 'admin', 'director'):
+        return {"error": "unauthorized"}, 401
+    product = Product.query.get_or_404(product_id)
+
+    upload_folder = current_app.config['UPLOAD_FOLDER']
+    if not os.path.isabs(upload_folder):
+        upload_folder = os.path.join(current_app.root_path, upload_folder)
+
+    file_paths = _resolve_product_proforma_paths(product)
+    if not file_paths:
+        return {"error": "no proforma source on file for this product"}, 400
+
+    from utils import bulk_image_routing as bir
+    meta = _draft_meta_from_product(product)
+    rel = bir.regenerate_image_via_ai(meta, file_paths, upload_folder)
+    if not rel:
+        return {"error": "AI generation returned no image"}, 502
+
+    pis = dict(product.pis_data or {})
+    candidates = pis.get('_bulk_image_candidates') or []
+    if not any(c.get('path') == rel for c in candidates if isinstance(c, dict)):
+        candidates.append({
+            'path': rel, 'source': 'ai',
+            'variant_sku': '', 'matched_label': '', 'confidence': 'medium',
+        })
+    pis['_bulk_image_candidates'] = candidates
+    pis['_image_path'] = rel
+    product.pis_data = pis
+    flag_modified(product, 'pis_data')
+    _mirror_candidate_to_gallery(product, rel)
+
+    log_event(product.id, get_current_username(), 'Photo Added',
+              'Added an AI-isolated image from the proforma.', 'neutral')
+    db.session.commit()
+
+    return {
+        "image_path": rel,
+        "added": [rel],
+        "candidates": candidates,
+        "additional_images": list(product.additional_images or []),
+    }
+
+
+# ── Phase 3.2 — Retouch (gemini image-out) and Generate (Imagen) ────────────
+# `/image/ai` above remains for the legacy "isolate from proforma" path; the
+# two endpoints below back the new "Retouch with AI" + "Generate with AI"
+# buttons in the Edit PIS image dropdown.
+
+@api_bp.route('/api/product/<int:product_id>/image/enhance', methods=['POST'])
+def api_product_image_enhance(product_id):
+    """Retouch an existing gallery image — clean background, fix artifacts,
+    keep the product pixel-faithful. Body: {"source_path": "uploads/...",
+    "user_note": "remove the white line"}."""
+    if session.get('role') not in ('marketing', 'admin', 'director'):
+        return {"error": "unauthorized"}, 401
+    product = Product.query.get_or_404(product_id)
+
+    payload = request.get_json(silent=True) or {}
+    source_path = (payload.get('source_path') or '').strip()
+    user_note = (payload.get('user_note') or '').strip()
+    if not source_path:
+        return {"error": "source_path required"}, 400
+
+    upload_folder = current_app.config['UPLOAD_FOLDER']
+    if not os.path.isabs(upload_folder):
+        upload_folder = os.path.join(current_app.root_path, upload_folder)
+
+    from utils.image_processing import enhance_image_with_gemini
+    meta = _draft_meta_from_product(product)
+    model_name = (meta.get('name') or meta.get('model_number') or 'product').strip()
+    rel = enhance_image_with_gemini(
+        source_path, model_name, upload_folder, user_note=user_note or None,
+    )
+    if not rel:
+        return {"error": "retouch returned no image"}, 502
+
+    pis = dict(product.pis_data or {})
+    candidates = pis.get('_bulk_image_candidates') or []
+    if not any(c.get('path') == rel for c in candidates if isinstance(c, dict)):
+        candidates.append({
+            'path': rel, 'source': 'ai_enhanced',
+            'page_url': source_path,  # source image acts as the "origin" link
+            'variant_sku': '', 'matched_label': '',
+            'user_note': user_note or '',
+            'confidence': 'medium',
+        })
+    pis['_bulk_image_candidates'] = candidates
+    product.pis_data = pis
+    flag_modified(product, 'pis_data')
+    _mirror_candidate_to_gallery(product, rel)
+
+    note_msg = f' (note: "{user_note[:50]}…")' if user_note else ''
+    log_event(product.id, get_current_username(), 'Photo Added',
+              f'AI-retouched an existing gallery image{note_msg}.', 'neutral')
+    db.session.commit()
+
+    return {
+        "image_path": product.image_path or '',
+        "added": [rel],
+        "candidates": candidates,
+        "additional_images": list(product.additional_images or []),
+    }
+
+
+@api_bp.route('/api/product/<int:product_id>/image/generate', methods=['POST'])
+def api_product_image_generate(product_id):
+    """Synthesize a brand-new product photo from the PIS description via
+    Imagen 4. Body: {"user_note": "modern living room background"}."""
+    if session.get('role') not in ('marketing', 'admin', 'director'):
+        return {"error": "unauthorized"}, 401
+    product = Product.query.get_or_404(product_id)
+
+    payload = request.get_json(silent=True) or {}
+    user_note = (payload.get('user_note') or '').strip()
+
+    upload_folder = current_app.config['UPLOAD_FOLDER']
+    if not os.path.isabs(upload_folder):
+        upload_folder = os.path.join(current_app.root_path, upload_folder)
+
+    meta = _draft_meta_from_product(product)
+    model_name = (meta.get('name') or meta.get('model_number') or 'product').strip()
+    brand = (meta.get('brand') or '').strip()
+    # Pull the AI-extracted description from the PIS for the Imagen prompt.
+    pis_for_desc = product.pis_data or {}
+    description = (pis_for_desc.get('range_overview') or
+                   pis_for_desc.get('customer_friendly_description') or '').strip()
+
+    from utils.image_processing import generate_image_with_imagen
+    rel = generate_image_with_imagen(
+        product_name=model_name, upload_folder=upload_folder,
+        brand=brand or None,
+        description=description or None,
+        user_note=user_note or None,
+    )
+    if not rel:
+        return {"error": "Imagen returned no image"}, 502
+
+    pis = dict(product.pis_data or {})
+    candidates = pis.get('_bulk_image_candidates') or []
+    if not any(c.get('path') == rel for c in candidates if isinstance(c, dict)):
+        candidates.append({
+            'path': rel, 'source': 'ai_synthetic',
+            'variant_sku': '', 'matched_label': '',
+            'user_note': user_note or '',
+            'confidence': 'low',  # synthetic — caller should verify
+        })
+    pis['_bulk_image_candidates'] = candidates
+    product.pis_data = pis
+    flag_modified(product, 'pis_data')
+    _mirror_candidate_to_gallery(product, rel)
+
+    note_msg = f' (note: "{user_note[:50]}…")' if user_note else ''
+    log_event(product.id, get_current_username(), 'Photo Added',
+              f'AI-generated a synthetic product image{note_msg}.', 'neutral')
+    db.session.commit()
+
+    return {
+        "image_path": product.image_path or '',
+        "added": [rel],
+        "candidates": candidates,
+        "additional_images": list(product.additional_images or []),
+    }
+
+
+@api_bp.route('/api/product/<int:product_id>/image/upload_to_gallery',
+              methods=['POST'])
+def api_product_image_upload_to_gallery(product_id):
+    """Per-product manual upload that records the candidate source as
+    `upload` on `_bulk_image_candidates` (so the gallery's source badge
+    is correct). Kept separate from the legacy `/images/upload` endpoint
+    used by the marketing review form to avoid disturbing that path."""
+    if session.get('role') not in ('marketing', 'admin', 'director'):
+        return {"error": "unauthorized"}, 401
+    product = Product.query.get_or_404(product_id)
+
+    f = request.files.get('image')
+    if not f or not f.filename:
+        return {"error": "no file uploaded"}, 400
+
+    ext = os.path.splitext(f.filename)[1].lower()
+    if ext not in ('.jpg', '.jpeg', '.png', '.webp'):
+        return {"error": "unsupported file type — use JPG/PNG/WebP"}, 400
+
+    upload_folder = current_app.config['UPLOAD_FOLDER']
+    if not os.path.isabs(upload_folder):
+        upload_folder = os.path.join(current_app.root_path, upload_folder)
+
+    safe_stem = secure_filename(os.path.splitext(f.filename)[0]) or 'upload'
+    filename = f"produp_{product.id}_{int(time.time())}_{safe_stem}{ext}"
+    save_path = os.path.join(upload_folder, filename)
+    f.save(save_path)
+    rel = f"uploads/{filename}"
+
+    pis = dict(product.pis_data or {})
+    candidates = pis.get('_bulk_image_candidates') or []
+    candidates.append({
+        'path': rel, 'source': 'upload',
+        'variant_sku': '', 'matched_label': '', 'confidence': 'high',
+    })
+    pis['_bulk_image_candidates'] = candidates
+    if not product.image_path:
+        product.image_path = rel
+        pis['_image_path'] = rel
+    product.pis_data = pis
+    flag_modified(product, 'pis_data')
+    _mirror_candidate_to_gallery(product, rel)
+
+    log_event(product.id, get_current_username(), 'Photo Added',
+              f'Uploaded a new image to the gallery: {f.filename}', 'neutral')
+    db.session.commit()
+
+    return {
+        "image_path": product.image_path or rel,
+        "added": [rel],
+        "candidates": candidates,
+        "additional_images": list(product.additional_images or []),
+    }
+
+
+@api_bp.route('/api/product/<int:product_id>/image/page_preview',
+              methods=['GET'])
+def api_product_image_page_preview(product_id):
+    """Render ONE page of the source proforma to a static-servable PNG so
+    the crop modal has something to display. `?page=N` selects the page."""
+    if session.get('role') not in ('marketing', 'admin', 'director'):
+        return {"error": "unauthorized"}, 401
+    product = Product.query.get_or_404(product_id)
+    file_paths = _resolve_product_proforma_paths(product)
+    if not file_paths:
+        return {"error": "no proforma source on file for this product"}, 400
+    try:
+        page_index = max(0, int(request.args.get('page', 0)))
+    except (TypeError, ValueError):
+        page_index = 0
+
+    upload_folder = current_app.config['UPLOAD_FOLDER']
+    if not os.path.isabs(upload_folder):
+        upload_folder = os.path.join(current_app.root_path, upload_folder)
+
+    from utils import bulk_image_routing as bir
+    rel = bir.render_proforma_page(file_paths[0], page_index, upload_folder)
+    if not rel:
+        return {"error": "page render failed"}, 502
+
+    page_count = 1
+    src = file_paths[0]
+    if os.path.splitext(src)[1].lower() == '.pdf':
+        try:
+            import fitz
+            with fitz.open(src) as _doc:  # type: ignore[attr-defined]
+                page_count = len(_doc) or 1
+        except Exception:
+            page_count = 1
+    return {"path": rel, "page": page_index, "page_count": page_count}
+
+
+def _is_safe_product_preview_path(rel_path: str, upload_folder: str) -> tuple[bool, str]:
+    """Same defense as the bulk-workspace `_is_safe_preview_path`, but for
+    the per-product crop preview file prefix (`prodpreview_`)."""
+    if not rel_path or not isinstance(rel_path, str):
+        return False, 'preview_path required'
+    p = rel_path
+    if p.startswith('/static/'):
+        p = p[len('/static/'):]
+    elif p.startswith('static/'):
+        p = p[len('static/'):]
+    if not p.startswith('uploads/'):
+        return False, 'preview_path must be under uploads/'
+    basename = os.path.basename(p)
+    if not basename.startswith('prodpreview_'):
+        return False, 'preview_path must be a prodpreview_* file'
+    abs_path = os.path.realpath(os.path.join(upload_folder, basename))
+    abs_upload = os.path.realpath(upload_folder)
+    try:
+        common = os.path.commonpath([abs_path, abs_upload])
+    except ValueError:
+        common = ''
+    if common != abs_upload:
+        return False, 'preview_path outside UPLOAD_FOLDER'
+    if not os.path.exists(abs_path):
+        return False, 'preview file not found'
+    return True, abs_path
+
+
+@api_bp.route('/api/product/<int:product_id>/image/crop', methods=['POST'])
+def api_product_image_crop(product_id):
+    """Two-step manual crop. With `?preview=1` the crop is saved as a
+    `prodpreview_*.jpg` and the path returned for the user to confirm.
+    Without it, the crop is committed straight to the gallery (legacy).
+    Body: {source_path, crop: {x,y,w,h in [0,1]}}."""
+    if session.get('role') not in ('marketing', 'admin', 'director'):
+        return {"error": "unauthorized"}, 401
+    product = Product.query.get_or_404(product_id)
+
+    payload = request.get_json(silent=True) or {}
+    source_path = (payload.get('source_path') or '').strip()
+    crop = payload.get('crop') or {}
+    try:
+        x = float(crop.get('x', 0)); y = float(crop.get('y', 0))
+        w = float(crop.get('w', 0)); h = float(crop.get('h', 0))
+    except (TypeError, ValueError):
+        return {"error": "crop must contain x, y, w, h as numbers in [0,1]"}, 400
+    if not (0 <= x < 1 and 0 <= y < 1 and 0 < w <= 1 and 0 < h <= 1):
+        return {"error": "crop out of range"}, 400
+    if x + w > 1.0001 or y + h > 1.0001:
+        return {"error": "crop extends beyond image bounds"}, 400
+
+    upload_folder = current_app.config['UPLOAD_FOLDER']
+    if not os.path.isabs(upload_folder):
+        upload_folder = os.path.join(current_app.root_path, upload_folder)
+    static_root = os.path.join(current_app.root_path, 'static')
+
+    if not source_path:
+        return {"error": "source_path required"}, 400
+    if source_path.startswith('/static/'):
+        source_path = source_path[len('/static/'):]
+    elif source_path.startswith('static/'):
+        source_path = source_path[len('static/'):]
+
+    abs_source = os.path.realpath(os.path.join(static_root, source_path))
+    abs_upload = os.path.realpath(upload_folder)
+    try:
+        common = os.path.commonpath([abs_source, abs_upload])
+    except ValueError:
+        common = ''
+    if common != abs_upload:
+        return {"error": "source_path outside UPLOAD_FOLDER"}, 400
+    if not os.path.exists(abs_source):
+        return {"error": "source image not found"}, 404
+
+    is_preview = (request.args.get('preview') or '').lower() in ('1', 'true', 'yes')
+
+    try:
+        from PIL import Image as _PILImage
+        img = _PILImage.open(abs_source)
+        if img.mode != 'RGB':
+            img = img.convert('RGB')
+        iw, ih = img.size
+        left = max(0, min(int(round(x * iw)), iw - 1))
+        top = max(0, min(int(round(y * ih)), ih - 1))
+        right = max(left + 1, min(int(round((x + w) * iw)), iw))
+        bottom = max(top + 1, min(int(round((y + h) * ih)), ih))
+        cropped = img.crop((left, top, right, bottom))
+
+        MAX_EDGE = 1600
+        if max(cropped.size) > MAX_EDGE:
+            cropped.thumbnail((MAX_EDGE, MAX_EDGE), _PILImage.LANCZOS)  # type: ignore[attr-defined]
+
+        header = (product.pis_data or {}).get('header_info') or {}
+        target = (header.get('product_name') or '').strip() \
+                  or product.model_name or f'product_{product.id}'
+        safe_name = secure_filename(target) or 'product'
+        prefix = 'prodpreview' if is_preview else 'prodcrop'
+        filename = f"{prefix}_{safe_name}_{int(time.time() * 1000)}.jpg"
+        out_path = os.path.join(upload_folder, filename)
+        cropped.save(out_path, quality=95)
+        rel = f"uploads/{filename}"
+
+        if is_preview:
+            return {"preview_path": rel, "image_path": rel}
+
+        # Direct-save path (no preview/confirm).
+        pis = dict(product.pis_data or {})
+        candidates = pis.get('_bulk_image_candidates') or []
+        candidates.append({
+            'path': rel, 'source': 'crop',
+            'variant_sku': '', 'matched_label': '', 'confidence': 'high',
+        })
+        pis['_bulk_image_candidates'] = candidates
+        pis['_image_path'] = pis.get('_image_path') or rel
+        product.pis_data = pis
+        flag_modified(product, 'pis_data')
+        _mirror_candidate_to_gallery(product, rel)
+        if not product.image_path:
+            product.image_path = rel
+        log_event(product.id, get_current_username(), 'Photo Added',
+                  'Added an image manually cropped from the proforma.', 'neutral')
+        db.session.commit()
+        return {"image_path": product.image_path or rel,
+                "added": [rel],
+                "candidates": candidates,
+                "additional_images": list(product.additional_images or [])}
+    except Exception as e:
+        return {"error": f"crop failed: {e}"}, 500
+
+
+@api_bp.route('/api/product/<int:product_id>/image/crop_commit',
+              methods=['POST'])
+def api_product_image_crop_commit(product_id):
+    """Promote a `prodpreview_*.jpg` from /image/crop?preview=1 into the
+    permanent gallery. Body: {preview_path: "uploads/prodpreview_..."}."""
+    if session.get('role') not in ('marketing', 'admin', 'director'):
+        return {"error": "unauthorized"}, 401
+    product = Product.query.get_or_404(product_id)
+
+    upload_folder = current_app.config['UPLOAD_FOLDER']
+    if not os.path.isabs(upload_folder):
+        upload_folder = os.path.join(current_app.root_path, upload_folder)
+
+    payload = request.get_json(silent=True) or {}
+    preview_path = (payload.get('preview_path') or '').strip()
+    ok, info = _is_safe_product_preview_path(preview_path, upload_folder)
+    if not ok:
+        return {"error": info}, 400
+    abs_preview = info
+
+    basename = os.path.basename(abs_preview)
+    perm_basename = basename.replace('prodpreview_', 'prodcrop_', 1)
+    abs_perm = os.path.join(upload_folder, perm_basename)
+    try:
+        os.replace(abs_preview, abs_perm)
+    except Exception as e:
+        return {"error": f"could not finalize crop: {e}"}, 500
+    rel = f"uploads/{perm_basename}"
+
+    pis = dict(product.pis_data or {})
+    candidates = pis.get('_bulk_image_candidates') or []
+    if not any(c.get('path') == rel for c in candidates if isinstance(c, dict)):
+        candidates.append({
+            'path': rel, 'source': 'crop',
+            'variant_sku': '', 'matched_label': '', 'confidence': 'high',
+        })
+    pis['_bulk_image_candidates'] = candidates
+    if not pis.get('_image_path'):
+        pis['_image_path'] = rel
+    product.pis_data = pis
+    flag_modified(product, 'pis_data')
+    _mirror_candidate_to_gallery(product, rel)
+    if not product.image_path:
+        product.image_path = rel
+
+    log_event(product.id, get_current_username(), 'Photo Added',
+              'Added an image manually cropped from the proforma.', 'neutral')
+    db.session.commit()
+    return {
+        "image_path": product.image_path or rel,
+        "added_path": rel,
+        "candidates": candidates,
+        "additional_images": list(product.additional_images or []),
+    }
+
+
+@api_bp.route('/api/product/<int:product_id>/image/reassign',
+              methods=['POST'])
+def api_product_image_reassign(product_id):
+    """Reassign a gallery image to a specific variant SKU.
+    Body: {"path": "uploads/...", "variant_sku": "MODEL-SKU"}.
+
+    • Updates the candidate's `variant_sku` tag in `_bulk_image_candidates`
+    • Strips `path` from every other variant's image_paths to avoid dupes
+    • Prepends `path` to the target variant's image_paths
+    """
+    if session.get('role') not in ('marketing', 'admin', 'director'):
+        return {"error": "unauthorized"}, 401
+    product = Product.query.get_or_404(product_id)
+
+    payload = request.get_json(silent=True) or {}
+    path = (payload.get('path') or '').strip()
+    variant_sku = (payload.get('variant_sku') or '').strip()
+    if not path:
+        return {"error": "path is required"}, 400
+
+    pis = dict(product.pis_data or {})
+
+    candidates = pis.get('_bulk_image_candidates') or []
+    for c in candidates:
+        if isinstance(c, dict) and c.get('path') == path:
+            c['variant_sku'] = variant_sku
+            break
+
+    variants = pis.get('variants') or []
+    for v in variants:
+        if not isinstance(v, dict):
+            continue
+        existing = list(v.get('image_paths') or [])
+        if v.get('image_path') == path:
+            v.pop('image_path', None)
+        if path in existing:
+            existing.remove(path)
+        v['image_paths'] = existing
+        if not v.get('image_path') and existing:
+            v['image_path'] = existing[0]
+
+    if variant_sku:
+        for v in variants:
+            if not isinstance(v, dict):
+                continue
+            if (v.get('model_number') or '').strip() == variant_sku:
+                paths = list(v.get('image_paths') or [])
+                if path not in paths:
+                    paths.insert(0, path)
+                v['image_paths'] = paths
+                v['image_path'] = paths[0]
+                break
+
+    pis['_bulk_image_candidates'] = candidates
+    pis['variants'] = variants
+    product.pis_data = pis
+    flag_modified(product, 'pis_data')
+    db.session.commit()
+
+    return {"candidates": candidates, "variants": variants}
+
+
+@api_bp.route('/api/product/<int:product_id>/image/crop_discard',
+              methods=['POST'])
+def api_product_image_crop_discard(product_id):
+    """Throw away an unwanted crop preview. Body: {preview_path}."""
+    if session.get('role') not in ('marketing', 'admin', 'director'):
+        return {"error": "unauthorized"}, 401
+    Product.query.get_or_404(product_id)
+
+    upload_folder = current_app.config['UPLOAD_FOLDER']
+    if not os.path.isabs(upload_folder):
+        upload_folder = os.path.join(current_app.root_path, upload_folder)
+
+    payload = request.get_json(silent=True) or {}
+    preview_path = (payload.get('preview_path') or '').strip()
+    ok, info = _is_safe_product_preview_path(preview_path, upload_folder)
+    if not ok:
+        if info == 'preview file not found':
+            return {"discarded": False}, 200
+        return {"error": info}, 400
+    try:
+        os.remove(info)
+    except OSError as e:
+        return {"error": f"could not discard preview: {e}"}, 500
+    return {"discarded": True}
 
 
 # ── PRODUCT DELETE (soft) ─────────────────────────────────────────────────────

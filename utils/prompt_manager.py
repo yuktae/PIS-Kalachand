@@ -683,26 +683,39 @@ USER ORIGIN HINT: {origin_hint}
 ═════════════════ TASKS ═════════════════
 1. Count every product ROW in the document. One entry per row, even if rows are obvious variants of the same product.
 2. For each row, extract the visibly-printed: product name, brand, model number/SKU, price (as printed, with currency).
-3. Group rows that are VARIANTS of the same base product. Be AGGRESSIVE about grouping — most multi-row proformas list a base product in several finishes/sizes, and the user wants those collapsed into ONE PIS with `variants[]`, not split into many distinct PIS.
+3. Group rows that are VARIANTS of the same base product. Be STRICT: variant grouping is RESERVED for rows that describe the EXACT SAME PRODUCT whose only differing attribute is COLOUR, FINISH, or MATERIAL. Every other axis of difference means the rows are DISTINCT products and each row gets its OWN individual PIS.
 
-   Two rows ARE VARIANTS when ANY of these hold (one is enough):
-     a. Their SKUs share a common base prefix and only differ by a suffix that encodes colour/finish/size/capacity. Example: "XDY60.120060-OAK-W" and "XDY60.120060-FWAL" share the base "XDY60.120060" → VARIANTS of the same product (the suffix names the finish).
-     b. Their product names share a common stem and only differ by colour/finish/size/capacity tokens. Example: "2D WARDROBE-OAK/WARM WHITE" and "2D WARDROBE-FELIX WALNUT" share the stem "2D WARDROBE" → VARIANTS. The finish suffix DOES NOT make them distinct products.
-     c. They are the same brand, the same product type (wardrobe / TV / fridge / blender / etc.), AND the only meaningful differences between them are values that fit one of these attribute axes: colour, finish, material, size, capacity, storage, voltage, RAM, screen size.
+   Two rows ARE VARIANTS if and only if ALL of these hold simultaneously:
+     a. Same brand AND same product type (wardrobe vs wardrobe, TV vs TV, etc.).
+     b. Same dimensions, same size, same capacity, same storage, same RAM, same voltage, same screen size, same generation, same model line — i.e. the underlying product is physically identical except for surface appearance.
+     c. The ONLY attribute that differs is colour, finish, or material (e.g. Oak vs Walnut, Black vs White, Matte vs Gloss, Leather vs Fabric).
+     d. (Strong signal) Their SKUs share a common base prefix and ONLY differ by a suffix encoding the colour/finish/material. Example: "XDY60.120060-OAK-W" vs "XDY60.120060-FWAL" share base "XDY60.120060" → colour-only variants.
 
-   Two rows are DISTINCT only when they describe DIFFERENT product types or DIFFERENT model lines (e.g. a 2D wardrobe is DISTINCT from a 3D wardrobe — different sizes of the wardrobe family but different model numbers and price tiers, treat as separate variant clusters; a wardrobe is DISTINCT from a TV — different categories entirely).
+   Two rows are DISTINCT (each gets its own PIS, variant_group = null) whenever ANY of these are true:
+     • Different size, dimensions, capacity, storage, RAM, voltage, screen size, generation, or model line.
+       Example: a 2D wardrobe vs a 3D wardrobe → DISTINCT (size differs).
+       Example: 32" TV vs 55" TV → DISTINCT (screen size differs).
+       Example: 8GB RAM laptop vs 16GB RAM laptop → DISTINCT (RAM differs).
+       Example: 200L fridge vs 400L fridge → DISTINCT (capacity differs).
+     • Different product types or different categories (TV vs wardrobe → DISTINCT — obvious).
+     • Different model lines from the same brand (Samsung A series vs Samsung S series → DISTINCT).
 
-   Use a short, GENERAL label per variant_group that names the family WITHOUT the variant suffix (e.g. "Sunon 2D Wardrobe", NOT "Sunon 2D Wardrobe Walnut"). Distinct products get variant_group = null.
+   Use a short, GENERAL label per variant_group that names the product WITHOUT the colour suffix (e.g. "Sunon 2D Wardrobe", NOT "Sunon 2D Wardrobe Walnut"). Distinct products get variant_group = null.
 
    Worked example (what the user expects):
      Rows: "2D WARDROBE-OAK-W (XDY60.120060-OAK-W)", "2D WARDROBE-FWAL (XDY60.120060-FWAL)",
            "3D WARDROBE-OAK-W (XDY63.150060-OAK-W)", "3D WARDROBE-FWAL (XDY63.150060-FWAL)",
            "4D WARDROBE-OAK-W (XDY64.180060-OAK-W)", "4D WARDROBE-FWAL (XDY64.180060-FWAL)"
-     Correct output: THREE variant_groups —
-       "Sunon 2D Wardrobe" (rows 1+2),
-       "Sunon 3D Wardrobe" (rows 3+4),
-       "Sunon 4D Wardrobe" (rows 5+6).
-     Wrong output: six variant_group=null distincts. Don't do this.
+     Correct output: THREE variant_groups (one per size, colours collapsed) —
+       "Sunon 2D Wardrobe" (rows 1+2 — same size, two colours),
+       "Sunon 3D Wardrobe" (rows 3+4 — same size, two colours),
+       "Sunon 4D Wardrobe" (rows 5+6 — same size, two colours).
+     Wrong output A: ONE variant_group covering all six rows. The 2D/3D/4D split is a SIZE difference and MUST be respected.
+     Wrong output B: six variant_group=null distincts. Each same-size pair shares a SKU base and differs only by colour suffix — those collapse.
+
+   Counter-example (showing size is a hard split):
+     Rows: "Samsung 32\" Crystal UHD (UA32T4500)", "Samsung 55\" Crystal UHD (UA55T4500)"
+     Correct output: TWO distincts (variant_group = null on both). Screen size differs → individual PIS each, even though the same model family.
 
 4. Note whether each row has a product photo visible on the page.
 5. **SOURCE PAGES**: For every row, list the ZERO-BASED page indexes where that row's product appears (text label, photo, specs, etc.). Almost always one page per row, but a row that spans page breaks may include 2 consecutive pages. Use [0] for single-page proformas. NEVER leave this field empty — at minimum return the page where the row's text/SKU appears.
@@ -906,6 +919,73 @@ AVOID:
 
 Output JSON:
 {{ "best_index": 1 }} or {{ "best_index": "none" }}"""
+    },
+    {
+        "id": "compare_align_specs",
+        "name": "Comparison Table — Spec Alignment",
+        "description": "Aligns technical specifications across multiple products so they can be displayed in a side-by-side comparison table. Clusters labels with equivalent meaning (e.g. 'Power Consumption' ≡ 'Wattage'), picks a canonical label per cluster, groups rows by section, and leaves a value null when a product genuinely lacks that spec.",
+        "category": "Classification",
+        "prompt": """You are aligning technical specifications across multiple products so they can be displayed side-by-side in a single comparison table.
+
+═════════════════════ INPUT ═════════════════════
+Category context (may be mixed): {category_context}
+
+Products to compare (each has an id, name, and printed spec dict):
+{products_json}
+
+═════════════════════ TASK ═════════════════════
+1. CLUSTER spec keys whose meanings overlap across products — even when the wording differs. Examples of clusters you must recognise:
+   • "Power Consumption" ≡ "Wattage" ≡ "Power Draw" ≡ "Power Rating" ≡ "Input Power"
+   • "Capacity" ≡ "Volume" ≡ "Net Capacity" ≡ "Total Volume" ≡ "Storage Capacity"
+   • "Dimensions" ≡ "Size (W×H×D)" ≡ "Product Dimensions" ≡ "Overall Size"
+   • "Weight" ≡ "Net Weight" ≡ "Product Weight"
+   • "Screen Size" ≡ "Display Size" ≡ "Diagonal"
+   • "Energy Class" ≡ "Energy Rating" ≡ "Efficiency Class"
+   • "Noise Level" ≡ "Sound Output" ≡ "dB Rating"
+   • "Refrigerant" ≡ "Coolant Type" ≡ "Gas Type"
+   • "Warranty" ≡ "Warranty Period" ≡ "Guarantee"
+   These are illustrative — apply the same semantic-equivalence logic to whatever specs you see in the input.
+
+2. CANONICAL LABEL per cluster: pick the most standard / customer-facing wording for the product category. Use Title Case. Singular form. Include units only when they help disambiguate (e.g. "Capacity (L)" vs "Capacity (kg)" — but only if the cluster genuinely splits on unit).
+
+3. SECTION grouping: put each canonical row into ONE of these sections, chosen by what fits the spec:
+   • "General" — brand, model, type, colour, finish
+   • "Dimensions & Weight" — size, height, width, depth, weight
+   • "Performance" — power consumption, capacity, speed, output, rating
+   • "Features" — programmes, modes, connectivity, smart features
+   • "Energy & Environment" — energy class, refrigerant, noise level, eco modes
+   • "Other" — anything that doesn't clearly fit above
+   If the category context strongly suggests other natural sections, you may use them — keep names short (≤30 chars).
+
+4. VALUES: for each canonical row, fill in each product's value from its printed specs. If a product genuinely doesn't list that spec, set the value to null. NEVER invent or carry over a value from another product.
+
+5. ROW ORDER: order rows so sections appear in this priority — General, Dimensions & Weight, Performance, Features, Energy & Environment, Other. Within a section, place rows where the most products have values first.
+
+═════════════════════ STRICT RULES ═════════════════════
+- Output strict JSON only. No prose, no markdown.
+- Never invent values. null is the right answer when a spec is missing.
+- Do not merge specs that clearly mean different things even if labels look similar (e.g. "Net Capacity" and "Gross Capacity" are different — keep both).
+- Keep each canonical_label under 40 characters.
+- Keys in `values` MUST be the product `id` as a STRING (e.g. "12"), matching the input ids exactly.
+- Use the SAME canonical_label for the same concept across rows — do not output two rows with synonyms of the same canonical label.
+
+═════════════════════ OUTPUT FORMAT ═════════════════════
+{{
+  "rows": [
+    {{
+      "canonical_label": "Power Consumption",
+      "section": "Performance",
+      "unit_hint": "W",
+      "values": {{
+        "12": "120 W",
+        "18": "115W",
+        "21": null
+      }}
+    }}
+  ]
+}}
+
+`unit_hint` is optional — leave it empty string when not obvious. `values` MUST contain one entry per input product id (using null for missing)."""
     },
     {
         "id": "unified_image_extraction",

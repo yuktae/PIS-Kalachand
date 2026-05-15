@@ -15,13 +15,23 @@ from .json_utils import safe_json_loads
 from .prompt_manager import get_prompt
 
 _MODEL = 'gemini-2.5-flash'
-_client = None
+
+# Phase 3.0: thread-local Gemini clients. The parent worker thread holds a
+# Flask app context and a Gemini client; child workers in
+# `_bulk_extract_worker`'s ThreadPoolExecutor share neither. The httpx
+# transport inside genai.Client is NOT safe to share across threads — once
+# one worker uses it for a Files API upload, subsequent calls from other
+# threads fail with "Cannot send a request, as the client has been closed."
+import threading as _threading
+_thread_local = _threading.local()
+
 
 def _get_client():
-    global _client
-    if _client is None:
-        _client = genai.Client(api_key=os.getenv('GOOGLE_API_KEY'))
-    return _client
+    c = getattr(_thread_local, 'client', None)
+    if c is None:
+        c = genai.Client(api_key=os.getenv('GOOGLE_API_KEY'))
+        _thread_local.client = c
+    return c
 
 
 def _require_prompt(name: str) -> str:

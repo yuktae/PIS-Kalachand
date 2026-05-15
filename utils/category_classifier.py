@@ -10,13 +10,21 @@ from google.genai import types
 from .prompt_manager import get_prompt
 
 _MODEL = 'gemini-2.5-flash'
-_client = None
+
+# Phase 3.0: thread-local Gemini client. The bulk-extract worker fans out
+# clusters across a ThreadPoolExecutor; sharing one genai.Client causes
+# "Cannot send a request, as the client has been closed" once one worker
+# completes. See ai_generation.py for the same pattern.
+import threading as _threading
+_thread_local = _threading.local()
+
 
 def _get_client():
-    global _client
-    if _client is None:
-        _client = genai.Client(api_key=os.getenv('GOOGLE_API_KEY'))
-    return _client
+    c = getattr(_thread_local, 'client', None)
+    if c is None:
+        c = genai.Client(api_key=os.getenv('GOOGLE_API_KEY'))
+        _thread_local.client = c
+    return c
 
 
 def load_categories():
@@ -76,7 +84,10 @@ def classify_product_category(product_data):
     print(f"  - Sales Args Count: {len(sales_args)}")
     print(f"  - Tech Specs Count: {len(tech_specs)}")
     
-    prompt = get_prompt('category_classification').format(
+    template = get_prompt('category_classification')
+    if not template:
+        raise RuntimeError("Prompt 'category_classification' missing from DB and defaults")
+    prompt = template.format(
         product_name=product_name,
         brand=brand,
         model_number=model_number,
@@ -85,20 +96,23 @@ def classify_product_category(product_data):
         tech_specs_json=json.dumps(tech_specs),
         categories_json=json.dumps(categories, indent=2)
     )
-    
+
     print("\n📤 Sending request to Gemini AI...")
-    
+
     try:
         response = _get_client().models.generate_content(
             model=_MODEL,
             contents=prompt,
             config=types.GenerateContentConfig(response_mime_type="application/json")
         )
-        
+
         print("📥 Received response from AI")
-        print(f"Response text: {response.text[:200]}...")
-        
-        result = json.loads(response.text)
+        # `response.text` is typed Optional by the SDK even though the API
+        # always returns a body — coerce to str for the slice + json.loads.
+        resp_text = response.text or ""
+        print(f"Response text: {resp_text[:200]}...")
+
+        result = json.loads(resp_text)
         
         # Extract categories
         cat1 = result.get("category_1", "").strip()

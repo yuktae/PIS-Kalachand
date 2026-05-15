@@ -9,6 +9,10 @@ import io
 import json
 import time
 import fitz  # PyMuPDF
+# PyMuPDF's bundled type stubs don't expose `fitz.open` (it's set up via
+# C-extension binding at import time), so Pyrefly flags every call site.
+# Pulling it through an explicit alias once silences the warning everywhere.
+fitz_open = fitz.open  # type: ignore[attr-defined]
 from PIL import Image, ImageFilter, ImageStat, ImageDraw, ImageChops
 from werkzeug.utils import secure_filename
 from google import genai
@@ -17,13 +21,19 @@ from .prompt_manager import get_prompt
 
 _MODEL = 'gemini-2.5-flash'
 _NANO_BANANA_MODEL = 'gemini-2.5-flash-image'   # Image-out model (a.k.a. nano-banana)
-_client = None
+
+# Phase 3.0: thread-local — see ai_generation.py. Branch A's
+# extract_and_allocate_embedded runs concurrently across cluster workers.
+import threading as _threading
+_thread_local = _threading.local()
+
 
 def _get_client():
-    global _client
-    if _client is None:
-        _client = genai.Client(api_key=os.getenv('GOOGLE_API_KEY'))
-    return _client
+    c = getattr(_thread_local, 'client', None)
+    if c is None:
+        c = genai.Client(api_key=os.getenv('GOOGLE_API_KEY'))
+        _thread_local.client = c
+    return c
 
 
 # ===== EMBEDDED IMAGE CACHE =====
@@ -70,19 +80,22 @@ def extract_specific_image(pdf_path, target_model, upload_folder, skip_verify: b
 
     print(f"🔍 PDF Image Extraction starting for: '{target_model}' (all_matches={all_matches}, prefer_embedded={prefer_embedded})")
 
-    passes = (
-        ('embedded', _extract_embedded_images), ('screenshot', _extract_via_screenshot)
-    ) if prefer_embedded else (
-        ('screenshot', _extract_via_screenshot), ('embedded', _extract_embedded_images)
-    )
+    pass_order = ('embedded', 'screenshot') if prefer_embedded else ('screenshot', 'embedded')
 
     collected: list[str] = []
-    for name, fn in passes:
+    for name in pass_order:
+        # Dispatch by name so Pyrefly sees each call against a single
+        # concrete function (the two extractors have different signatures
+        # — only the screenshot pass takes `skip_verify`).
         if name == 'screenshot':
-            result = fn(pdf_path, target_model, upload_folder, skip_verify=skip_verify,
-                        all_matches=all_matches)
+            result = _extract_via_screenshot(
+                pdf_path, target_model, upload_folder,
+                skip_verify=skip_verify, all_matches=all_matches,
+            )
         else:
-            result = fn(pdf_path, target_model, upload_folder, all_matches=all_matches)
+            result = _extract_embedded_images(
+                pdf_path, target_model, upload_folder, all_matches=all_matches,
+            )
 
         if result:
             if all_matches:
@@ -149,7 +162,11 @@ def extract_product_from_image(image_path, target_model, upload_folder,
         pil_image.save(buf, 'PNG')
         png_bytes = buf.getvalue()
 
-        prompt = get_prompt('pdf_screenshot_scan').format(target_model=target_model)
+        tpl = get_prompt('pdf_screenshot_scan')
+        if not tpl:
+            print("    ⚠ Prompt 'pdf_screenshot_scan' missing from DB and defaults")
+            return empty_return
+        prompt = tpl.format(target_model=target_model)
         response = None
         for attempt in range(3):
             try:
@@ -166,7 +183,7 @@ def extract_product_from_image(image_path, target_model, upload_folder,
         if not response:
             return empty_return
 
-        result = json.loads(response.text)
+        result = json.loads(response.text or "{}")
         if not result.get('found'):
             print(f"  🚫 No product image found inside uploaded image for '{target_model}'")
             return empty_return
@@ -280,7 +297,7 @@ def _extract_embedded_images(pdf_path, target_model, upload_folder, all_matches:
             print(f"  📦 Using cached {len(candidate_images)} embedded images (skipping PDF scan)")
         else:
             # First time — scan the PDF and cache results
-            doc = fitz.open(pdf_path)
+            doc = fitz_open(pdf_path)
             candidate_images = []
             
             for page_num in range(min(30, len(doc))):
@@ -398,7 +415,7 @@ def _extract_via_screenshot(pdf_path, target_model, upload_folder, skip_verify: 
     empty_return = [] if all_matches else None
     saved_paths: list[str] = []
     try:
-        doc = fitz.open(pdf_path)
+        doc = fitz_open(pdf_path)
         print(f"  📸 Screenshot scan: {min(15, len(doc))} pages at 3x resolution")
 
         for page_num in range(min(15, len(doc))):
@@ -427,7 +444,11 @@ def _extract_via_screenshot(pdf_path, target_model, upload_folder, skip_verify: 
                 page_img_bytes = pix.tobytes("png")
                 pil_image = Image.open(io.BytesIO(page_img_bytes))
 
-                prompt = get_prompt('pdf_screenshot_scan').format(target_model=target_model)
+                tpl = get_prompt('pdf_screenshot_scan')
+                if not tpl:
+                    print("    ⚠ Prompt 'pdf_screenshot_scan' missing from DB and defaults")
+                    continue
+                prompt = tpl.format(target_model=target_model)
 
                 response = None
                 for attempt in range(3):
@@ -446,7 +467,7 @@ def _extract_via_screenshot(pdf_path, target_model, upload_folder, skip_verify: 
                 if not response:
                     continue
 
-                result = json.loads(response.text)
+                result = json.loads(response.text or "{}")
                 if not result.get('found'):
                     continue
 
@@ -561,19 +582,28 @@ def _ai_pick_best_from_candidates(candidates, target_model, upload_folder, avail
         
         context_str = "\n".join(page_texts) if page_texts else "No text context available."
         
-        prompt = get_prompt('pdf_embedded_image_selection').format(
+        tpl = get_prompt('pdf_embedded_image_selection')
+        if not tpl:
+            print("  ⚠ Prompt 'pdf_embedded_image_selection' missing from DB and defaults")
+            return None
+        prompt = tpl.format(
             target_model=target_model,
             context_str=context_str,
             candidate_count=len(candidates)
         )
-        
-        content = [prompt]
+
+        # Heterogeneous list of str labels + Part image data. The SDK's
+        # `contents` accepts this (`list[Part | str | ...]`) but Pyrefly
+        # narrows the literal type after the first append, so we widen
+        # via `list[Any]` to match the signature.
+        from typing import Any
+        content: list[Any] = [prompt]
         for i, candidate in enumerate(candidates):
             # Determine mime type
             ext = candidate.get('ext', 'png')
             mime_map = {'png': 'image/png', 'jpg': 'image/jpeg', 'jpeg': 'image/jpeg'}
             mime = mime_map.get(ext, 'image/png')
-            
+
             content.append(f"IMAGE {i+1} ({candidate['width']}x{candidate['height']}, page {candidate['page']+1}):")
             content.append(types.Part.from_bytes(data=candidate['bytes'], mime_type=mime))
 
@@ -582,7 +612,7 @@ def _ai_pick_best_from_candidates(candidates, target_model, upload_folder, avail
             contents=content,
             config=types.GenerateContentConfig(response_mime_type="application/json")
         )
-        result = json.loads(response.text)
+        result = json.loads(response.text or "{}")
         best = result.get("best_index")
         
         if best == "none" or best is None:
@@ -608,20 +638,332 @@ def _save_candidate_image(candidate, target_model, upload_folder):
         pil_img = Image.open(io.BytesIO(candidate['bytes']))
         if pil_img.mode != 'RGB':
             pil_img = pil_img.convert('RGB')
-        
+
         # Clean up border lines and text remnants
         pil_img = _clean_product_image(pil_img)
-        
+
         safe_name = secure_filename(target_model)
         filename = f"visual_{safe_name}_{int(time.time())}.jpg"
         save_path = os.path.join(upload_folder, filename)
         pil_img.save(save_path, quality=95)
-        
+
         print(f"  💾 Saved: {filename} ({candidate['width']}x{candidate['height']})")
         return f"uploads/{filename}"
     except Exception as e:
         print(f"  ⚠ Failed to save candidate image: {e}")
         return None
+
+
+# ───────────────────────────────────────────────────────────────────────────
+#  extract_and_allocate_embedded()
+#
+#  Purpose: replace the per-variant "extract & save all images, repeat per
+#  target" loop in the bulk pipeline. We now do ONE embedded-image extraction
+#  per PDF and then ask Gemini Vision to allocate each photo to a specific
+#  variant in a single call.
+#
+#  Output shape:
+#    {
+#      'images':       [{'index': int, 'path': str, 'page': int, 'w': int, 'h': int}],
+#      'allocations':  {variant_key: [path, path, ...]},
+#      'unallocated':  [path, ...],
+#    }
+#  Empty `images` means the PDF had no usable embedded photos — caller falls
+#  through to bbox/screenshot extraction.
+# ───────────────────────────────────────────────────────────────────────────
+
+
+def _save_embedded_once(candidate: dict, batch_tag: str, idx: int,
+                         upload_folder: str) -> str | None:
+    """Mirror of `_save_candidate_image` but using a generic filename so
+    we don't write the same bytes once per variant target."""
+    try:
+        pil_img = Image.open(io.BytesIO(candidate['bytes']))
+        if pil_img.mode != 'RGB':
+            pil_img = pil_img.convert('RGB')
+        pil_img = _clean_product_image(pil_img)
+        ts = int(time.time())
+        filename = f"bulkembed_{batch_tag}_{idx:02d}_{ts}.jpg"
+        save_path = os.path.join(upload_folder, filename)
+        pil_img.save(save_path, quality=95)
+        return f"uploads/{filename}"
+    except Exception as e:
+        print(f"  ⚠ embedded save #{idx} failed: {e}")
+        return None
+
+
+def _render_page_screenshot_png(pdf_path: str, page_num: int,
+                                 zoom: float = 2.0) -> bytes | None:
+    """Render one PDF page as a PNG byte string. Used to give Gemini the
+    layout context so it can match photos to row labels."""
+    try:
+        doc = fitz_open(pdf_path)
+        try:
+            page_num = max(0, min(page_num, len(doc) - 1))
+            page = doc[page_num]
+            mat = fitz.Matrix(zoom, zoom)
+            pix = page.get_pixmap(matrix=mat)
+            return pix.tobytes("png")
+        finally:
+            doc.close()
+    except Exception as e:
+        print(f"  ⚠ page screenshot for page {page_num} failed: {e}")
+        return None
+
+
+def _ai_allocate_photos_to_variants(
+    page_pngs: list[bytes],
+    image_bytes_list: list[bytes],
+    variants_meta: list[dict],
+) -> dict[str, list[int]]:
+    """Single Gemini call. Sends each page screenshot + every cropped photo
+    (in order, so the model can refer to them by index) + the variant list.
+    Asks for `{variant_key: [photo_index, ...]}` in JSON.
+
+    Returns an empty dict on any error so the caller can fall back to a
+    deterministic "all images go to the cluster default" assignment.
+    """
+    if not image_bytes_list or not variants_meta:
+        return {}
+
+    # Build the prompt: list page screenshots, then photos (with indices),
+    # then the variants.
+    n_pages = len(page_pngs)
+    n_photos = len(image_bytes_list)
+    var_lines = []
+    for v in variants_meta:
+        key = (v.get('key') or '').strip()
+        label = (v.get('label') or key or '').strip()
+        if not key:
+            continue
+        var_lines.append(f"  - key={key!r}  label={label!r}")
+    if not var_lines:
+        return {}
+
+    prompt = (
+        "You are looking at a product proforma.\n\n"
+        f"The first {n_pages} image(s) above are screenshots of the proforma page(s). "
+        f"The remaining {n_photos} image(s) are individual product photos already "
+        "cropped from those pages.\n\n"
+        f"Photo indices: 0..{n_photos - 1} (in the order they're attached, after the page screenshots).\n\n"
+        "The proforma describes these variants of the same product. The variants "
+        "differ only by COLOUR / FINISH / MATERIAL:\n"
+        + "\n".join(var_lines) + "\n\n"
+        "TASK: For each variant key, return the photo indices that belong to it. "
+        "A photo belongs to a variant when its visible colour/finish matches the "
+        "variant's label. A variant may have multiple photos (e.g. closed view + "
+        "open view).\n\n"
+        "Rules:\n"
+        "  • Use the page screenshot(s) to match photos to row labels printed on the proforma.\n"
+        "  • A photo can be assigned to AT MOST ONE variant.\n"
+        "  • If a photo doesn't clearly match any variant, leave it out of every list.\n"
+        "  • Keys MUST be copied verbatim from the variant list above.\n\n"
+        "Return strict JSON ONLY — no prose, no markdown:\n"
+        "{\n"
+        '  "allocations": {\n'
+        '    "<variant_key>": [<photo_index>, <photo_index>, ...]\n'
+        "  }\n"
+        "}"
+    )
+
+    parts: list = []
+    for png in page_pngs:
+        parts.append(types.Part.from_bytes(data=png, mime_type="image/png"))
+    for img_bytes in image_bytes_list:
+        parts.append(types.Part.from_bytes(data=img_bytes, mime_type="image/jpeg"))
+    parts.append(prompt)
+
+    try:
+        response = _get_client().models.generate_content(
+            model=_MODEL,
+            contents=parts,
+            config=types.GenerateContentConfig(response_mime_type="application/json"),
+        )
+        parsed = json.loads(response.text or "{}")
+    except Exception as e:
+        print(f"  ⚠ AI allocation call failed: {e}")
+        return {}
+
+    allocations_raw = parsed.get('allocations') or {}
+    if not isinstance(allocations_raw, dict):
+        return {}
+
+    # Validate + coerce: only keep keys we asked about, only int indices in range.
+    valid_keys = {v['key'] for v in variants_meta if v.get('key')}
+    used: set[int] = set()
+    out: dict[str, list[int]] = {}
+    for k, v in allocations_raw.items():
+        if k not in valid_keys or not isinstance(v, list):
+            continue
+        idxs: list[int] = []
+        for raw_idx in v:
+            try:
+                idx = int(raw_idx)
+            except (TypeError, ValueError):
+                continue
+            if 0 <= idx < n_photos and idx not in used:
+                idxs.append(idx)
+                used.add(idx)
+        if idxs:
+            out[k] = idxs
+    return out
+
+
+def extract_and_allocate_embedded(
+    pdf_path: str,
+    variants_meta: list[dict],
+    upload_folder: str,
+    page_filter: list[int] | None = None,
+    cluster_label: str = '',
+) -> dict:
+    """Extract every embedded image from `pdf_path` ONCE and ask Gemini to
+    allocate each photo to a specific variant in a single AI call.
+
+    `variants_meta`: list[{'key': str, 'label': str}]. Order matters — the
+        first entry is treated as the cluster's primary (used when only one
+        target exists, i.e. singleton cluster). `key` must be unique per
+        cluster and is what gets attached to each candidate as `variant_sku`.
+
+    `page_filter`: optional list of zero-based page indexes (from triage's
+        per-cluster source_pages). When provided, only embedded images on
+        those pages are considered.
+
+    `cluster_label`: short identifier used in filenames + logs.
+
+    Returns: {
+        'images':       [{'index': int, 'path': str, 'page': int, 'w': int, 'h': int}],
+        'allocations':  {variant_key: [path, path, ...]},
+        'unallocated':  [path, ...],
+    }
+    """
+    empty = {'images': [], 'allocations': {}, 'unallocated': []}
+    if not pdf_path or not os.path.exists(pdf_path):
+        return empty
+    if os.path.splitext(pdf_path)[1].lower() != '.pdf':
+        return empty
+    if not variants_meta:
+        return empty
+
+    # ── 1. Pull embedded image bytes (reuse the existing cache) ────────────
+    global _embedded_cache
+    if pdf_path in _embedded_cache:
+        candidates = _embedded_cache[pdf_path]
+        print(f"  📦 Using cached {len(candidates)} embedded images")
+    else:
+        candidates = []
+        try:
+            doc = fitz_open(pdf_path)
+            try:
+                for page_num in range(min(30, len(doc))):
+                    page = doc[page_num]
+                    page_text = page.get_text("text")
+                    for img_index, img_info in enumerate(page.get_images(full=True)):
+                        xref = img_info[0]
+                        try:
+                            base = doc.extract_image(xref)
+                            if not base:
+                                continue
+                            image_bytes = base["image"]
+                            pil_img = Image.open(io.BytesIO(image_bytes))
+                            w, h = pil_img.size
+                            if w < 100 or h < 100:
+                                continue
+                            if _is_mostly_solid(pil_img):
+                                continue
+                            candidates.append({
+                                'bytes':     image_bytes,
+                                'width':     w,
+                                'height':    h,
+                                'page':      page_num,
+                                'page_text': page_text,
+                                'ext':       base.get('ext', 'png'),
+                            })
+                            if len(candidates) >= 50:
+                                break
+                        except Exception as e:
+                            print(f"  ⚠ embedded read xref={xref}: {e}")
+                            continue
+                    if len(candidates) >= 50:
+                        break
+            finally:
+                doc.close()
+        except Exception as e:
+            print(f"  ⚠ embedded scan failed: {e}")
+            return empty
+        _embedded_cache[pdf_path] = candidates
+        print(f"  📦 Scanned PDF: {len(candidates)} embedded photos found")
+
+    if not candidates:
+        return empty
+
+    # ── 2. Restrict by page_filter ─────────────────────────────────────────
+    if page_filter:
+        page_set = set(page_filter)
+        filtered = [c for c in candidates if c['page'] in page_set]
+        if filtered:
+            candidates = filtered
+
+    if not candidates:
+        return empty
+
+    # ── 3. Save each image ONCE under a generic name ───────────────────────
+    safe_tag = (secure_filename(cluster_label) or 'cluster')[:24]
+    images_out: list[dict] = []
+    for idx, candidate in enumerate(candidates):
+        rel = _save_embedded_once(candidate, safe_tag, idx, upload_folder)
+        if not rel:
+            continue
+        images_out.append({
+            'index':  idx,
+            'path':   rel,
+            'page':   candidate['page'],
+            'w':      candidate['width'],
+            'h':      candidate['height'],
+        })
+    if not images_out:
+        return empty
+
+    # ── 4. Allocation ──────────────────────────────────────────────────────
+    # Singleton cluster (one variant key) → all images go to that key.
+    keys = [v.get('key') for v in variants_meta if v.get('key')]
+    if len(keys) <= 1:
+        only_key = keys[0] if keys else variants_meta[0].get('key', '__primary__')
+        return {
+            'images':       images_out,
+            'allocations':  {only_key: [im['path'] for im in images_out]},
+            'unallocated':  [],
+        }
+
+    # Variant cluster → AI allocation.
+    pages_used = sorted({im['page'] for im in images_out})
+    page_pngs = [p for p in (_render_page_screenshot_png(pdf_path, p) for p in pages_used) if p]
+    image_bytes_list = [candidates[im['index']]['bytes'] for im in images_out]
+
+    print(f"  🧠 AI allocation: mapping {len(images_out)} photo(s) → "
+          f"{len(keys)} variant(s)")
+    ai_map = _ai_allocate_photos_to_variants(
+        page_pngs, image_bytes_list, variants_meta,
+    )
+
+    # Build path-allocation dict + collect unallocated.
+    by_local_idx: dict[int, str] = {i: im['path'] for i, im in enumerate(images_out)}
+    used_local: set[int] = set()
+    allocations: dict[str, list[str]] = {}
+    for k, idx_list in ai_map.items():
+        paths: list[str] = []
+        for li in idx_list:
+            p = by_local_idx.get(li)
+            if p and li not in used_local:
+                paths.append(p); used_local.add(li)
+        if paths:
+            allocations[k] = paths
+    unallocated = [by_local_idx[i] for i in range(len(images_out)) if i not in used_local]
+
+    return {
+        'images':       images_out,
+        'allocations':  allocations,
+        'unallocated':  unallocated,
+    }
 
 
 def _normalize_products_field(result: dict) -> list[dict]:
@@ -899,12 +1241,12 @@ def _pad_to_aspect_4_3(img: Image.Image, bg: tuple = (255, 255, 255)) -> Image.I
         return img  # already close enough — skip a no-op canvas paste
     if cur > target:
         # Source is wider than 4:3 — pad top/bottom.
-        new_h = int(round(w / target))
+        new_h = round(w / target)
         canvas = Image.new('RGB', (w, new_h), bg)
         canvas.paste(img, (0, (new_h - h) // 2))
         return canvas
     # Source is taller than 4:3 — pad left/right.
-    new_w = int(round(h * target))
+    new_w = round(h * target)
     canvas = Image.new('RGB', (new_w, h), bg)
     canvas.paste(img, ((new_w - w) // 2, 0))
     return canvas
@@ -1031,7 +1373,7 @@ def extract_isolated_product_with_nano_banana(
         ext = os.path.splitext(source_path)[1].lower()
         if ext == '.pdf':
             # Render first page that mentions the model (or page 1) at 2x.
-            doc = fitz.open(source_path)
+            doc = fitz_open(source_path)
             target_page = 0
             # Prefer matching by SKU (highly specific) before falling back
             # to name tokens, so multi-product PDFs route to the right page.

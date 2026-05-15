@@ -266,16 +266,16 @@ def download_specsheet(product_id):
     # placeholders so multi-page exports get correct page numbering.
     footer_template = f"""
     <div style="font-family: 'Inter', sans-serif; font-size: 8px;
-                width: 100%; padding: 6px 15mm 0 15mm; box-sizing: border-box;
+                width: 100%; padding: 6px 14mm 0 14mm; box-sizing: border-box;
                 background: #1e293b; color: #94a3b8;
                 display: flex; justify-content: space-between; align-items: center;
                 -webkit-print-color-adjust: exact; print-color-adjust: exact;">
         <div>
             <span style="color: #ffffff; font-weight: 700; letter-spacing: 1px;">J. KALACHAND</span>
-            &nbsp;|&nbsp; PRODUCT INFORMATION SHEET
+            &nbsp;|&nbsp; SPECSHEET
         </div>
         <div>
-            REF: PIS-{product.id} &nbsp;|&nbsp; GENERATED ON {date_generated}
+            REF: SPEC-{product.id} &nbsp;|&nbsp; GENERATED ON {date_generated}
             &nbsp;|&nbsp; PAGE <span class="pageNumber"></span> / <span class="totalPages"></span>
         </div>
     </div>
@@ -298,9 +298,9 @@ def download_specsheet(product_id):
                 display_header_footer=True,
                 header_template=header_template,
                 footer_template=footer_template,
-                # bottom widened to ~25mm so the native footer band has
-                # room to sit without overlapping the last content row.
-                margin={"top": "28mm", "right": "15mm", "bottom": "25mm", "left": "15mm"},
+                # Margins match the PIS route. Bottom = 22mm reserves room
+                # for the dark footer band without overlapping content.
+                margin={"top": "18mm", "right": "14mm", "bottom": "22mm", "left": "14mm"},
             )
             browser.close()
         return Response(pdf_bytes, mimetype='application/pdf',

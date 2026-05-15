@@ -76,31 +76,6 @@
                     <p class="text-[10px] font-bold text-red-600 uppercase tracking-widest mb-0.5">Edit PIS</p>
                     <div class="flex items-center gap-3 flex-wrap">
                         <h2 class="text-xl font-extrabold text-slate-900 tracking-tight">{{ product.model_name }}</h2>
-                        {% if batch_id and batch_size > 1 %}
-                        {# Bulk-batch navigation — prev/next arrows submit the
-                           form so the current edits autosave before the jump.
-                           save_and_prev / save_and_next are handled by the
-                           review_pis_marketing endpoint. #}
-                        <div class="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-2 py-1">
-                            <button type="submit" name="action" value="save_and_prev"
-                                {% if not batch_prev_id %}disabled{% endif %}
-                                @click="onSave()"
-                                title="Save & go to previous PIS in this batch"
-                                class="w-7 h-7 flex items-center justify-center rounded-lg text-slate-500 hover:text-slate-900 hover:bg-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
-                            </button>
-                            <span class="text-[11px] font-bold text-slate-700 px-1">
-                                {{ batch_index + 1 }} / {{ batch_size }}
-                            </span>
-                            <button type="submit" name="action" value="save_and_next"
-                                {% if not batch_next_id %}disabled{% endif %}
-                                @click="onSave()"
-                                title="Save & go to next PIS in this batch"
-                                class="w-7 h-7 flex items-center justify-center rounded-lg text-slate-500 hover:text-slate-900 hover:bg-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-                            </button>
-                        </div>
-                        {% endif %}
                     </div>
                     <div class="flex items-center gap-2 text-xs text-gray-500 mt-1 flex-wrap">
                         {% if product.workflow_stage == 'marketing_draft' %}
@@ -140,10 +115,7 @@
                        Need Review read as a single button group instead of
                        three loosely-spaced controls. #}
                     <div class="flex items-center gap-2">
-                        {# When this PIS belongs to a bulk batch, Cancel goes
-                           back to the workspace (where every batch member is
-                           visible) instead of the global dashboard. #}
-                        <a href="{% if batch_id %}{{ url_for('marketing.import_proforma_bulk_workspace', batch_id=batch_id) }}{% else %}{{ url_for('marketing.dashboard_marketing') }}{% endif %}"
+                        <a href="{{ url_for('marketing.dashboard_marketing') }}"
                             class="px-4 py-2 rounded-lg bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm font-semibold shadow-sm transition-colors inline-flex items-center gap-1.5 group">
                             <svg class="w-4 h-4 transition-transform group-hover:-translate-x-0.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
@@ -159,11 +131,10 @@
 
                         {% set pis_approved = product.workflow_stage in ['ready_for_web', 'specsheet_draft', 'pending_director_spec', 'web_changes_requested', 'finalized'] %}
                         <button type="button" id="needReviewBtn" onclick="openSubmitModal()"
-                            data-batch-size="{{ batch_size if batch_id and batch_size > 1 else 0 }}"
                             class="px-5 py-2 rounded-lg text-sm font-semibold shadow-sm transition-colors flex items-center gap-2
                             {% if pis_approved %}bg-gray-300 text-gray-500 cursor-not-allowed{% else %}bg-red-600 hover:bg-red-700 text-white shadow-red-100{% endif %}"
                             {% if pis_approved %}disabled{% endif %}>
-                            <span>Need Review{% if batch_id and batch_size > 1 %} ({{ batch_size }}){% endif %}</span>
+                            <span>Need Review</span>
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                     d="M13 5l7 7-7 7M5 5l7 7-7 7" />
@@ -610,7 +581,21 @@
 
             <div class="lg:col-span-6 space-y-6"
                  x-data="{
-                     activeTab: 'preview',
+                     /* One-shot tab restore. Code that triggers a window.reload()
+                        and wants the user to land on a specific tab writes the
+                        tab name to sessionStorage('pisEditTab') first; we read
+                        it once on mount and clear it so it doesn't stick across
+                        unrelated navigations. */
+                     activeTab: (function () {
+                         try {
+                             const v = sessionStorage.getItem('pisEditTab');
+                             if (v) {
+                                 sessionStorage.removeItem('pisEditTab');
+                                 return v;
+                             }
+                         } catch (_) {}
+                         return 'preview';
+                     })(),
                      activeSrc: 0,
                      previewBust: Date.now(),
                      refreshPreview() { this.previewBust = Date.now(); }
@@ -626,7 +611,12 @@
                    on large screens with a tab strip on top. Save Draft triggers
                    refreshPreview() which cache-busts the iframe so reviewers
                    see the new state without a full page reload. #}
-                <div class="sticky top-28 bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden flex flex-col"
+                {# z-[60] lifts this panel's stacking context above the page
+                   Edit-PIS header (z-50). That's the only way a modal nested
+                   inside this `position: sticky` block can paint over the
+                   header — sticky creates its own stacking context, so any
+                   nested z-index competes within it, not against the header. #}
+                <div class="sticky top-28 z-[60] bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden flex flex-col"
                      style="height: calc(100vh - 9rem);">
 
                     {# Tab strip #}
@@ -718,10 +708,26 @@
                         </div>
                     </div>
 
-                    {# ─── GALLERY tab (existing functionality, just inside a tab) ─── #}
-                    <div x-show="activeTab === 'gallery'" x-cloak class="flex-1 overflow-y-auto">
+                    {# ─── GALLERY tab — full image-source menu + crop modal + variants ─── #}
+                    {# Init payload lives in a JSON island so embedded quotes don't
+                       break the x-data attribute. Flask's `tojson` produces JSON
+                       whose inner `"` are NOT HTML-escaped, which silently fails
+                       Alpine compilation when stuffed into x-data="…". #}
+                    <script id="gallery-init-{{ product.id }}" type="application/json">
+{% set _g_pis = product.pis_data or {} %}
+{
+    "productId":        {{ product.id | tojson }},
+    "mainImage":        {{ (product.image_path or '') | tojson }},
+    "additionalImages": {{ (product.additional_images or []) | tojson }},
+    "candidates":       {{ (_g_pis.get('_bulk_image_candidates') or []) | tojson }},
+    "variants":         {{ (_g_pis.get('variants') or []) | tojson }},
+    "hasProforma":      {{ ('true' if (_g_pis.get('_source_files') or _g_pis.get('_bulk_source_filenames')) else 'false') }}
+}
+                    </script>
+                    <div x-show="activeTab === 'gallery'" x-cloak class="flex-1 overflow-y-auto"
+                         x-data="productGallery(JSON.parse(document.getElementById('gallery-init-{{ product.id }}').textContent))">
 
-                {# --- DIRECTOR NOTES (sticky styling stripped — parent panel handles it) --- #}
+                {# --- DIRECTOR NOTES --- #}
                 {% if product.director_pis_comments %}
                 <div class="m-4 p-4 rounded-xl bg-red-50 border-l-4 border-red-500">
                     <div class="flex items-center gap-2 mb-2">
@@ -733,14 +739,12 @@
                         </div>
                         <h3 class="text-sm font-bold text-red-900">Director Notes</h3>
                     </div>
-                    <p class="text-xs text-red-800 italic leading-relaxed">
-                        "{{ product.director_pis_comments }}"
-                    </p>
+                    <p class="text-xs text-red-800 italic leading-relaxed">"{{ product.director_pis_comments }}"</p>
                 </div>
                 {% endif %}
 
                 <div>
-                    <!-- Gallery Header (sticky/section-card classes removed; parent panel handles them) -->
+                    <!-- Gallery Header -->
                     <div class="bg-gradient-to-r from-slate-50 to-gray-50 px-5 py-4 border-b border-gray-100">
                         <div class="flex items-center justify-between">
                             <div class="flex items-center gap-2.5">
@@ -751,92 +755,541 @@
                                 </div>
                                 <div>
                                     <p class="text-xs font-extrabold text-slate-800 tracking-tight">Product Gallery</p>
-                                    <p class="text-[10px] text-gray-400 font-medium">
-                                        {% set img_count = (1 if product.image_path else 0) + (product.additional_images|length if product.additional_images else 0) %}
-                                        {{ img_count }} image{{ 's' if img_count != 1 else '' }}
-                                    </p>
+                                    <p class="text-[10px] text-gray-400 font-medium"
+                                       x-text="imageCount + ' image' + (imageCount !== 1 ? 's' : '')"></p>
                                 </div>
                             </div>
                         </div>
-                        <!-- Action Buttons -->
-                        <div class="flex items-center gap-2 mt-3">
-                            <input type="file" id="imageUploadInput" class="hidden" accept="image/*" multiple
-                                onchange="uploadImage(this)">
-                            <button type="button" onclick="document.getElementById('imageUploadInput').click()"
-                                class="flex-1 text-[11px] font-bold text-slate-600 bg-white hover:bg-gray-50 border border-gray-200 px-3 py-2 rounded-lg transition-all flex items-center justify-center gap-1.5">
-                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+
+                        <!-- IMAGE SOURCE MENU — all 6 actions -->
+                        <div class="relative mt-3" @click.outside="showImageMenu = false">
+                            <button type="button" @click="showImageMenu = !showImageMenu"
+                                :disabled="imageBusy"
+                                class="w-full text-[11px] font-bold text-white bg-slate-900 hover:bg-red-600 disabled:bg-slate-300 px-3 py-2 rounded-lg transition-all flex items-center justify-center gap-1.5">
+                                <svg x-show="imageBusy" class="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                 </svg>
-                                Upload
+                                <span x-text="imageBusy ? (imageMenuMsg || 'Working…') : 'Image source ▾'"></span>
                             </button>
+                            <div x-show="showImageMenu" x-transition.opacity x-cloak
+                                 class="absolute right-0 left-0 top-full mt-1 z-30 bg-white rounded-xl shadow-xl border border-slate-200 overflow-hidden text-left">
+                                <button type="button" @click="runImageAction('Web search', () => regenViaWeb('general'))"
+                                    class="w-full px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                                    title="Broad web search">
+                                    <svg class="w-3.5 h-3.5 text-red-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                                    <span>Search the web</span>
+                                </button>
+                                <button type="button" @click="openRetouchModal()"
+                                    :disabled="!candidates.length"
+                                    :class="!candidates.length ? 'opacity-40 cursor-not-allowed' : ''"
+                                    class="w-full px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                                    title="Pick an existing image and let AI clean it up — keeps the product faithful">
+                                    <svg class="w-3.5 h-3.5 text-red-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                                    <span>Retouch with AI</span>
+                                </button>
+                                <button type="button" @click="openGenerateModal()"
+                                    class="w-full px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                                    title="Generate a brand-new product photo from the description (Imagen 4)">
+                                    <svg class="w-3.5 h-3.5 text-red-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+                                    <span>Generate with AI</span>
+                                </button>
+                                <button type="button" @click="openCropModal()"
+                                    :disabled="!hasProforma"
+                                    :class="!hasProforma ? 'opacity-40 cursor-not-allowed' : ''"
+                                    class="w-full px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                                    title="Manually crop a region from the proforma">
+                                    <svg class="w-3.5 h-3.5 text-red-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.121 14.121L19 19m-7-7l7-7m-7 7l-2.879 2.879M12 12L9.121 9.121m0 5.758a3 3 0 10-4.243 4.243 3 3 0 004.243-4.243zm0-5.758a3 3 0 10-4.243-4.243 3 3 0 004.243 4.243z"/></svg>
+                                    <span>Crop from proforma</span>
+                                </button>
+                                <label class="w-full px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-2 cursor-pointer">
+                                    <svg class="w-3.5 h-3.5 text-red-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                                    <span>Upload from device</span>
+                                    <input type="file" accept="image/jpeg,image/png,image/webp"
+                                           class="hidden" @change="uploadFromDevice($event)">
+                                </label>
+                                <div class="border-t border-slate-100">
+                                    <button type="button" @click="showUrlInput = !showUrlInput"
+                                        class="w-full px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-2">
+                                        <svg class="w-3.5 h-3.5 text-red-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+                                        <span>Extract from URL</span>
+                                    </button>
+                                    <div x-show="showUrlInput" x-cloak class="px-3 pb-2 flex gap-1.5">
+                                        <input type="url" x-model="suggestUrl" placeholder="https://…"
+                                            @keydown.enter.prevent="runImageAction('URL extract', extractFromUrl)"
+                                            class="flex-1 text-[11px] border border-slate-200 rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-red-200 focus:border-red-400">
+                                        <button type="button"
+                                            @click="runImageAction('URL extract', extractFromUrl)"
+                                            :disabled="imageBusy || !suggestUrl.trim()"
+                                            class="text-[10px] font-bold uppercase tracking-widest bg-slate-900 hover:bg-red-600 disabled:bg-slate-300 text-white rounded-md px-2.5 py-1">
+                                            Fetch
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
+                        <p x-show="imageError" class="text-[10px] text-red-600 mt-2" x-text="imageError"></p>
                     </div>
 
                     <div class="p-4">
                         <!-- Main Image -->
                         <div class="mb-3 group relative">
                             <div class="aspect-[4/3] bg-white rounded-xl flex items-center justify-center overflow-hidden border-2 border-gray-100 relative shadow-sm hover:shadow-md transition-shadow">
-                                {% if product.image_path %}
-                                <img src="{{ url_for('static', filename=product.image_path) }}"
-                                    class="object-contain w-full h-full p-3 mix-blend-multiply gallery-clickable"
-                                    onclick="event.stopPropagation(); openLightbox(this.src, galleryImagesMarketing)">
-                                <button type="button" onclick="deleteImage('{{ product.image_path }}')"
-                                    class="absolute top-2.5 right-2.5 bg-white/95 text-red-500 p-1.5 rounded-lg shadow-md opacity-0 group-hover:opacity-100 transition-all hover:bg-red-50 hover:scale-110 backdrop-blur-sm border border-gray-100">
-                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                    </svg>
-                                </button>
-                                <span class="absolute bottom-2.5 left-2.5 bg-gradient-to-r from-slate-800 to-slate-700 text-white text-[9px] font-bold px-2.5 py-1 rounded-md uppercase tracking-wider shadow-sm">★ Main</span>
-                                {% else %}
-                                <div class="flex flex-col items-center gap-2 py-6">
-                                    <div class="w-12 h-12 rounded-2xl bg-gray-50 border-2 border-dashed border-gray-200 flex items-center justify-center">
-                                        <svg class="w-6 h-6 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                                        </svg>
+                                <template x-if="mainImage">
+                                    <img :src="'/static/' + mainImage"
+                                        class="object-contain w-full h-full p-3 mix-blend-multiply gallery-clickable cursor-pointer"
+                                        @click.stop="openLightboxFor(mainImage)">
+                                </template>
+                                <template x-if="mainImage">
+                                    <div class="absolute top-2.5 right-2.5 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-all">
+                                        <button type="button" @click="openCropModal('main')"
+                                            :disabled="!canCropMain"
+                                            :class="!canCropMain ? 'opacity-40 cursor-not-allowed' : ''"
+                                            class="bg-white/95 text-slate-700 hover:text-red-600 px-2 py-1.5 rounded-lg shadow-md hover:bg-white hover:scale-105 backdrop-blur-sm border border-gray-100 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1"
+                                            title="Crop the main image">
+                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.121 14.121L19 19m-7-7l7-7m-7 7l-2.879 2.879M12 12L9.121 9.121m0 5.758a3 3 0 10-4.243 4.243 3 3 0 004.243-4.243zm0-5.758a3 3 0 10-4.243-4.243 3 3 0 004.243 4.243z"/></svg>
+                                            Crop
+                                        </button>
+                                        <button type="button" @click="askDeleteOne(mainImage)"
+                                            class="bg-white/95 text-red-500 p-1.5 rounded-lg shadow-md hover:bg-red-50 hover:scale-110 backdrop-blur-sm border border-gray-100">
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                            </svg>
+                                        </button>
                                     </div>
-                                    <p class="text-[11px] text-gray-400 font-medium">No main image</p>
-                                </div>
-                                {% endif %}
+                                </template>
+                                <template x-if="mainImage">
+                                    <span class="absolute bottom-2.5 left-2.5 bg-gradient-to-r from-slate-800 to-slate-700 text-white text-[9px] font-bold px-2.5 py-1 rounded-md uppercase tracking-wider shadow-sm">★ Main</span>
+                                </template>
+                                <template x-if="!mainImage">
+                                    <div class="flex flex-col items-center gap-2 py-6">
+                                        <div class="w-12 h-12 rounded-2xl bg-gray-50 border-2 border-dashed border-gray-200 flex items-center justify-center">
+                                            <svg class="w-6 h-6 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                            </svg>
+                                        </div>
+                                        <p class="text-[11px] text-gray-400 font-medium">No main image</p>
+                                    </div>
+                                </template>
                             </div>
                         </div>
 
-                        <!-- Additional Images Grid -->
-                        {% if product.additional_images %}
-                        <div class="grid grid-cols-2 gap-2">
-                            {% for img_path in product.additional_images %}
-                            <div class="aspect-square bg-white rounded-xl flex items-center justify-center overflow-hidden border border-gray-100 relative group cursor-pointer hover:border-red-200 hover:shadow-sm transition-all">
-                                <img src="{{ url_for('static', filename=img_path) }}" class="object-cover w-full h-full hover:scale-105 transition-transform duration-300 gallery-clickable"
-                                    onclick="event.stopPropagation(); openLightbox(this.src, galleryImagesMarketing)">
-                                {# Action overlay — pointer-events-none on the container so the
-                                   img stays clickable for lightbox; each button re-enables clicks
-                                   on itself with pointer-events-auto. #}
-                                <div class="absolute inset-0 bg-gradient-to-t from-black/65 via-black/15 to-transparent flex items-end justify-center gap-1.5 pb-3 opacity-0 group-hover:opacity-100 transition-all duration-200 pointer-events-none">
-                                    <button type="button"
-                                        onclick="event.stopPropagation(); setMainImage('{{ img_path }}')"
-                                        class="pointer-events-auto flex items-center gap-1 text-[10px] font-bold text-white bg-amber-500/90 hover:bg-amber-500 px-2.5 py-1 rounded-md backdrop-blur-sm transition-colors"
-                                        title="Set as main image">
-                                        <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.16c.969 0 1.371 1.24.588 1.81l-3.366 2.446a1 1 0 00-.364 1.118l1.286 3.957c.3.922-.755 1.688-1.54 1.118l-3.366-2.445a1 1 0 00-1.176 0l-3.366 2.445c-.784.57-1.838-.196-1.54-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.05 9.384c-.783-.57-.38-1.81.588-1.81h4.16a1 1 0 00.95-.69l1.286-3.957z"/>
-                                        </svg>
-                                        Set as main
+                        <!-- Gallery sub-header — pinned to the top of the
+                             gallery scroll area via sticky so the Select
+                             button stays visible while you scroll through
+                             the thumbnails. -m-x-4 + px-4 extends the white
+                             background to the full panel width (escapes the
+                             surrounding p-4 padding). -->
+                        <template x-if="additionalImages.length > 0">
+                            <div class="sticky top-0 z-20 bg-white/95 backdrop-blur-sm -mx-4 px-4 py-2 mb-3 border-b border-slate-100 flex items-center justify-between">
+                                <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                                    Gallery images
+                                    <span class="ml-1 text-slate-400" x-text="'(' + additionalImages.length + ')'"></span>
+                                </p>
+                                <template x-if="!selectMode">
+                                    <button type="button" @click="enterSelectMode()"
+                                        class="text-[10px] font-bold uppercase tracking-widest text-slate-600 hover:text-red-600 bg-white border border-slate-200 hover:border-red-300 rounded-lg px-2.5 py-1 transition-colors flex items-center gap-1.5 shadow-sm">
+                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                        Select
                                     </button>
-                                    <button type="button"
-                                        onclick="event.stopPropagation(); deleteImage('{{ img_path }}')"
-                                        class="pointer-events-auto flex items-center gap-1 text-[10px] font-bold text-white bg-red-500/90 hover:bg-red-500 px-2.5 py-1 rounded-md backdrop-blur-sm transition-colors"
-                                        title="Remove from gallery">
-                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                        </svg>
-                                        Remove
+                                </template>
+                                <template x-if="selectMode">
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-[10px] font-bold uppercase tracking-widest text-red-600"
+                                              x-text="selectedPaths.length + ' selected'"></span>
+                                        <button type="button" @click="exitSelectMode()"
+                                            class="text-[10px] font-bold uppercase tracking-widest text-slate-500 hover:text-slate-900 border border-slate-200 hover:border-slate-400 rounded-lg px-2.5 py-1 transition-colors">
+                                            Cancel
+                                        </button>
+                                    </div>
+                                </template>
+                            </div>
+                        </template>
+
+                        <!-- Additional Images Grid -->
+                        <template x-if="additionalImages.length > 0">
+                            <div class="grid grid-cols-2 gap-2">
+                                <template x-for="(img_path, idx) in additionalImages" :key="img_path">
+                                    <div class="aspect-square bg-white rounded-xl flex items-center justify-center overflow-hidden relative group cursor-pointer transition-all"
+                                         :class="isSelected(img_path) ? 'border-2 border-red-500 ring-2 ring-red-200 shadow-md' : 'border border-gray-100 hover:border-red-200 hover:shadow-sm'"
+                                         @click.stop="onThumbClick(img_path)">
+                                        <img :src="'/static/' + img_path"
+                                            class="object-cover w-full h-full transition-transform duration-300 gallery-clickable pointer-events-none"
+                                            :class="selectMode ? '' : 'group-hover:scale-105'">
+                                        <!-- Source badge (hidden in select mode for cleanness) -->
+                                        <span x-show="!selectMode"
+                                            class="absolute top-1 left-1 text-[8px] font-bold uppercase tracking-widest px-1 rounded backdrop-blur-sm"
+                                            :class="sourceClassFor(img_path)"
+                                            x-text="sourceLabelFor(img_path)"></span>
+                                        <!-- Selection checkbox — always rendered in select mode -->
+                                        <template x-if="selectMode">
+                                            <span class="absolute top-2 left-2 w-6 h-6 rounded-md flex items-center justify-center transition-all"
+                                                  :class="isSelected(img_path)
+                                                          ? 'bg-red-600 text-white shadow-md'
+                                                          : 'bg-white/95 text-transparent border border-slate-300'">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+                                            </span>
+                                        </template>
+                                        <span x-show="!selectMode"
+                                            class="absolute top-1.5 right-1.5 bg-white/80 text-[8px] font-bold text-gray-500 w-5 h-5 rounded-md flex items-center justify-center backdrop-blur-sm border border-gray-100"
+                                            x-text="idx + 1"></span>
+                                        <!-- Per-thumb actions: hidden in select mode -->
+                                        <div x-show="!selectMode"
+                                            class="absolute inset-0 bg-gradient-to-t from-black/65 via-black/15 to-transparent flex items-end justify-center gap-1.5 pb-3 opacity-0 group-hover:opacity-100 transition-all duration-200 pointer-events-none flex-wrap">
+                                            <button type="button"
+                                                @click.stop="promoteToMain(img_path)"
+                                                class="pointer-events-auto flex items-center gap-1 text-[10px] font-bold text-white bg-amber-500/90 hover:bg-amber-500 px-2.5 py-1 rounded-md backdrop-blur-sm transition-colors"
+                                                title="Set as main image">
+                                                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.16c.969 0 1.371 1.24.588 1.81l-3.366 2.446a1 1 0 00-.364 1.118l1.286 3.957c.3.922-.755 1.688-1.54 1.118l-3.366-2.445a1 1 0 00-1.176 0l-3.366 2.445c-.784.57-1.838-.196-1.54-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.05 9.384c-.783-.57-.38-1.81.588-1.81h4.16a1 1 0 00.95-.69l1.286-3.957z"/></svg>
+                                                Main
+                                            </button>
+                                            <template x-if="variants && variants.length > 0">
+                                                <button type="button"
+                                                    @click.stop="toggleAssignDropdown(img_path, $event)"
+                                                    class="pointer-events-auto flex items-center gap-1 text-[10px] font-bold text-white bg-slate-700/90 hover:bg-slate-800 px-2.5 py-1 rounded-md backdrop-blur-sm transition-colors"
+                                                    title="Assign to a variant">
+                                                    Assign ▾
+                                                </button>
+                                            </template>
+                                            <button type="button"
+                                                @click.stop="askDeleteOne(img_path)"
+                                                class="pointer-events-auto flex items-center gap-1 text-[10px] font-bold text-white bg-red-500/90 hover:bg-red-500 px-2.5 py-1 rounded-md backdrop-blur-sm transition-colors"
+                                                title="Remove from gallery">
+                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                                Remove
+                                            </button>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+                        </template>
+
+                        <!-- Variant photo strips (if product has variants) -->
+                        <template x-if="variants && variants.length > 0">
+                            <div class="mt-4 pt-4 border-t border-slate-100">
+                                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Variants</p>
+                                <ul class="space-y-2">
+                                    <template x-for="v in variants" :key="(v.model_number || '') + (v.label || '')">
+                                        <li class="flex items-start gap-2.5">
+                                            <div class="shrink-0 flex items-center gap-1">
+                                                <template x-if="!variantPhotosFor(v).length">
+                                                    <div class="w-10 h-8 rounded border border-dashed border-slate-200 bg-slate-50 flex items-center justify-center">
+                                                        <svg class="w-3 h-3 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                                                    </div>
+                                                </template>
+                                                <template x-for="vp in variantPhotosFor(v)" :key="vp">
+                                                    <img :src="'/static/' + vp" class="w-10 h-8 object-cover rounded border border-slate-200">
+                                                </template>
+                                            </div>
+                                            <div class="min-w-0 flex-1">
+                                                <p class="text-xs font-bold text-slate-700 truncate" x-text="v.label || v.model_number || '(unnamed)'"></p>
+                                                <p class="text-[10px] font-mono text-slate-400 truncate" x-text="v.model_number"></p>
+                                            </div>
+                                        </li>
+                                    </template>
+                                </ul>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+
+                <!-- ASSIGN-TO-VARIANT DROPDOWN -->
+                <div x-show="assignOpenPath" x-cloak
+                    :style="assignOpenStyle"
+                    @click.outside="assignOpenPath = null"
+                    class="min-w-[180px] max-w-[260px] bg-white rounded-xl shadow-2xl border border-slate-200 py-1 z-[210]">
+                    <p class="px-3 pt-1 pb-1 text-[9px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">Assign image to</p>
+                    <template x-for="v in (variants || [])" :key="(v.model_number || '') + (v.label || '')">
+                        <button type="button"
+                            @click="assignToVariant(assignOpenPath, (v.model_number || '').trim()); assignOpenPath = null"
+                            class="w-full text-left px-3 py-1.5 text-[11px] hover:bg-slate-50 flex items-center justify-between gap-2 text-slate-700">
+                            <span class="truncate" x-text="v.label || v.model_number || '(unnamed)'"></span>
+                        </button>
+                    </template>
+                </div>
+
+                <!-- FLOATING BULK-ACTION BAR — appears while in select mode.
+                     Pinned to the bottom of the gallery panel via sticky;
+                     surfaces "Delete N" only when something is selected. -->
+                <div x-show="selectMode" x-cloak
+                    class="sticky bottom-0 left-0 right-0 z-[55] bg-white border-t border-slate-200 shadow-[0_-8px_24px_-8px_rgba(0,0,0,0.1)] px-4 py-3 flex items-center justify-between gap-3">
+                    <span class="text-xs font-bold text-slate-600">
+                        <span x-text="selectedPaths.length"></span>
+                        <span x-text="selectedPaths.length === 1 ? 'image' : 'images'"></span> selected
+                    </span>
+                    <div class="flex items-center gap-2">
+                        <button type="button" @click="exitSelectMode()"
+                            class="text-[10px] font-bold uppercase tracking-widest text-slate-500 hover:text-slate-900 border border-slate-200 hover:border-slate-400 rounded-lg px-3 py-1.5 transition-colors">
+                            Cancel
+                        </button>
+                        <button type="button" @click="askDeleteSelected()"
+                            :disabled="selectedPaths.length === 0"
+                            :class="selectedPaths.length === 0 ? 'opacity-40 cursor-not-allowed bg-slate-300' : 'bg-red-600 hover:bg-red-700'"
+                            class="text-[10px] font-bold uppercase tracking-widest text-white rounded-lg px-3 py-1.5 transition-colors flex items-center gap-1.5">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                            <span>Delete</span>
+                            <span x-show="selectedPaths.length > 0" x-text="selectedPaths.length"></span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- DELETE CONFIRMATION MODAL — replaces the native confirm().
+                     One modal for both single-image and multi-image deletion;
+                     content adapts to the count via `deletePaths.length`. -->
+                <div x-show="deleteOpen" x-cloak
+                    class="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-md"
+                    @keydown.escape.window="cancelDelete()">
+                    <div class="bg-white rounded-3xl w-full max-w-md p-8 shadow-2xl text-center"
+                         @click.outside="cancelDelete()">
+                        <div class="w-20 h-20 bg-red-50 text-red-600 rounded-3xl flex items-center justify-center mb-6 mx-auto shadow-sm ring-8 ring-red-50/50">
+                            <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                        </div>
+                        <h3 class="font-extrabold text-2xl text-slate-900 mb-2 tracking-tight">
+                            <span x-show="deletePaths.length <= 1">Delete this image?</span>
+                            <span x-show="deletePaths.length > 1">
+                                Delete <span x-text="deletePaths.length"></span> images?
+                            </span>
+                        </h3>
+                        <p class="text-sm text-slate-500 mb-8 leading-relaxed px-4">
+                            <span x-show="deletePaths.length <= 1">
+                                The image will be removed from this product's gallery. This action cannot be undone.
+                            </span>
+                            <span x-show="deletePaths.length > 1">
+                                The selected images will be removed from this product's gallery. This action cannot be undone.
+                            </span>
+                        </p>
+                        <div class="flex gap-3">
+                            <button type="button" @click="cancelDelete()"
+                                :disabled="deleting"
+                                class="flex-1 px-6 py-4 bg-slate-100 text-slate-600 rounded-2xl font-bold hover:bg-slate-200 disabled:opacity-50 transition-all active:scale-95">
+                                Cancel
+                            </button>
+                            <button type="button" @click="confirmDelete()"
+                                :disabled="deleting"
+                                class="flex-1 px-6 py-4 bg-red-600 text-white rounded-2xl font-bold hover:bg-red-700 disabled:bg-slate-400 transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2">
+                                <svg x-show="deleting" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                <span x-text="deleting ? 'Deleting…' : 'Yes, Delete'"></span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CROP MODAL — stays in-place so Alpine's drag listeners
+                     work reliably. The right-panel sticky div above raises
+                     its own stacking context above the Edit PIS header
+                     (z-50), which lets this nested z-[200] modal paint over
+                     everything on the page. -->
+                <div x-show="cropOpen" x-cloak
+                    class="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-md"
+                    @keydown.escape.window="cancelCrop()">
+                    <div class="bg-white rounded-2xl w-full max-w-3xl shadow-2xl border border-white/20 overflow-hidden flex flex-col"
+                         @click.outside="cancelCrop()">
+                        <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                            <div>
+                                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest"
+                                   x-text="cropMode === 'main' ? 'Crop main image' : 'Crop from proforma'"></p>
+                                <h4 class="font-extrabold text-lg text-slate-900">Manual crop</h4>
+                            </div>
+                            <button type="button" @click="cancelCrop()" class="text-slate-400 hover:text-slate-700 p-1">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                            </button>
+                        </div>
+                        <div class="p-4 bg-slate-50">
+                            <div class="flex items-center justify-between flex-wrap gap-3 mb-3">
+                                <p class="text-[11px] text-slate-500">Drag on the image to draw the crop. Apply to save.</p>
+                                <div class="flex items-center gap-1" x-show="cropMode === 'proforma' && cropPageCount > 1">
+                                    <button type="button" @click="cropPage = Math.max(0, cropPage - 1); reloadCropPage()"
+                                        :disabled="cropPage <= 0 || cropping"
+                                        class="text-[10px] font-bold uppercase px-2 py-1 bg-white border border-slate-200 rounded hover:border-red-300 disabled:opacity-40">‹</button>
+                                    <span class="text-[10px] font-mono text-slate-500 px-1"
+                                          x-text="(cropPage + 1) + ' / ' + cropPageCount"></span>
+                                    <button type="button" @click="cropPage = Math.min(cropPageCount - 1, cropPage + 1); reloadCropPage()"
+                                        :disabled="cropPage >= cropPageCount - 1 || cropping"
+                                        class="text-[10px] font-bold uppercase px-2 py-1 bg-white border border-slate-200 rounded hover:border-red-300 disabled:opacity-40">›</button>
+                                </div>
+                            </div>
+                            <div class="flex justify-center">
+                                {# STEP 1 — drag-to-select. Hidden once the user has applied a crop. #}
+                                <div x-show="!cropPreviewDataUrl"
+                                    class="relative max-w-full select-none touch-none bg-slate-100 border border-slate-200 rounded-lg overflow-hidden cursor-crosshair"
+                                    x-ref="cropContainer"
+                                    :style="`width: ${cropContainerW}px; height: ${cropContainerH}px; max-width: 100%; max-height: 60vh;`"
+                                    @mousedown="cropStart($event)"
+                                    @mousemove="cropMove($event)"
+                                    @mouseup="cropEnd($event)"
+                                    @mouseleave="cropEnd($event)">
+                                    <img x-show="cropImageSrc"
+                                        :src="cropImageSrc" x-ref="cropImage"
+                                        @load="onCropImageLoad($event)"
+                                        class="block w-full h-full object-contain bg-white pointer-events-none"
+                                        draggable="false" alt="Crop source">
+                                    <div x-show="cropRect.w > 0 && cropRect.h > 0"
+                                        class="absolute border-2 border-red-500 bg-red-500/10 pointer-events-none"
+                                        :style="`left:${cropRect.x*100}%; top:${cropRect.y*100}%; width:${cropRect.w*100}%; height:${cropRect.h*100}%`">
+                                    </div>
+                                </div>
+                                {# STEP 2 — verify. The data-URL canvas is rendered
+                                   client-side by applyCrop(), no server roundtrip.
+                                   `template x-if` instead of x-show on the <img>
+                                   so the element only exists when there's a real
+                                   data URL — otherwise an empty src fires the
+                                   global broken-image handler in base.html and
+                                   the preview gets permanently replaced by a
+                                   "NO IMAGE" placeholder. #}
+                                <div x-show="cropPreviewDataUrl" class="bg-white rounded-lg border border-slate-200 p-3 max-h-[60vh] flex items-center justify-center">
+                                    <template x-if="cropPreviewDataUrl">
+                                        <img :src="cropPreviewDataUrl"
+                                            class="max-w-full max-h-[55vh] object-contain"
+                                            alt="Crop preview">
+                                    </template>
+                                </div>
+                            </div>
+                            <p x-show="cropPreviewDataUrl" class="text-[10px] text-emerald-600 mt-2 text-center font-bold uppercase tracking-widest">
+                                Preview — click Save to add it to the gallery, or Redo to try again.
+                            </p>
+                            <p x-show="cropError" class="text-xs text-red-600 mt-3" x-text="cropError"></p>
+                        </div>
+                        <div class="px-6 py-4 border-t border-slate-100 flex justify-end gap-2">
+                            <button type="button" @click="cancelCrop()"
+                                class="px-5 py-2.5 text-xs font-bold uppercase tracking-widest text-slate-600 hover:text-slate-900 border border-slate-200 hover:border-slate-400 rounded-xl transition-all">Cancel</button>
+                            <template x-if="!cropPreviewDataUrl">
+                                <button type="button" @click="applyCrop()"
+                                    :disabled="cropping || cropRect.w < 0.02 || cropRect.h < 0.02"
+                                    class="px-6 py-2.5 text-xs font-bold uppercase tracking-widest bg-slate-900 hover:bg-red-600 disabled:bg-slate-300 text-white rounded-xl transition-all">
+                                    Apply crop
+                                </button>
+                            </template>
+                            <template x-if="cropPreviewDataUrl">
+                                <div class="flex gap-2">
+                                    <button type="button" @click="redoCrop()"
+                                        :disabled="cropping"
+                                        class="px-5 py-2.5 text-xs font-bold uppercase tracking-widest text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition-all">
+                                        Redo
+                                    </button>
+                                    <button type="button" @click="confirmCrop()"
+                                        :disabled="cropping"
+                                        class="px-6 py-2.5 text-xs font-bold uppercase tracking-widest bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white rounded-xl transition-all">
+                                        <span x-show="!cropping">Save</span>
+                                        <span x-show="cropping">Saving...</span>
                                     </button>
                                 </div>
-                                <span class="absolute top-1.5 right-1.5 bg-white/80 text-[8px] font-bold text-gray-500 w-5 h-5 rounded-md flex items-center justify-center backdrop-blur-sm border border-gray-100">{{ loop.index }}</span>
-                            </div>
-                            {% endfor %}
+                            </template>
                         </div>
-                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- RETOUCH MODAL — pick a gallery image, add an optional
+                     direction note, send to gemini-2.5-flash-image. -->
+                <div x-show="retouchOpen" x-cloak
+                    class="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-md"
+                    @keydown.escape.window="retouchOpen = false">
+                    <div class="bg-white rounded-2xl w-full max-w-3xl shadow-2xl border border-white/20 overflow-hidden flex flex-col"
+                         @click.outside="retouchOpen = false">
+                        <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                            <div>
+                                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Retouch with AI</p>
+                                <h4 class="font-extrabold text-lg text-slate-900">Clean up an existing image</h4>
+                                <p class="text-xs text-slate-500 mt-0.5">The product stays exactly the same — only the background, lighting, and stray artifacts get fixed.</p>
+                            </div>
+                            <button type="button" @click="retouchOpen = false" class="text-slate-400 hover:text-slate-700 p-1">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                            </button>
+                        </div>
+                        <div class="p-5 max-h-[70vh] overflow-y-auto">
+                            <p class="text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-2">1. Pick the image to retouch</p>
+                            <div class="grid grid-cols-3 sm:grid-cols-4 gap-2 mb-5">
+                                <template x-for="c in candidates" :key="c.path">
+                                    <button type="button"
+                                        @click="retouchPickedPath = c.path"
+                                        :class="retouchPickedPath === c.path
+                                            ? 'ring-4 ring-red-500 border-red-500'
+                                            : 'border-slate-200 hover:border-red-300'"
+                                        class="aspect-square bg-slate-100 rounded-lg border-2 overflow-hidden focus:outline-none transition-all">
+                                        <img :src="(c.path && (c.path.startsWith('http://') || c.path.startsWith('https://'))) ? c.path : ('/static/' + c.path)"
+                                             class="w-full h-full object-contain"
+                                             onerror="this.style.opacity='0.2'">
+                                    </button>
+                                </template>
+                                <p x-show="!candidates.length" class="col-span-full text-xs text-slate-400 italic py-6 text-center">
+                                    No gallery images yet — search the web or upload one first.
+                                </p>
+                            </div>
+
+                            <p class="text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-2">2. Add direction (optional)</p>
+                            <textarea x-model="retouchNote" rows="3"
+                                placeholder="e.g. remove the white line on the left, fix the gray cast, crop tighter to the TV…"
+                                class="w-full text-xs border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-200 focus:border-red-400 resize-none"></textarea>
+                            <p class="text-[10px] text-slate-400 mt-1">Leave empty for default cleanup (background → white, fix lighting).</p>
+                        </div>
+                        <div class="px-5 py-3 border-t border-slate-100 bg-slate-50 flex items-center justify-end gap-2">
+                            <button type="button" @click="retouchOpen = false"
+                                class="text-[11px] font-bold uppercase tracking-widest px-3 py-1.5 text-slate-500 hover:text-slate-900">Cancel</button>
+                            <button type="button" @click="submitRetouch()"
+                                :disabled="!retouchPickedPath || retouchBusy"
+                                class="text-[11px] font-bold uppercase tracking-widest bg-slate-900 hover:bg-red-600 disabled:bg-slate-300 disabled:cursor-not-allowed text-white rounded-md px-3 py-1.5">
+                                <span x-show="!retouchBusy">Retouch</span>
+                                <span x-show="retouchBusy">Working…</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- GENERATE MODAL — show context preview, accept optional
+                     direction note, send to Imagen 4. -->
+                <div x-show="generateOpen" x-cloak
+                    class="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-md"
+                    @keydown.escape.window="generateOpen = false">
+                    <div class="bg-white rounded-2xl w-full max-w-2xl shadow-2xl border border-white/20 overflow-hidden flex flex-col"
+                         @click.outside="generateOpen = false">
+                        <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                            <div>
+                                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Generate with AI</p>
+                                <h4 class="font-extrabold text-lg text-slate-900">Create a synthetic product photo</h4>
+                                <p class="text-xs text-slate-500 mt-0.5">Imagen 4 will invent a brand-new image from the description below.</p>
+                            </div>
+                            <button type="button" @click="generateOpen = false" class="text-slate-400 hover:text-slate-700 p-1">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                            </button>
+                        </div>
+                        <div class="p-5">
+                            <div class="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-4 flex gap-2">
+                                <svg class="w-4 h-4 text-amber-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                                <p class="text-[11px] text-amber-800 leading-snug">
+                                    <strong>AI-generated</strong> — the result is synthetic and may not match the actual product. Verify before publishing.
+                                </p>
+                            </div>
+
+                            <p class="text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-2">Will use this context</p>
+                            <div class="bg-slate-50 rounded-lg px-3 py-2 mb-4 text-xs text-slate-700">
+                                <p><span class="font-bold">Product:</span> <span x-text="pisData?.header_info?.product_name || 'Unknown'"></span></p>
+                                <p><span class="font-bold">Brand:</span> <span x-text="pisData?.header_info?.brand || '—'"></span></p>
+                                <p class="mt-1 text-[11px] text-slate-500 line-clamp-3"
+                                   x-text="(pisData?.range_overview || pisData?.customer_friendly_description || '(no description on file)').slice(0, 300)"></p>
+                            </div>
+
+                            <p class="text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-2">Add direction (optional)</p>
+                            <textarea x-model="generateNote" rows="3"
+                                placeholder="e.g. modern living-room background, slight angle, lifestyle shot, brushed-metal stand visible…"
+                                class="w-full text-xs border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-200 focus:border-red-400 resize-none"></textarea>
+                            <p class="text-[10px] text-slate-400 mt-1">Leave empty for a clean studio shot on white background.</p>
+                        </div>
+                        <div class="px-5 py-3 border-t border-slate-100 bg-slate-50 flex items-center justify-end gap-2">
+                            <button type="button" @click="generateOpen = false"
+                                class="text-[11px] font-bold uppercase tracking-widest px-3 py-1.5 text-slate-500 hover:text-slate-900">Cancel</button>
+                            <button type="button" @click="submitGenerate()"
+                                :disabled="generateBusy"
+                                class="text-[11px] font-bold uppercase tracking-widest bg-slate-900 hover:bg-red-600 disabled:bg-slate-300 disabled:cursor-not-allowed text-white rounded-md px-3 py-1.5">
+                                <span x-show="!generateBusy">Generate</span>
+                                <span x-show="generateBusy">Working…</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -1404,26 +1857,13 @@
         form.addEventListener('input', enableNeedReview);
     })();
 
-    function confirmSubmit(event, mode) {
+    function confirmSubmit(event) {
+        // Need Review is per-PIS only — submits just this product.
         const form = document.getElementById('verifyForm');
-        // `mode` is set by the modal's choice buttons:
-        //   'individual' → submit just this PIS  (submit_director)
-        //   'batch'      → submit every draft in the bulk batch (submit_director_batch)
-        // Fallback (legacy callers without a mode) picks based on batch size.
-        const headerBtn = document.getElementById('needReviewBtn');
-        const batchSize = parseInt(headerBtn?.dataset?.batchSize || '0', 10);
-        let actionValue;
-        if (mode === 'batch') {
-            actionValue = 'submit_director_batch';
-        } else if (mode === 'individual') {
-            actionValue = 'submit_director';
-        } else {
-            actionValue = batchSize > 1 ? 'submit_director_batch' : 'submit_director';
-        }
         const input = document.createElement('input');
         input.type = 'hidden';
         input.name = 'action';
-        input.value = actionValue;
+        input.value = 'submit_director';
         form.appendChild(input);
 
         // Change button state on the modal's confirm button.
@@ -1641,45 +2081,6 @@
         </div>
 
         <h3 class="font-bold text-2xl text-slate-900 mb-3 tracking-tight">Ready for Review?</h3>
-        {% if batch_id and batch_size > 1 %}
-        <p class="text-sm text-slate-500 mb-6 leading-relaxed px-4">
-            This PIS is part of a bulk batch of <span class="font-bold text-slate-900">{{ batch_size }} drafts</span>.
-            Choose whether to send <span class="font-bold text-slate-900">{{ product.model_name }}</span>
-            on its own, or submit the entire batch together.
-        </p>
-
-        {# Two-choice action stack — individual vs. batch. Each button
-           passes its own mode to confirmSubmit() so the backend gets the
-           matching action value (submit_director / submit_director_batch). #}
-        <div class="flex flex-col gap-3 mb-3">
-            <button type="button" onclick="confirmSubmit(event, 'individual')"
-                class="w-full px-5 py-3.5 bg-white border-2 border-slate-200 text-slate-800 rounded-2xl font-bold hover:bg-slate-50 hover:border-slate-300 transition-all active:scale-[0.99] flex items-center justify-between gap-3 text-left">
-                <span class="min-w-0">
-                    <span class="block text-sm">Submit just this PIS</span>
-                    <span class="block text-[11px] font-medium text-slate-400 mt-0.5 truncate">Only {{ product.model_name }} goes to the Director</span>
-                </span>
-                <svg class="w-4 h-4 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-                </svg>
-            </button>
-
-            <button type="button" onclick="confirmSubmit(event, 'batch')"
-                class="w-full px-5 py-3.5 bg-red-600 text-white rounded-2xl font-bold hover:bg-red-700 transition-all shadow-lg shadow-red-200 active:scale-[0.99] flex items-center justify-between gap-3 text-left">
-                <span class="min-w-0">
-                    <span class="block text-sm">Submit all {{ batch_size }} PIS</span>
-                    <span class="block text-[11px] font-medium text-red-100 mt-0.5">Every draft in this batch is sent together</span>
-                </span>
-                <svg class="w-4 h-4 text-white shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"/>
-                </svg>
-            </button>
-        </div>
-
-        <button type="button" onclick="closeSubmitModal()"
-            class="w-full px-6 py-2.5 text-slate-500 hover:text-slate-800 text-sm font-bold transition-colors">
-            Go Back
-        </button>
-        {% else %}
         <p class="text-sm text-slate-500 mb-8 leading-relaxed px-4">
             You are about to send <span class="font-bold text-slate-900">{{ product.model_name }}</span> to the
             Director. They will be notified to review and approve this PIS.
@@ -1690,7 +2091,7 @@
                 class="flex-1 px-6 py-3.5 bg-slate-100 text-slate-600 rounded-2xl font-bold hover:bg-slate-200 transition-all active:scale-95">
                 Go Back
             </button>
-            <button type="button" onclick="confirmSubmit(event, 'individual')"
+            <button type="button" onclick="confirmSubmit(event)"
                 class="flex-1 px-6 py-3.5 bg-red-600 text-white rounded-2xl font-bold hover:bg-red-700 transition-all shadow-lg shadow-red-200 active:scale-95 flex items-center justify-center gap-2">
                 <span>Submit Now</span>
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1699,7 +2100,6 @@
                 </svg>
             </button>
         </div>
-        {% endif %}
     </div>
 </div>
 
@@ -1790,5 +2190,595 @@
         }
     }, 3000);
 })();
+</script>
+
+<script>
+/* ─────────────────────────────────────────────────────────────────────────────
+   PRODUCT GALLERY — Image source menu, crop modal, variant assignment.
+   Mounted on the Edit PIS Gallery tab. Talks to /api/product/<id>/image/*.
+   ───────────────────────────────────────────────────────────────────────── */
+function productGallery(init) {
+    return {
+        productId:        init.productId,
+        mainImage:        init.mainImage || '',
+        additionalImages: Array.isArray(init.additionalImages) ? init.additionalImages.slice() : [],
+        candidates:       Array.isArray(init.candidates) ? init.candidates.slice() : [],
+        variants:         Array.isArray(init.variants) ? init.variants.slice() : [],
+        hasProforma:      !!init.hasProforma,
+
+        showImageMenu: false,
+        imageBusy:     false,
+        imageMenuMsg:  '',
+        imageError:    '',
+        showUrlInput:  false,
+        suggestUrl:    '',
+
+        // Variant assignment dropdown
+        assignOpenPath:  null,
+        assignOpenStyle: '',
+
+        // Multi-select state
+        selectMode:    false,
+        selectedPaths: [],
+
+        // Delete confirmation modal — used for both single & bulk deletes
+        deleteOpen:  false,
+        deletePaths: [],
+        deleting:    false,
+
+        // Crop modal state
+        cropOpen:           false,
+        cropMode:           'proforma',  // 'proforma' | 'main'
+        cropping:           false,
+        cropError:          '',
+        cropPage:           0,
+        cropPageCount:      1,
+        cropImageSrc:       '',
+        cropContainerW:     600,
+        cropContainerH:     400,
+        cropRect:           { x: 0, y: 0, w: 0, h: 0 },
+        cropDragging:       false,
+        cropOrigin:         { x: 0, y: 0 },
+        cropSourcePath:     '',   // relative `uploads/...` we'll crop FROM
+        cropPreviewDataUrl: '',   // client-side canvas render (set after applyCrop())
+        _cropPendingPt:     null, // rAF-queued mouse position
+        _cropRafQueued:     false,
+
+        /* Retouch (gemini-2.5-flash-image) modal state. */
+        retouchOpen:        false,
+        retouchPickedPath:  '',   // gallery path the user picked to retouch
+        retouchNote:        '',   // optional user direction
+        retouchBusy:        false,
+
+        /* Generate (Imagen 4) modal state. */
+        generateOpen:       false,
+        generateNote:       '',   // optional user direction
+        generateBusy:       false,
+
+        get imageCount() {
+            return (this.mainImage ? 1 : 0) + this.additionalImages.length;
+        },
+
+        /* The main image is only crop-able when it's a local `uploads/…`
+           path (the crop endpoint enforces UPLOAD_FOLDER provenance). For
+           images already living on Azure Blob this disables the button. */
+        get canCropMain() {
+            if (!this.mainImage) return false;
+            const p = String(this.mainImage);
+            if (p.startsWith('http://') || p.startsWith('https://')) return false;
+            return p.startsWith('uploads/') || p.startsWith('/static/uploads/');
+        },
+
+        /* ── Image source menu wrapper ─────────────────────────────────── */
+        async runImageAction(label, fn) {
+            if (this.imageBusy) return;
+            this.imageBusy = true;
+            this.imageMenuMsg = label;
+            this.imageError = '';
+            this.showImageMenu = false;
+            try {
+                await fn.call(this);
+            } catch (e) {
+                this.imageError = (e && e.message) || String(e);
+            } finally {
+                this.imageBusy = false;
+                this.imageMenuMsg = '';
+            }
+        },
+
+        /* ── Action: Search the web ─────────────────────────────────────── */
+        async regenViaWeb(mode) {
+            const r = await fetch(`/api/product/${this.productId}/image/web?mode=${mode}`, {
+                method: 'POST'
+            });
+            const j = await r.json().catch(() => ({}));
+            if (!r.ok || j.error) {
+                this.imageError = j.error || `HTTP ${r.status}`;
+                return;
+            }
+            this._absorbResponse(j);
+        },
+
+        /* ── Action: Generate via AI (legacy) ──────────────────────────── */
+        /* Kept callable from older clients but no longer wired to a UI
+           button — the dropdown now exposes "Retouch with AI" + "Generate
+           with AI" instead. */
+        async regenViaAI() {
+            const r = await fetch(`/api/product/${this.productId}/image/ai`, {
+                method: 'POST'
+            });
+            const j = await r.json().catch(() => ({}));
+            if (!r.ok || j.error) {
+                this.imageError = j.error || `HTTP ${r.status}`;
+                return;
+            }
+            this._absorbResponse(j);
+        },
+
+        /* ── Action: Retouch with AI ───────────────────────────────────── */
+        openRetouchModal() {
+            if (!this.candidates.length) return;
+            this.retouchPickedPath = this.mainImage || (this.candidates[0]?.path || '');
+            this.retouchNote = '';
+            this.retouchOpen = true;
+            this.showImageMenu = false;
+        },
+        async submitRetouch() {
+            if (this.retouchBusy || !this.retouchPickedPath) return;
+            this.retouchBusy = true;
+            this.imageError = '';
+            try {
+                const r = await fetch(`/api/product/${this.productId}/image/enhance`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        source_path: this.retouchPickedPath,
+                        user_note: this.retouchNote || '',
+                    }),
+                });
+                const j = await r.json().catch(() => ({}));
+                if (!r.ok || j.error) {
+                    this.imageError = j.error || `HTTP ${r.status}`;
+                    return;
+                }
+                this._absorbResponse(j);
+                this.retouchOpen = false;
+            } catch (e) {
+                this.imageError = (e && e.message) || String(e);
+            } finally {
+                this.retouchBusy = false;
+            }
+        },
+
+        /* ── Action: Generate with AI (Imagen 4, from description) ─────── */
+        openGenerateModal() {
+            this.generateNote = '';
+            this.generateOpen = true;
+            this.showImageMenu = false;
+        },
+        async submitGenerate() {
+            if (this.generateBusy) return;
+            this.generateBusy = true;
+            this.imageError = '';
+            try {
+                const r = await fetch(`/api/product/${this.productId}/image/generate`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        user_note: this.generateNote || '',
+                    }),
+                });
+                const j = await r.json().catch(() => ({}));
+                if (!r.ok || j.error) {
+                    this.imageError = j.error || `HTTP ${r.status}`;
+                    return;
+                }
+                this._absorbResponse(j);
+                this.generateOpen = false;
+            } catch (e) {
+                this.imageError = (e && e.message) || String(e);
+            } finally {
+                this.generateBusy = false;
+            }
+        },
+
+        /* ── Action: Upload from device ────────────────────────────────── */
+        async uploadFromDevice(evt) {
+            const file = evt.target.files && evt.target.files[0];
+            evt.target.value = '';
+            if (!file) return;
+            await this.runImageAction('Uploading', async () => {
+                const fd = new FormData();
+                fd.append('image', file);
+                const r = await fetch(`/api/product/${this.productId}/image/upload_to_gallery`, {
+                    method: 'POST', body: fd
+                });
+                const j = await r.json().catch(() => ({}));
+                if (!r.ok || j.error) {
+                    this.imageError = j.error || `HTTP ${r.status}`;
+                    return;
+                }
+                this._absorbResponse(j);
+            });
+        },
+
+        /* ── Action: Extract from URL ──────────────────────────────────── */
+        async extractFromUrl() {
+            const u = (this.suggestUrl || '').trim();
+            if (!u) return;
+            const r = await fetch(`/api/product/${this.productId}/image/extract_from_url`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ url: u })
+            });
+            const j = await r.json().catch(() => ({}));
+            if (!r.ok || j.error) {
+                this.imageError = j.error || `HTTP ${r.status}`;
+                return;
+            }
+            this.suggestUrl = '';
+            this.showUrlInput = false;
+            this._absorbResponse(j);
+        },
+
+        /* ── Apply an API response to local state ──────────────────────── */
+        _absorbResponse(j) {
+            if (typeof j.image_path === 'string' && j.image_path) {
+                this.mainImage = j.image_path;
+            }
+            if (Array.isArray(j.candidates)) {
+                this.candidates = j.candidates;
+            }
+            if (Array.isArray(j.additional_images)) {
+                this.additionalImages = j.additional_images.slice();
+            }
+            if (Array.isArray(j.variants)) {
+                this.variants = j.variants;
+            }
+        },
+
+        /* ── Lightbox passthrough ──────────────────────────────────────── */
+        openLightboxFor(path) {
+            if (!path) return;
+            const src = '/static/' + path;
+            const all = [this.mainImage].concat(this.additionalImages)
+                .filter(Boolean).map(p => '/static/' + p);
+            if (typeof openLightbox === 'function') {
+                openLightbox(src, all);
+            }
+        },
+
+        /* ── Source badge helpers ──────────────────────────────────────── */
+        _candidateFor(path) {
+            return this.candidates.find(c => c && c.path === path);
+        },
+        sourceLabelFor(path) {
+            const c = this._candidateFor(path);
+            const src = c && c.source;
+            switch (src) {
+                case 'document':     return 'doc';
+                case 'web':          return 'web';
+                case 'ai':           return 'ai';
+                case 'ai_enhanced':  return 'enhanced';
+                case 'ai_synthetic': return 'AI-gen';
+                case 'upload':       return 'upload';
+                case 'crop':         return 'crop';
+                case 'user_url':     return 'url';
+                default:             return '';
+            }
+        },
+        sourceClassFor(path) {
+            const c = this._candidateFor(path);
+            const src = c && c.source;
+            switch (src) {
+                case 'document':     return 'bg-emerald-100 text-emerald-700';
+                case 'web':          return 'bg-blue-100 text-blue-700';
+                case 'ai':           return 'bg-amber-100 text-amber-700';
+                case 'ai_enhanced':  return 'bg-cyan-100 text-cyan-700';
+                /* synthetic = caution colour: same amber the modal warns in */
+                case 'ai_synthetic': return 'bg-amber-200 text-amber-900 ring-1 ring-amber-400';
+                case 'upload':       return 'bg-slate-100 text-slate-700';
+                case 'crop':         return 'bg-purple-100 text-purple-700';
+                case 'user_url':     return 'bg-violet-100 text-violet-700';
+                default:             return 'bg-white/0 text-transparent';
+            }
+        },
+
+        /* ── Promote / delete (reuse existing global functions) ────────── */
+        async promoteToMain(path) {
+            if (!path || path === this.mainImage) return;
+            const r = await fetch(`/api/product/${this.productId}/images/set_main`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ path })
+            });
+            const j = await r.json().catch(() => ({}));
+            if (!r.ok || j.error) {
+                this.imageError = j.error || `HTTP ${r.status}`;
+                return;
+            }
+            this.mainImage = j.main_path || path;
+            if (Array.isArray(j.additional_images)) {
+                this.additionalImages = j.additional_images.slice();
+            }
+        },
+        /* ── Multi-select + delete flow ───────────────────────────────────
+           User-facing entry points:
+             - askDeleteOne(path)       : "Remove" pill on a hovered thumb
+             - askDeleteSelected()      : floating bulk action bar
+           Both feed the same modal (deleteOpen + deletePaths), which then
+           hits the single-image delete endpoint once per path. We reload
+           the page on success and set sessionStorage('pisEditTab')='gallery'
+           so the user lands back on the Gallery tab. */
+
+        enterSelectMode() {
+            this.selectMode    = true;
+            this.selectedPaths = [];
+            this.imageError    = '';
+        },
+        exitSelectMode() {
+            this.selectMode    = false;
+            this.selectedPaths = [];
+        },
+        isSelected(path) {
+            return this.selectedPaths.indexOf(path) !== -1;
+        },
+        toggleSelection(path) {
+            const i = this.selectedPaths.indexOf(path);
+            if (i === -1) this.selectedPaths.push(path);
+            else          this.selectedPaths.splice(i, 1);
+        },
+        /* Thumb click router:
+             - Select mode: toggle selection
+             - Normal mode: open the lightbox (existing behaviour) */
+        onThumbClick(path) {
+            if (this.selectMode) this.toggleSelection(path);
+            else                 this.openLightboxFor(path);
+        },
+
+        askDeleteOne(path) {
+            if (!path) return;
+            this.deletePaths = [path];
+            this.deleteOpen  = true;
+        },
+        askDeleteSelected() {
+            if (!this.selectedPaths.length) return;
+            this.deletePaths = this.selectedPaths.slice();
+            this.deleteOpen  = true;
+        },
+        cancelDelete() {
+            if (this.deleting) return;
+            this.deleteOpen  = false;
+            this.deletePaths = [];
+        },
+        async confirmDelete() {
+            if (this.deleting || !this.deletePaths.length) return;
+            this.deleting   = true;
+            this.imageError = '';
+            try {
+                for (const path of this.deletePaths) {
+                    const r = await fetch(`/api/product/${this.productId}/images/delete`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ path })
+                    });
+                    const j = await r.json().catch(() => ({}));
+                    if (!r.ok || j.error) {
+                        this.imageError = (j.error || `HTTP ${r.status}`) + ` (path: ${path})`;
+                        this.deleting   = false;
+                        return;
+                    }
+                }
+                // One-shot signal so the page reload lands the user back
+                // on the Gallery tab (the right panel reads + clears this
+                // on mount — see x-data on the panel wrapper).
+                try { sessionStorage.setItem('pisEditTab', 'gallery'); } catch (_) {}
+                window.location.reload();
+            } catch (e) {
+                this.imageError = 'Delete failed: ' + (e.message || e);
+                this.deleting   = false;
+            }
+        },
+
+        /* ── Variant assignment ───────────────────────────────────────── */
+        toggleAssignDropdown(path, evt) {
+            if (this.assignOpenPath === path) {
+                this.assignOpenPath = null;
+                return;
+            }
+            const btn = evt && evt.currentTarget;
+            const r = btn ? btn.getBoundingClientRect() : { top: 200, left: 100 };
+            this.assignOpenStyle = `position: fixed; bottom: ${window.innerHeight - r.top + 6}px; left: ${r.left}px;`;
+            this.assignOpenPath = path;
+        },
+        async assignToVariant(path, sku) {
+            if (!path) return;
+            const r = await fetch(`/api/product/${this.productId}/image/reassign`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ path, variant_sku: sku || '' })
+            });
+            const j = await r.json().catch(() => ({}));
+            if (!r.ok || j.error) {
+                this.imageError = j.error || `HTTP ${r.status}`;
+                return;
+            }
+            if (Array.isArray(j.variants)) this.variants = j.variants;
+            if (Array.isArray(j.candidates)) this.candidates = j.candidates;
+        },
+        variantPhotosFor(v) {
+            if (!v) return [];
+            if (Array.isArray(v.image_paths) && v.image_paths.length) return v.image_paths;
+            if (v.image_path) return [v.image_path];
+            return [];
+        },
+
+        /* ── Crop modal ────────────────────────────────────────────────── */
+        async openCropModal(mode) {
+            this.cropMode = (mode === 'main') ? 'main' : 'proforma';
+            if (this.cropMode === 'proforma' && !this.hasProforma) return;
+            if (this.cropMode === 'main' && !this.canCropMain) return;
+            this.cropOpen = true;
+            this.cropError = '';
+            this.cropPreviewDataUrl = '';
+            this.cropPage = 0;
+            this.cropPageCount = 1;
+            this.cropRect = { x: 0, y: 0, w: 0, h: 0 };
+            if (this.cropMode === 'main') {
+                // Strip a leading "/static/" if present — crop endpoint
+                // expects either `uploads/…` or `/static/uploads/…`.
+                let p = String(this.mainImage);
+                if (p.startsWith('/static/')) p = p.slice('/static/'.length);
+                this.cropSourcePath = p;
+                this.cropImageSrc = '/static/' + p;
+            } else {
+                await this.reloadCropPage();
+            }
+        },
+        async reloadCropPage() {
+            if (this.cropMode !== 'proforma') return;
+            this.cropError = '';
+            this.cropPreviewDataUrl = '';
+            this.cropRect = { x: 0, y: 0, w: 0, h: 0 };
+            try {
+                const r = await fetch(`/api/product/${this.productId}/image/page_preview?page=${this.cropPage}`);
+                const j = await r.json().catch(() => ({}));
+                if (!r.ok || j.error) {
+                    this.cropError = j.error || `HTTP ${r.status}`;
+                    return;
+                }
+                this.cropSourcePath = j.path;
+                this.cropImageSrc = '/static/' + j.path;
+                this.cropPageCount = j.page_count || 1;
+            } catch (e) {
+                this.cropError = 'Network error: ' + (e.message || e);
+            }
+        },
+        onCropImageLoad(evt) {
+            const img = evt.target;
+            const maxW = Math.min(800, window.innerWidth - 100);
+            const maxH = Math.min(window.innerHeight * 0.55, 600);
+            const ratio = img.naturalWidth / img.naturalHeight;
+            let w = maxW, h = maxW / ratio;
+            if (h > maxH) { h = maxH; w = h * ratio; }
+            this.cropContainerW = Math.round(w);
+            this.cropContainerH = Math.round(h);
+        },
+        _cropClient(evt) {
+            const c = this.$refs.cropContainer;
+            const r = c.getBoundingClientRect();
+            const cx = (evt.clientX !== undefined) ? evt.clientX
+                     : (evt.touches && evt.touches[0]) ? evt.touches[0].clientX : 0;
+            const cy = (evt.clientY !== undefined) ? evt.clientY
+                     : (evt.touches && evt.touches[0]) ? evt.touches[0].clientY : 0;
+            return {
+                x: Math.max(0, Math.min(1, (cx - r.left) / r.width)),
+                y: Math.max(0, Math.min(1, (cy - r.top) / r.height))
+            };
+        },
+        cropStart(evt) {
+            if (this.cropPreviewDataUrl) return;
+            const p = this._cropClient(evt);
+            this.cropDragging = true;
+            this.cropOrigin = p;
+            this.cropRect = { x: p.x, y: p.y, w: 0, h: 0 };
+        },
+        /* rAF-throttled drag — caps Alpine reactivity at ~60fps regardless
+           of how many mousemove events the browser fires. The previous
+           handler updated `cropRect` on every event (hundreds per second
+           with a fast mouse), which made the overlay div re-render with
+           three new inline-style values each tick. That's what was lagging
+           the modal on the main image. */
+        cropMove(evt) {
+            if (!this.cropDragging) return;
+            this._cropPendingPt = this._cropClient(evt);
+            if (this._cropRafQueued) return;
+            this._cropRafQueued = true;
+            requestAnimationFrame(() => {
+                this._cropRafQueued = false;
+                const p = this._cropPendingPt;
+                if (!p || !this.cropDragging) return;
+                const x = Math.min(this.cropOrigin.x, p.x);
+                const y = Math.min(this.cropOrigin.y, p.y);
+                const w = Math.abs(p.x - this.cropOrigin.x);
+                const h = Math.abs(p.y - this.cropOrigin.y);
+                this.cropRect = { x, y, w, h };
+            });
+        },
+        cropEnd() { this.cropDragging = false; },
+
+        /* Verify step — render the cropped region to a canvas client-side.
+           No server round-trip; the user instantly sees the result and can
+           Redo (back to drag mode) or Save (one POST that commits). */
+        applyCrop() {
+            if (this.cropping) return;
+            if (this.cropRect.w < 0.02 || this.cropRect.h < 0.02) return;
+            this.cropError = '';
+            try {
+                const img = this.$refs.cropImage;
+                if (!img || !img.naturalWidth) {
+                    this.cropError = 'Image not loaded yet — try again.';
+                    return;
+                }
+                const iw = img.naturalWidth, ih = img.naturalHeight;
+                const sx = Math.max(0, Math.round(this.cropRect.x * iw));
+                const sy = Math.max(0, Math.round(this.cropRect.y * ih));
+                const sw = Math.max(1, Math.round(this.cropRect.w * iw));
+                const sh = Math.max(1, Math.round(this.cropRect.h * ih));
+                const canvas = document.createElement('canvas');
+                canvas.width = sw; canvas.height = sh;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh);
+                this.cropPreviewDataUrl = canvas.toDataURL('image/jpeg', 0.92);
+            } catch (e) {
+                this.cropError = 'Crop render failed: ' + (e.message || e);
+            }
+        },
+
+        async redoCrop() {
+            this.cropPreviewDataUrl = '';
+            this.cropRect = { x: 0, y: 0, w: 0, h: 0 };
+            this.cropError = '';
+        },
+
+        /* Commit — single server call. Re-uses /image/crop without the
+           preview flag, which writes the JPEG and updates Product in one
+           transaction. */
+        async confirmCrop() {
+            if (this.cropping || !this.cropPreviewDataUrl) return;
+            this.cropping = true;
+            this.cropError = '';
+            try {
+                const r = await fetch(`/api/product/${this.productId}/image/crop`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        source_path: this.cropSourcePath,
+                        crop: this.cropRect,
+                    })
+                });
+                const j = await r.json().catch(() => ({}));
+                if (!r.ok || j.error) {
+                    this.cropError = j.error || `HTTP ${r.status}`;
+                    return;
+                }
+                this._absorbResponse(j);
+                this.cropOpen = false;
+                this.cropPreviewDataUrl = '';
+            } catch (e) {
+                this.cropError = 'Network error: ' + (e.message || e);
+            } finally {
+                this.cropping = false;
+            }
+        },
+
+        cancelCrop() {
+            this.cropOpen = false;
+            this.cropPreviewDataUrl = '';
+            this.cropRect = { x: 0, y: 0, w: 0, h: 0 };
+            this.cropError = '';
+        },
+    };
+}
 </script>
 {% endblock %}

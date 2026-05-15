@@ -30,16 +30,60 @@ from google.genai import types
 from .prompt_manager import get_prompt
 
 
+# ── Structured console logging ───────────────────────────────────────────────
+# Used by the enrich loop and the image-allocation helpers so the bulk-job
+# stdout is grep-able and visually scannable. Wire log (NDJSON) helpers
+# below still use the old emoji-only format — they're consumed by the
+# wizard UI, not the operator console.
+
+_BAR_MAJOR = "═" * 64
+_BAR_MINOR = "─" * 64
+
+
+def _con_section(title: str) -> None:
+    print(f"\n{_BAR_MAJOR}\n  {title}\n{_BAR_MAJOR}")
+
+
+def _con_subsection(title: str) -> None:
+    print(f"\n{_BAR_MINOR}\n  {title}\n{_BAR_MINOR}")
+
+
+def _con_step(label: str, msg: str = '') -> None:
+    """Print a `[label]` step header. `msg` is appended on the same line."""
+    if msg:
+        print(f"  [{label}] {msg}")
+    else:
+        print(f"  [{label}]")
+
+
+def _con_info(msg: str) -> None:
+    print(f"      · {msg}")
+
+
+def _con_ok(msg: str) -> None:
+    print(f"      ✓ {msg}")
+
+
+def _con_warn(msg: str) -> None:
+    print(f"      ⚠ {msg}")
+
+
 # ── Gemini client ────────────────────────────────────────────────────────────
 _MODEL = 'gemini-2.5-flash'
-_client = None
+
+# Phase 3.0: thread-local — see ai_generation.py for rationale. The bulk
+# worker pool calls _extract_variant_pis from multiple threads; a shared
+# client closes its httpx transport after the first thread finishes.
+import threading as _threading
+_thread_local = _threading.local()
 
 
 def _get_client():
-    global _client
-    if _client is None:
-        _client = genai.Client(api_key=os.getenv('GOOGLE_API_KEY'))
-    return _client
+    c = getattr(_thread_local, 'client', None)
+    if c is None:
+        c = genai.Client(api_key=os.getenv('GOOGLE_API_KEY'))
+        _thread_local.client = c
+    return c
 
 
 # ── Session store (in-memory, 30 min TTL) ───────────────────────────────────
@@ -128,7 +172,7 @@ def log_err(msg: str) -> str:
 
 
 def log_progress(pct: int, msg: str | None = None) -> str:
-    payload: dict = {"progress": int(pct)}
+    payload: dict = {"progress": pct}
     if msg:
         payload["message"] = msg
     return json.dumps(payload) + "\n"
@@ -178,7 +222,7 @@ def _validate_triage(parsed: dict) -> dict:
             v = summary.get(k, default)
             if k == 'item_count':
                 try:
-                    v = int(v)
+                    v = int(v) if v is not None else 0
                 except (TypeError, ValueError):
                     v = 0
             elif not isinstance(v, str):
@@ -296,12 +340,16 @@ def triage_scan(file_paths: list[str], origin_hint: str | None = None,
 
     try:
         uploaded = _get_client().files.upload(file=fp)
-        # Wait up to ~15s for processing.
+        # Wait up to ~15s for processing. The SDK marks state/name as Optional;
+        # if either is missing we treat the upload as already-ready (best effort).
         for _ in range(30):
-            if uploaded.state.name != "PROCESSING":
+            state = getattr(uploaded, 'state', None)
+            state_name = getattr(state, 'name', None) if state is not None else None
+            file_name = getattr(uploaded, 'name', None)
+            if state_name != "PROCESSING" or not file_name:
                 break
             time.sleep(0.5)
-            uploaded = _get_client().files.get(name=uploaded.name)
+            uploaded = _get_client().files.get(name=file_name)
 
         response = _get_client().models.generate_content(
             model=_MODEL,
@@ -497,10 +545,13 @@ def _extract_variant_pis(file_paths: list[str], primary_name: str,
         for fp in file_paths:
             uf = client.files.upload(file=fp)
             for _ in range(30):
-                if uf.state.name != "PROCESSING":
+                state = getattr(uf, 'state', None)
+                state_name = getattr(state, 'name', None) if state is not None else None
+                file_name = getattr(uf, 'name', None)
+                if state_name != "PROCESSING" or not file_name:
                     break
                 time.sleep(0.5)
-                uf = client.files.get(name=uf.name)
+                uf = client.files.get(name=file_name)
             uploaded.append(uf)
 
         contents = [prompt] + uploaded
@@ -621,15 +672,38 @@ def enrich_product(pis_data: dict, upload_folder: str,
                    or (out.get('_bulk_cluster_label') or '').strip()
     brand = (header.get('brand') or '').strip()
     has_images = (out.get('_bulk_triage_has_images') or 'none').lower()
-    # Variants give us additional names to search for — each variant in a
-    # cluster (open vs closed wardrobe view, walnut vs oak finish) likely
-    # has its own photo on the proforma and should appear as a candidate.
+    # Variants. Each variant has its own SKU + label; the SKU is what gets
+    # attached to image candidates as `variant_sku` so the Edit-PIS gallery
+    # can show source badges and route Set-as-main / Assign actions
+    # correctly. The cluster primary uses key='__primary__' as its handle.
+    variant_meta_for_alloc: list[dict] = []
     variant_names: list[str] = []
     for v in (out.get('variants') or []):
-        if isinstance(v, dict):
-            label = (v.get('label') or '').strip()
-            if label and label.lower() != target_name.lower():
-                variant_names.append(label)
+        if not isinstance(v, dict):
+            continue
+        label = (v.get('label') or '').strip()
+        sku   = (v.get('model_number') or '').strip()
+        if label and label.lower() != target_name.lower():
+            variant_names.append(label)
+        if sku:
+            variant_meta_for_alloc.append({'key': sku, 'label': label or sku})
+
+    # Per-cluster source pages (zero-based) — narrows the embedded scan to
+    # just the pages this cluster spans. Triage gives us one set per
+    # cluster; per-variant page indexes live inside variants[*].source_pages
+    # but we don't need them at allocation time (one Gemini call sees them
+    # all).
+    cluster_pages: list[int] = list(out.get('_bulk_source_pages') or [])
+
+    # ── Console banner for this cluster ───────────────────────────────────
+    cluster_kind = (out.get('_bulk_cluster_kind') or 'singleton').lower()
+    variant_count = len(out.get('variants') or [])
+    if cluster_kind == 'variants' and variant_count > 1:
+        kind_blurb = f"variant cluster · {variant_count} variants"
+    else:
+        kind_blurb = 'singleton'
+    _con_section(f"CLUSTER — {target_name or 'unnamed'}  ({kind_blurb})")
+    _con_info(f"has_images: {has_images}  ·  pages: {cluster_pages or 'all'}")
 
     # ── Task: image — extracts for primary AND every variant ──────────
     # Runs LAST (after content + category) so the product-type fallback
@@ -646,99 +720,188 @@ def enrich_product(pis_data: dict, upload_folder: str,
     #               only fires when Tier 1 returns nothing.
     #     Capped at 2 candidates per variant.
     def _image_task() -> dict:
+        """Two-branch image pipeline. Drops every method that's already
+        available from the Edit-PIS gallery (nano-banana isolate, dead-site
+        scrapes, product-type fallback) — those are reachable on demand
+        via the per-product `/api/product/<id>/image/*` endpoints.
+
+        Branch A — proforma has photos (`has_images` in 'all', 'partial'):
+          1. Per-variant PDF/embedded extract. The triage gave us a per-row
+             `source_pages` allocation; `extract_specific_image` uses the
+             row text neighbourhood to pick the right photo per variant.
+          2. One cluster-level smart web search (max 2 candidates).
+          STOP.
+
+        Branch B — proforma has no photos (`has_images` == 'none'):
+          1. One cluster-level smart web search.
+          2. Discover supplier URL and scrape it for images.
+          STOP.
+
+        Everything else (nano-banana, supplier-page scrape for Branch A,
+        product-type fallback search) is now opt-in from Edit PIS.
+        """
         # Late imports — image_processing has heavy deps (Playwright,
         # PIL, etc.) so we don't pay for them when only content is enriched.
-        from utils.single_wizard import (
-            extract_image_from_document, extract_image_candidates_from_web,
-            discover_supplier_url,
+        from utils.single_wizard import extract_image_candidates_from_web
+        from concurrent.futures import ThreadPoolExecutor
+        from .pdf_processing import (
+            extract_and_allocate_embedded, extract_specific_image,
+            extract_product_from_image,
         )
         result = {'image_path': None, 'image_candidates': []}
         seen_paths: set[str] = set()
 
-        def _push(path: str, source: str, page_url: str | None,
-                  variant_label: str | None) -> None:
+        def _push(path: str | None, source: str, page_url: str | None,
+                  variant_sku: str | None) -> None:
+            """Append a candidate to the list. `variant_sku` is the SKU we
+            tag the candidate with (so the Edit-PIS gallery can route
+            assign / set-as-main correctly). None = cluster-level."""
             if not path or path in seen_paths:
                 return
             seen_paths.add(path)
-            entry = {'path': path, 'page_url': page_url, 'source': source}
-            if variant_label:
-                entry['variant'] = variant_label
+            entry: dict = {'path': path, 'page_url': page_url, 'source': source}
+            if variant_sku:
+                entry['variant_sku'] = variant_sku
             result['image_candidates'].append(entry)
 
-        # All names we'll search for. Primary first so it's the default thumb.
-        all_targets = [target_name] + variant_names if target_name else variant_names
-
         try:
-            # For text-only proformas, discover a supplier URL ONCE
-            # (per draft) and reuse it for every variant search. The
-            # single wizard does this the same way.
-            supplier_url: str | None = None
-            if has_images == 'none' and target_name:
-                try:
-                    sup = discover_supplier_url(target_name, brand or None) or {}
-                    supplier_url = sup.get('url')
-                except Exception as e:
-                    print(f"⚠ supplier URL discovery for '{target_name}' failed: {e}")
+            if has_images in ('all', 'partial'):
+                # ══ Branch A — PDF has embedded photos ═══════════════════
+                # PDF embedded extraction (CPU + Gemini Vision) and the
+                # web search (network + Gemini grounding) are independent,
+                # so we kick both off in parallel and join below. Saves
+                # roughly max(pdf, web) - min(pdf, web) per cluster.
+                _con_step('IMAGES', 'branch=pdf-embedded')
+                fp = file_paths[0] if file_paths else None
 
-            # Tier-2 fallback query (product type) — derived once from the
-            # already-populated content + category data in `out`. Empty
-            # when neither signal exists; caller skips that tier.
-            product_type_query = (
-                _derive_product_type_query(out, brand) if has_images == 'none' else ''
-            )
+                def _do_pdf_extract():
+                    if fp and os.path.splitext(fp)[1].lower() == '.pdf':
+                        try:
+                            return extract_and_allocate_embedded(
+                                fp,
+                                variant_meta_for_alloc or [{'key': '__primary__',
+                                                            'label': target_name or 'product'}],
+                                upload_folder,
+                                page_filter=cluster_pages or None,
+                                cluster_label=target_name or '',
+                            ) or {'images': [], 'allocations': {}, 'unallocated': []}
+                        except Exception as e:
+                            _con_warn(f"embedded extract+allocate failed: {e}")
+                            return {'images': [], 'allocations': {}, 'unallocated': []}
+                    if fp:
+                        # Image proforma (no PDF) — bbox extract per variant.
+                        bbox_paths: list[str] = []
+                        for tgt in ([target_name] + variant_names):
+                            if not tgt:
+                                continue
+                            try:
+                                paths = extract_product_from_image(
+                                    fp, tgt, upload_folder,
+                                    skip_verify=True, all_matches=True,
+                                ) or []
+                            except Exception as e:
+                                _con_warn(f"image bbox for '{tgt}' failed: {e}")
+                                paths = []
+                            bbox_paths.extend(paths)
+                        return {'images': [], 'allocations': {},
+                                'unallocated': [], '_bbox_paths': bbox_paths}
+                    return {'images': [], 'allocations': {}, 'unallocated': []}
 
-            for tgt in all_targets:
-                if not tgt:
-                    continue
-                # Doc-side extraction is only meaningful when triage saw photos.
-                if file_paths and has_images in ('all', 'partial'):
+                def _do_web_search():
+                    if not target_name:
+                        return []
                     try:
-                        doc_paths = extract_image_from_document(
-                            file_paths, tgt, upload_folder
-                        ) or []
-                    except Exception as e:
-                        print(f"⚠ doc extract for '{tgt}' failed: {e}")
-                        doc_paths = []
-                    for p in doc_paths:
-                        _push(p, 'document', None,
-                              tgt if tgt != target_name else None)
-
-                # Web — capped lower per-variant since this is a bulk pipeline.
-                # Cap = 2 for the primary, 1 per variant.
-                cap = 2 if tgt == target_name else 1
-                try:
-                    web = extract_image_candidates_from_web(
-                        model_name=tgt, supplier_url=supplier_url,
-                        upload_folder=upload_folder, brand=brand or None,
-                        max_results=cap, log_cb=None,
-                    ) or []
-                except Exception as e:
-                    print(f"⚠ web extract for '{tgt}' failed: {e}")
-                    web = []
-                for r in web:
-                    _push(r['path'], 'web', r.get('page_url'),
-                          tgt if tgt != target_name else None)
-
-                # Tier 2 — product-type fallback. Only fires when:
-                #   • this is a text-only proforma (has_images='none'), AND
-                #   • Tier 1 (above) returned nothing for THIS target, AND
-                #   • we have a usable type query.
-                if (has_images == 'none' and not web and product_type_query):
-                    try:
-                        web2 = extract_image_candidates_from_web(
-                            model_name=product_type_query, supplier_url=None,
+                        return extract_image_candidates_from_web(
+                            model_name=target_name, supplier_url=None,
                             upload_folder=upload_folder, brand=brand or None,
-                            max_results=cap, log_cb=None,
+                            max_results=2, log_cb=None,
                         ) or []
                     except Exception as e:
-                        print(f"⚠ product-type web extract for '{tgt}' failed: {e}")
-                        web2 = []
-                    for r in web2:
-                        _push(r['path'], 'web', r.get('page_url'),
-                              tgt if tgt != target_name else None)
+                        _con_warn(f"web search failed: {e}")
+                        return []
 
-            # Pick the first doc-side candidate as the default thumbnail.
-            # Variants stay in the candidate list for the workspace picker.
+                with ThreadPoolExecutor(max_workers=2) as _ex:
+                    pdf_future = _ex.submit(_do_pdf_extract)
+                    web_future = _ex.submit(_do_web_search)
+                    alloc_result = pdf_future.result()
+                    web = web_future.result()
+
+                # Bbox-fallback paths from the standalone-image branch
+                # are unallocated, cluster-level candidates.
+                for p in (alloc_result.get('_bbox_paths') or []):
+                    _push(p, 'document', None, None)
+
+                # Step 2 — push allocations into the candidate list and
+                # mirror onto variants[*].image_paths for the variant strip.
+                if alloc_result.get('images'):
+                    _con_info(f"{len(alloc_result['images'])} embedded photo(s) saved (one pass)")
+                    _alloc_raw = alloc_result.get('allocations')
+                    allocations: dict[str, list] = _alloc_raw if isinstance(_alloc_raw, dict) else {}
+                    _unalloc_raw = alloc_result.get('unallocated')
+                    unalloc: list = _unalloc_raw if isinstance(_unalloc_raw, list) else []
+                    variants_list = out.get('variants') or []
+
+                    for vkey, paths in allocations.items():
+                        # Resolve label for log readability.
+                        v_label = next(
+                            (v.get('label') or v.get('model_number') or vkey
+                             for v in variants_list
+                             if isinstance(v, dict) and (v.get('model_number') or '').strip() == vkey),
+                            vkey,
+                        )
+                        _con_ok(f"{vkey}  ← {len(paths)} photo(s)  [{v_label}]")
+                        for p in paths:
+                            _push(p, 'document', None, vkey)
+                        # Mirror onto the variant's image_paths so the
+                        # workspace's per-variant strip lights up.
+                        for v in variants_list:
+                            if not isinstance(v, dict):
+                                continue
+                            if (v.get('model_number') or '').strip() != vkey:
+                                continue
+                            existing = list(v.get('image_paths') or [])
+                            for p in paths:
+                                if p and p not in existing:
+                                    existing.append(p)
+                            v['image_paths'] = existing
+                            if existing and not v.get('image_path'):
+                                v['image_path'] = existing[0]
+                            break
+
+                    if unalloc:
+                        _con_info(f"{len(unalloc)} photo(s) unallocated → cluster gallery")
+                        for p in unalloc:
+                            _push(p, 'document', None, None)
+
+                # Step 3 — push the web candidates from the parallel search above.
+                if web:
+                    _con_info(f"{len(web)} web candidate(s)")
+                    for r in web:
+                        _push(r.get('path'), 'web', r.get('page_url'), None)
+            else:
+                # ══ Branch B — PDF has no embedded photos ════════════════
+                # Single web search via Gemini grounding → top 2 URLs →
+                # parallel page scrape → up to 2 image candidates total.
+                # The legacy SUPPLIER auto-pass was redundant (it discovered
+                # and re-scraped the same domains the WEB pass already hit)
+                # and is now an Edit-PIS-only manual action.
+                if target_name:
+                    _con_step('IMAGES', 'web-only')
+                    try:
+                        web = extract_image_candidates_from_web(
+                            model_name=target_name, supplier_url=None,
+                            upload_folder=upload_folder, brand=brand or None,
+                            max_results=2, log_cb=None,
+                        ) or []
+                    except Exception as e:
+                        _con_warn(f"web search failed: {e}")
+                        web = []
+                    _con_info(f"{len(web)} web candidate(s)")
+                    for r in web:
+                        _push(r.get('path'), 'web', r.get('page_url'), None)
+
+            # Default thumbnail — first 'document' candidate (Branch A) or
+            # whatever the web/supplier search returned first (Branch B).
             doc_first = next(
                 (c for c in result['image_candidates'] if c['source'] == 'document'),
                 None,
@@ -769,6 +932,27 @@ def enrich_product(pis_data: dict, upload_folder: str,
             variants_full = out.get('variants') or []
 
             from utils.ai_generation import generate_pis_data
+            from utils.image_processing import gather_web_context_for_content
+
+            # Phase 3.3: pull live product-page text from the same Brave-
+            # discovered URLs the image pipeline uses, and feed it to
+            # `generate_pis_data` as `web_context`. Without this, sparse
+            # proformas (the Xiaomi case) yielded zero technical specs.
+            # `_field_origin` grep-verifies each field against the proforma
+            # raw text downstream — anything that came from web instead of
+            # the proforma will continue to flag as AI-generated, so the
+            # verify-PIS badges stay correct without further changes.
+            web_context = ""
+            if target_name:
+                try:
+                    web_context = gather_web_context_for_content(
+                        target_name, brand=brand or None,
+                        log_cb=lambda m: _con_info(f"web ctx: {m}"),
+                    )
+                except Exception as e:
+                    _con_warn(f"web context fetch failed: {e}")
+                    web_context = ""
+            url_data = {"text": web_context, "html": ""}
 
             ai: dict = {}
             if cluster_kind == 'variants' and len(variants_full) > 1:
@@ -782,9 +966,9 @@ def enrich_product(pis_data: dict, upload_folder: str,
                 # than an empty card.
                 if not ai.get('range_overview'):
                     print("  ↩ Variant extraction empty — falling back to singleton path with primary name.")
-                    ai = generate_pis_data(file_paths, target_name, {"text": "", "html": ""}) or {}
+                    ai = generate_pis_data(file_paths, target_name, url_data) or {}
             else:
-                ai = generate_pis_data(file_paths, target_name, {"text": "", "html": ""}) or {}
+                ai = generate_pis_data(file_paths, target_name, url_data) or {}
 
             if not isinstance(ai, dict):
                 result['_error'] = "AI returned non-dict content"
@@ -822,10 +1006,12 @@ def enrich_product(pis_data: dict, upload_folder: str,
     # always ran with empty content, which made the product-type tier
     # impossible.
     if 'content' in wanted:
+        _con_step('CONTENT', 'AI extraction')
         r = _content_task() or {}
         if r.get('_error'):
             out['_enrichment_tasks']['content'] = 'failed'
             out.setdefault('_enrichment_errors', {})['content'] = r['_error']
+            _con_warn(f"content failed: {r['_error']}")
         else:
             for key in ('range_overview', 'sales_arguments',
                         'technical_specifications', 'warranty_service',
@@ -873,20 +1059,28 @@ def enrich_product(pis_data: dict, upload_folder: str,
                 print(f"⚠ origin classification failed for bulk PIS: {e}")
 
             out['_enrichment_tasks']['content'] = 'done'
+            _con_ok("content enriched")
 
     # ── Category (depends on content being filled in) ──────────────────
     if 'category' in wanted:
+        _con_step('CATEGORY', 'AI classification')
         try:
             from utils.category_classifier import classify_product_category
             result = classify_product_category(out) or {}
             if result and not result.get('error'):
                 out['category_data'] = result
                 out['_enrichment_tasks']['category'] = 'done'
+                c1 = result.get('category_1', '')
+                c2 = result.get('category_2', '')
+                c3 = result.get('category_3', '')
+                _con_ok(f"{c1} > {c2} > {c3}")
             else:
                 out['_enrichment_tasks']['category'] = 'failed'
+                _con_warn("category classification returned no result")
         except Exception as e:
             out['_enrichment_tasks']['category'] = 'failed'
             out.setdefault('_enrichment_errors', {})['category'] = f"Category task failed: {e}"
+            _con_warn(f"category failed: {e}")
 
     # ── Image (runs LAST — needs content + category context) ───────────
     if 'image' in wanted:

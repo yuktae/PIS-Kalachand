@@ -17,11 +17,32 @@
         <div class="grid grid-cols-3 gap-3">
             <template x-for="opt in modeOptions" :key="opt.value">
                 <label
-                    class="cursor-pointer rounded-2xl border p-4 transition-all"
+                    class="cursor-pointer rounded-2xl border p-4 transition-all flex flex-col items-center justify-center text-center"
                     :class="mode === opt.value
                         ? 'border-red-500 bg-red-50/70 shadow-sm ring-2 ring-red-100'
                         : 'border-slate-100 bg-slate-50/40 hover:border-slate-200 hover:bg-white'">
                     <input type="radio" name="mode" :value="opt.value" x-model="mode" class="sr-only">
+
+                    <!-- Mode icon -->
+                    <div class="w-10 h-10 rounded-xl flex items-center justify-center mb-3 transition-all"
+                        :class="mode === opt.value ? 'bg-red-100 text-red-600' : 'bg-white text-slate-500 border border-slate-100'">
+                        <!-- Auto-Detect: sparkles (AI magic) -->
+                        <svg x-show="opt.value === 'auto'" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                        </svg>
+                        <!-- Single Item: single document -->
+                        <svg x-show="opt.value === 'single'" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        <!-- Invoice / Multiple: list/stack -->
+                        <svg x-show="opt.value === 'multiple'" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+                        </svg>
+                    </div>
+
                     <p class="text-sm font-bold"
                         :class="mode === opt.value ? 'text-red-700' : 'text-slate-700'"
                         x-text="opt.label"></p>
@@ -371,7 +392,7 @@
                     </svg>
                 </button>
                 <p class="text-center text-[10px] text-slate-400 mt-3 font-medium">
-                    Drafts go to your marketing queue. Phase D will add a workspace where each PIS gets enriched lazily (image, content, category).
+                    Generation runs in the background — you'll be sent to the gallery and the tracker (bottom-right) will show per-product progress.
                 </p>
                 <p x-show="bulkErrorMsg" class="text-xs text-red-600 mt-3 text-center" x-text="bulkErrorMsg"></p>
             </section>
@@ -468,10 +489,31 @@
                             class="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-sm">
                     </div>
                 </div>
+
+                {# ── GENERATE PIS button — the new single-mode finish line.
+                   Image extraction + supplier-URL discovery happen entirely
+                   in the background worker after this click. The user lands
+                   on the Product Gallery while the job runs. #}
+                <div class="pt-2">
+                    <button @click="runFinalize()"
+                        :disabled="finalizing || !form.model_name.trim()"
+                        class="w-full py-5 bg-slate-900 hover:bg-red-600 disabled:bg-slate-300 text-white font-bold rounded-full transition-all uppercase tracking-wide text-sm flex items-center justify-center gap-3">
+                        <span x-show="!finalizing">Generate PIS</span>
+                        <span x-show="finalizing">Queueing job...</span>
+                        <svg x-show="!finalizing" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                    </button>
+                    <p class="text-center text-[10px] text-slate-400 mt-3 font-medium">
+                        Supplier URL discovery, image extraction and content enrichment all run in the background — refine images later from the gallery tab in Edit&nbsp;PIS.
+                    </p>
+                    <p x-show="errorMsg" class="text-xs text-red-600 mt-3 text-center" x-text="errorMsg"></p>
+                </div>
             </section>
 
-            <!-- 3. SUPPLIER URL (cascades in after find_url) -->
-            <section x-show="sections.url" x-transition class="space-y-4">
+            <!-- 3. SUPPLIER URL — removed from the wizard. Supplier discovery
+                 now runs in the background worker after Generate PIS. -->
+            <section x-show="false" x-cloak class="space-y-4">
                 <div class="flex items-baseline justify-between">
                     <h3 class="font-extrabold text-xl text-slate-900">Supplier URL</h3>
                     <button type="button" @click="rerunFromUrl()" :disabled="running"
@@ -525,8 +567,10 @@
                 </div>
             </section>
 
-            <!-- 4. IMAGE CANDIDATES (cascades in after extract_images) -->
-            <section x-show="sections.images || proformaPreviewUrl" x-transition class="space-y-4">
+            <!-- 4. IMAGE CANDIDATES — removed from the wizard. Image
+                 extraction now runs in the background worker after
+                 Generate PIS. Users refine the gallery from Edit PIS. -->
+            <section x-show="false" x-cloak class="space-y-4">
                 <div class="flex items-baseline justify-between gap-3 flex-wrap">
                     <h3 class="font-extrabold text-xl text-slate-900">Product image</h3>
                     <div class="flex items-center gap-3">
@@ -685,29 +729,9 @@
                 </div>
             </div>
 
-            <!-- 5. SAVE — enabled the moment a candidate is selected, even if
-                 the cascade is still searching for more. The save call itself
-                 also aborts the in-flight extract stream so we don't keep
-                 burning SERP requests after the user has decided. -->
-            <section x-show="sections.images" x-transition class="pt-4 border-t border-slate-100">
-                <button @click="runFinalize()"
-                    :disabled="finalizing || !form.model_name.trim()
-                                || (!form.selected_image && imageCandidates.length === 0)"
-                    class="w-full py-5 bg-slate-900 hover:bg-red-600 disabled:bg-slate-300 text-white font-bold rounded-full transition-all uppercase tracking-wide text-sm flex items-center justify-center gap-3">
-                    <span x-show="!finalizing && form.selected_image && running">Save with selected image — skip the rest</span>
-                    <span x-show="!finalizing && form.selected_image && !running">Save with selected image</span>
-                    <span x-show="!finalizing && !form.selected_image">Save without image</span>
-                    <span x-show="finalizing">Saving...</span>
-                    <svg x-show="!finalizing" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                    </svg>
-                </button>
-                <p x-show="running && !finalizing"
-                   class="text-[11px] text-slate-400 mt-2 text-center">
-                    Still searching for more options — feel free to commit any time.
-                </p>
-                <p x-show="errorMsg" class="text-xs text-red-600 mt-3 text-center" x-text="errorMsg"></p>
-            </section>
+            <!-- 5. SAVE — removed. Generate PIS now sits next to the
+                 Detected Product section above. -->
+            <section x-show="false" x-cloak class="hidden"></section>
 
         </div>
     </div>
@@ -951,21 +975,13 @@
                 this.$nextTick(() => window.scrollTo({ top: 0, behavior: 'smooth' }));
 
                 if (!this.form.model_name.trim()) {
-                    this.errorMsg = 'Could not extract a product name. Edit the field and click "↻ Search again".';
+                    this.errorMsg = 'Could not extract a product name. Edit the field and re-upload.';
                     return;
                 }
 
-                // Resume the cascade from URL search → image extraction.
-                this.running = true;
-                try {
-                    await this.callFindUrl();
-                    await this.callExtractImages();
-                } catch (err) {
-                    this.errorMsg = 'Cascade error: ' + (err.message || String(err));
-                } finally {
-                    this.running = false;
-                    this.runningStage = '';
-                }
+                // Wizard stops at "Detected product" now — supplier URL and
+                // image extraction happen entirely in the background worker
+                // once the user clicks Generate PIS. No pre-fetch here.
             },
 
             // ── Bulk wizard handlers (Phase A) ──
@@ -1134,10 +1150,13 @@
                     return;
                 }
                 this.bulkRunning = true;
-                this.bulkRunningStage = 'Persisting drafts...';
+                this.bulkRunningStage = 'Queueing job...';
                 this.bulkErrorMsg = '';
                 try {
-                    const resp = await fetch("{{ url_for('marketing.import_proforma_bulk_extract') }}", {
+                    // Fire-and-redirect: enqueue the job, the bottom-right
+                    // tracker in base.html will show per-product progress
+                    // on the dashboard while the worker generates the PIS.
+                    const resp = await fetch('/api/proforma/bulk/extract_async', {
                         method: 'POST',
                         headers: {'Content-Type': 'application/json'},
                         body: JSON.stringify({
@@ -1151,15 +1170,12 @@
                         this.bulkErrorMsg = json.error || ('HTTP ' + resp.status);
                         return;
                     }
-                    if (json.redirect) {
-                        this.bulkRunningStage = `Created ${json.count} draft(s) — redirecting...`;
-                        window.location.href = json.redirect;
-                        return;
-                    }
+                    this.bulkRunningStage = 'Redirecting to gallery...';
+                    window.location.href = json.redirect_url || '/dashboard/marketing';
+                    return;
                 } catch (e) {
                     this.bulkErrorMsg = 'Network error: ' + e.message;
                 } finally {
-                    // Don't flip back on success — we're navigating away.
                     if (this.bulkErrorMsg) {
                         this.bulkRunning = false;
                         this.bulkRunningStage = '';
@@ -1325,15 +1341,13 @@
                     this.proformaPreviewUrl = payload.proforma_preview || '';
                     this.sections.name = true;
 
-                    // Step 3: find_url
+                    // Wizard stops here. URL discovery and image extraction
+                    // run inside the background worker triggered by the
+                    // Generate PIS button below.
                     if (!this.form.model_name.trim()) {
-                        this.errorMsg = 'Could not extract a product name. Edit the field above and click "↻ Search again".';
+                        this.errorMsg = 'Could not extract a product name. Edit the field and re-upload.';
                         this.running = false; return;
                     }
-                    await this.callFindUrl();
-
-                    // Step 4: extract_images
-                    await this.callExtractImages();
                 } catch (e) {
                     this.errorMsg = 'Network error: ' + e.message;
                 } finally {
@@ -1830,39 +1844,42 @@
                 if (this.finalizing || !this.form.model_name.trim()) return;
                 // Cancel the still-streaming /extract_images request so we
                 // don't keep paying for SERP scrapes the user has skipped.
-                // The cascade's `running` flag is left as-is until the abort
-                // unwinds — it self-clears in the cascade's own `finally`.
                 if (this.extractAbort) {
                     try { this.extractAbort.abort(); } catch (_) {}
                     this.extractAbort = null;
                 }
                 this.finalizing = true;
-                this.runningStage = 'Saving...';
+                this.runningStage = 'Queueing job...';
                 this.errorMsg = '';
                 try {
-                    const resp = await fetch("{{ url_for('marketing.import_proforma_single_finalize') }}", {
+                    // Fire-and-redirect: the worker generates the PIS in
+                    // the background and the bottom-right tracker shows
+                    // progress while the user keeps working in the gallery.
+                    const resp = await fetch('/api/proforma/single/finalize_async', {
                         method: 'POST',
                         headers: {'Content-Type': 'application/json'},
                         body: JSON.stringify({
                             session_token: this.sessionToken,
                             selected_image: this.form.selected_image || '',
                             model_name: this.form.model_name.trim(),
-                            // Gallery: every candidate the user still has on
-                            // screen becomes Product.additional_images. The
-                            // backend de-dupes and excludes selected_image.
                             gallery_images: this.imageCandidates.map(c => c.path).filter(Boolean)
                         })
                     });
-                    const payload = await this.consumeStream(resp);
-                    if (payload && payload.redirect) {
-                        window.location.href = payload.redirect;
+                    const json = await resp.json().catch(() => ({}));
+                    if (!resp.ok || json.error) {
+                        this.errorMsg = json.error || ('HTTP ' + resp.status);
                         return;
                     }
+                    this.runningStage = 'Redirecting to gallery...';
+                    window.location.href = json.redirect_url || '/dashboard/marketing';
+                    return;
                 } catch (e) {
                     this.errorMsg = 'Network error: ' + e.message;
                 } finally {
-                    this.finalizing = false;
-                    this.runningStage = '';
+                    if (this.errorMsg) {
+                        this.finalizing = false;
+                        this.runningStage = '';
+                    }
                 }
             },
 

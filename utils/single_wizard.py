@@ -30,13 +30,16 @@ import threading
 from google import genai
 from google.genai import types
 
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
 from .image_processing import (
     clean_search_query, resolve_brand_domain,
     _search_google_pages,
     simple_google_search, simple_bing_search, simple_ddg_search,
-    search_google_api, search_duckduckgo, scrape_images_from_url,
+    scrape_images_from_url,
     download_web_image, is_bad_image_url,
-    find_multi_images_via_screenshot,
+    discover_urls,
+    ai_select_best_image,
 )
 from .pdf_processing import (
     extract_specific_image, extract_product_from_image,
@@ -46,14 +49,20 @@ from .pdf_processing import (
 
 # ── Gemini client ────────────────────────────────────────────────────────────
 _MODEL = 'gemini-2.5-flash'
-_client = None
+
+# Phase 3.0: thread-local — see ai_generation.py. Kept consistent across
+# every module that holds a Gemini client; avoids surprises if a single-mode
+# helper ever ends up called from a worker thread.
+import threading as _threading
+_thread_local = _threading.local()
 
 
 def _get_client():
-    global _client
-    if _client is None:
-        _client = genai.Client(api_key=os.getenv('GOOGLE_API_KEY'))
-    return _client
+    c = getattr(_thread_local, 'client', None)
+    if c is None:
+        c = genai.Client(api_key=os.getenv('GOOGLE_API_KEY'))
+        _thread_local.client = c
+    return c
 
 
 # ── Session store ───────────────────────────────────────────────────────────
@@ -681,35 +690,28 @@ def extract_image_candidates_from_web(model_name: str,
                                        max_results: int = 3,
                                        log_cb=None,
                                        cancel_event=None) -> list[dict]:
-    """Phase 2.4 — image discovery for the wizard, with a page-scrape-first
-    strategy that beats the old image-API-only path on hot-link-protected
-    sites (which is most supplier sites).
+    """Phase 3.0 — slim web-image discovery: Gemini grounded search picks
+    the top URLs, then we scrape each in parallel using the same
+    page-scrape pipeline the manual "Extract from URL" flow uses.
 
-    Order (most → least effective):
-      1. Scrape the supplier URL HTML — most accurate when the URL is
-         actually the product page (galleries / OG tags).
-      2. NEW: Top-3 web-search page URLs → scrape each. Mirrors the
-         "Extract from URL" workflow, automated. Page scrape downloads
-         with proper Referer chain so anti-hotlink rarely blocks.
-      3. Google Custom Search Image API (brand-locked → unrestricted).
-      4. DuckDuckGo Image search.
-      5. Playwright SERP screenshot+crop — last resort, slow and brittle.
+    Flow:
+      1. If `supplier_url` is given, scrape that page first (free, fastest).
+      2. Ask Gemini (with Google Search grounding) for up to 2 authoritative
+         product page URLs. Skips the cluster name being passed back as a
+         supplier_url already covered.
+      3. Scrape both URLs in parallel via `extract_images_from_user_url`,
+         splitting the remaining quota evenly between them.
 
-    Early-return: as soon as we have `max_results` successful downloads
-    from tiers 1–2 we skip the image-API path entirely (it costs API
-    quota and the results are usually lower-quality thumbnails).
+    Returns up to `max_results` `{"path": ..., "page_url": ...}` dicts.
 
-    `cancel_event`: optional `threading.Event` checked between every engine
-    call. When set, the function returns whatever it has so far instead of
-    starting another engine — used by the wizard endpoint to abort the
-    pipeline when the user has already committed a candidate. Whichever
-    HTTP/Playwright call is currently mid-flight will still finish; this
-    only prevents NEW engine calls from starting.
+    The legacy multi-engine SERP cascade and Playwright screenshot fallback
+    are still importable from this module — they're now triggered only
+    from Edit PIS via the user-clicked "search again" / "screenshot crop"
+    actions, not from auto-extraction.
 
-    Each candidate URL is downloaded with `download_web_image` (which
-    validates content-type, dimensions, and file size). The first
-    `max_results` successful downloads are returned. If everything above
-    fails we fall through to the screenshot pipeline.
+    `cancel_event`: optional `threading.Event` checked at each step so the
+    wizard can abort once the user commits a candidate. In-flight HTTP
+    requests still finish; this only prevents NEW work from starting.
     """
     def _emit(msg: str) -> None:
         if log_cb:
@@ -719,119 +721,148 @@ def extract_image_candidates_from_web(model_name: str,
     def _cancelled() -> bool:
         return cancel_event is not None and cancel_event.is_set()
 
-    if not model_name or _cancelled():
+    if not model_name or _cancelled() or max_results <= 0:
         return []
 
-    clean = clean_search_query(model_name)
-    photo_q = f"{clean} official photo"
-    brand_domain = resolve_brand_domain(brand)
-    candidate_urls: list[str] = []
-    results: list[dict] = []   # direct {path, page_url} from page-scrape tiers
+    # ── Pool sizing for AI hero-pick ─────────────────────────────────────
+    # Per-URL fetch cap (oversample so AI selection has real choice).
+    # Total pool cap (bounds Vision-call cost + wall time).
+    pool_per_url = max(max_results + 1, 3)
+    pool_total = max(max_results * 2 + 2, 6)
 
-    # 1. Direct scrape of supplier URL — most relevant if URL is the actual
-    #    product page. Pulls images from product galleries / OG tags.
+    pool: list[dict] = []
+    seen_paths: set[str] = set()
+
+    def _absorb(items: list[dict]) -> bool:
+        """Append items into the candidate pool, dedupe by path. Returns
+        True once the pool is full enough to stop fetching more URLs."""
+        for r in items or []:
+            p = r.get('path') if isinstance(r, dict) else None
+            if not p or p in seen_paths:
+                continue
+            seen_paths.add(p)
+            pool.append(r)
+            if len(pool) >= pool_total:
+                return True
+        return False
+
+    # Tier 1 — caller-provided supplier URL (only used by the single-mode
+    # flow when the user explicitly pastes a URL).
     if supplier_url and not _cancelled():
         try:
-            scraped = scrape_images_from_url(supplier_url) or []
-            _emit(f"Scraped {len(scraped)} images from supplier URL")
-            candidate_urls.extend(scraped)
+            sup = extract_images_from_user_url(
+                supplier_url, model_name, upload_folder,
+                max_results=pool_per_url,
+            ) or []
+            if sup:
+                _emit(f"supplier URL → {len(sup)} image(s)")
+                _absorb(sup)
         except Exception as e:
-            _emit(f"Supplier scrape failed: {e}")
-
-    # 2. NEW — Top-3 web-search pages. This is what "Extract from URL"
-    #    does, just automated: search Google web for the keyword, take
-    #    the top organic product-page URLs, scrape images from each.
-    #    Downloads use the page's referer context so hot-link protection
-    #    on supplier CDNs rarely blocks them.
-    if not _cancelled():
-        top_pages = extract_images_from_top_pages(
-            model_name, brand, upload_folder,
-            max_pages=3, max_per_page=1,
-            exclude_urls=[supplier_url] if supplier_url else None,
-            log_cb=log_cb, cancel_event=cancel_event,
-        )
-        if top_pages:
-            results.extend(top_pages)
-            _emit(f"Top-pages tier returned {len(top_pages)} candidate(s)")
-
-    # Early-return: tiers 1–2 already filled our quota → skip image-API.
-    if len(results) >= max_results:
-        return results[:max_results]
-
-    # 3. Google Image Search API — brand-locked first.
-    if brand_domain and len(candidate_urls) < max_results * 3 and not _cancelled():
-        urls = search_google_api(photo_q, domain=brand_domain) or []
-        _emit(f"Google Image API (brand-locked): {len(urls)} results")
-        candidate_urls.extend(urls)
-
-    # 4. Google Image Search API — unrestricted.
-    if len(candidate_urls) < max_results * 3 and not _cancelled():
-        urls = search_google_api(photo_q) or []
-        _emit(f"Google Image API: {len(urls)} results")
-        candidate_urls.extend(urls)
-
-    # 5. DuckDuckGo Image Search.
-    if len(candidate_urls) < max_results * 3 and not _cancelled():
-        urls = search_duckduckgo(photo_q, max_results=10) or []
-        _emit(f"DuckDuckGo Images: {len(urls)} results")
-        candidate_urls.extend(urls)
+            _emit(f"supplier scrape failed: {type(e).__name__}")
 
     if _cancelled():
-        _emit("Web pipeline cancelled by client — bailing before download")
-        return results   # keep whatever top-pages already produced
+        return _ai_pick_and_trim(pool, model_name, max_results, _emit)
 
-    # Dedupe & filter known-bad domains.
-    seen: set[str] = set()
-    queue: list[str] = []
-    for u in candidate_urls:
-        if not u or u in seen:
-            continue
-        if is_bad_image_url(u):
-            continue
-        seen.add(u)
-        queue.append(u)
-
-    if not queue:
-        # Image-API path returned nothing usable. If top-pages already
-        # gave us at least one candidate, return that — don't waste time
-        # on the Playwright fallback for marginal improvement.
-        if results:
-            return results
-        _emit("No candidate URLs from any engine — falling back to screenshot pipeline")
-        return find_multi_images_via_screenshot(
-            target_label=model_name, supplier_url=supplier_url,
-            upload_folder=upload_folder, brand=brand,
-            max_results=max_results, skip_verify=True, log_cb=log_cb,
-            cancel_event=cancel_event,
+    # Tier 2 — URL discovery (Brave first, Gemini-grounded fallback) +
+    # parallel page scrape. The orchestrator returns at most `max_results`
+    # URLs and never raises.
+    if len(pool) < pool_total:
+        urls = discover_urls(
+            model_name, brand=brand, max_results=2, log_cb=log_cb,
         )
+        if supplier_url:
+            sup_norm = supplier_url.strip().rstrip('/')
+            urls = [u for u in urls if u.strip().rstrip('/') != sup_norm]
 
-    # Try downloads until we have `max_results` TOTAL successes (counting
-    # whatever top-pages already collected into `results`).
-    _emit(f"Trying {min(len(queue), max_results * 4)} candidate(s) for download...")
-    for url in queue[:max_results * 4]:
-        if _cancelled():
-            _emit("Download loop cancelled by client — bailing")
-            break
-        if len(results) >= max_results:
-            break
-        rel_path = download_web_image(url, model_name, upload_folder)
-        if rel_path:
-            _emit(f"Downloaded → {rel_path}")
-            results.append({"path": rel_path, "page_url": url})
+        if urls:
+            def _fetch(u: str) -> list[dict]:
+                if _cancelled():
+                    return []
+                try:
+                    return extract_images_from_user_url(
+                        u, model_name, upload_folder, max_results=pool_per_url,
+                    ) or []
+                except Exception as e:
+                    _emit(f"page fetch failed ({type(e).__name__})")
+                    return []
 
-    if results:
-        return results
+            with ThreadPoolExecutor(max_workers=len(urls)) as ex:
+                futures = {ex.submit(_fetch, u): u for u in urls}
+                for fut in as_completed(futures):
+                    if _absorb(fut.result()):
+                        break
 
-    if _cancelled():
+    return _ai_pick_and_trim(pool, model_name, max_results, _emit)
+
+
+def _ai_pick_and_trim(pool: list[dict], model_name: str,
+                       max_results: int, emit) -> list[dict]:
+    """Run Gemini Vision hero-selection over the candidate pool, move the
+    AI's pick to position 0, then trim to `max_results`.
+
+    Falls through quietly when:
+      - The pool has fewer than 2 candidates (nothing to choose from)
+      - Any image fails to load from disk (skip that one)
+      - The Vision call returns nothing or errors (preserve original order)
+
+    Caller (`_image_task` in bulk_wizard) treats `pool[0]` as the default
+    hero shot, so reordering is the cheapest way to make the pick stick.
+    """
+    if not pool:
         return []
+    if len(pool) < 2 or max_results <= 0:
+        return pool[:max_results]
 
-    # Last resort — screenshot+bbox. This is what the wizard used to do as
-    # the only path; we keep it as a fallback so anti-hotlink-protected
-    # supplier sites still produce something.
-    _emit("Direct download failed for all candidates — falling back to screenshot pipeline")
-    return find_multi_images_via_screenshot(
-        target_label=model_name, supplier_url=supplier_url,
-        upload_folder=upload_folder, brand=brand,
-        max_results=max_results, skip_verify=True, log_cb=log_cb,
-        cancel_event=cancel_event,
-    )
+    upload_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+    image_bytes_list: list[bytes] = []
+    valid_indexes: list[int] = []
+    for i, r in enumerate(pool):
+        rel_path = (r.get('path') or '').lstrip('/')
+        # `path` is stored relative to the static dir (e.g. uploads/foo.jpg).
+        # The legacy single-mode wizard uses absolute paths for downloads,
+        # so try the project-relative `static/<path>` first, then `<path>`
+        # as a fallback for any caller that already passed absolute.
+        candidates = [
+            os.path.join(upload_root, 'static', rel_path),
+            os.path.join(upload_root, rel_path),
+            rel_path,
+        ]
+        b: bytes | None = None
+        for cand in candidates:
+            try:
+                with open(cand, 'rb') as f:
+                    b = f.read()
+                break
+            except OSError:
+                continue
+        if b:
+            image_bytes_list.append(b)
+            valid_indexes.append(i)
+
+    if len(image_bytes_list) < 2:
+        return pool[:max_results]
+
+    try:
+        ai_idx = ai_select_best_image(image_bytes_list, model_name)
+    except Exception as e:
+        try: emit(f"AI hero-pick failed ({type(e).__name__}) — keeping scrape order")
+        except Exception: pass
+        return pool[:max_results]
+
+    if ai_idx is None or not (0 <= ai_idx < len(valid_indexes)):
+        return pool[:max_results]
+
+    pool_idx = valid_indexes[ai_idx]
+    if pool_idx == 0:
+        try: emit(f"AI hero-pick: kept #1 of {len(pool)}")
+        except Exception: pass
+        return pool[:max_results]
+
+    # Move the AI's pick to the front so callers that take pool[0] as the
+    # main image use the right one. Preserve the rest of the order so the
+    # gallery still ranks runner-ups by Brave's original ranking.
+    reordered = [pool[pool_idx]] + [r for j, r in enumerate(pool) if j != pool_idx]
+    try: emit(f"AI hero-pick: promoted #{pool_idx + 1} of {len(pool)}")
+    except Exception: pass
+    return reordered[:max_results]

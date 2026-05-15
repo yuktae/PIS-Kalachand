@@ -14,6 +14,19 @@ import shutil
 import warnings
 from urllib.parse import urlparse, urljoin, quote_plus
 
+# Phase 3.0: gate the per-URL scrape/download/search trace prints behind
+# an env var. Default = quiet (just the structured `[STAGE]` markers from
+# bulk_wizard / single_wizard show up). Set IMAGE_DEBUG=1 to bring them
+# back for diagnosing why a specific product returned 0 candidates.
+_IMAGE_DEBUG = os.getenv("IMAGE_DEBUG", "").lower() in ("1", "true", "yes")
+
+
+def _dbg(msg: str) -> None:
+    """Print only when IMAGE_DEBUG=1 is set."""
+    if _IMAGE_DEBUG:
+        print(msg)
+
+
 # Phase 2.3: silence the noisy `duckduckgo_search` deprecation warning.
 # The `ddgs` package is what we actually want to use, but it transitively
 # imports `duckduckgo_search`, which prints a RuntimeWarning on every call.
@@ -29,13 +42,21 @@ from google.genai import types
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 _MODEL = 'gemini-2.5-flash'
-_client = None
+
+# Phase 3.0: thread-local Gemini clients — see comment in ai_generation.py.
+# Sharing one genai.Client across the bulk-extract worker pool causes
+# "Cannot send a request, as the client has been closed" once any thread
+# finishes a Files-API request.
+import threading as _threading
+_thread_local = _threading.local()
+
 
 def _get_client():
-    global _client
-    if _client is None:
-        _client = genai.Client(api_key=os.getenv('GOOGLE_API_KEY'))
-    return _client
+    c = getattr(_thread_local, 'client', None)
+    if c is None:
+        c = genai.Client(api_key=os.getenv('GOOGLE_API_KEY'))
+        _thread_local.client = c
+    return c
 from PIL import Image
 from .prompt_manager import get_prompt
 
@@ -206,16 +227,16 @@ def search_google_api(query: str, domain: str | None = None) -> list[str]:
         params["siteSearchFilter"] = "i"
 
     def _call():
-        print(f"--- Calling Google Image API with query: '{query}' ---")
+        _dbg(f"--- Calling Google Image API with query: '{query}' ---")
         if domain:
-            print(f"--- Domain filter: {domain} ---")
+            _dbg(f"--- Domain filter: {domain} ---")
 
         resp = requests.get(
             "https://www.googleapis.com/customsearch/v1",
             params=params,
             timeout=10,
         )
-        print(f"--- Google status code: {resp.status_code} ---")
+        _dbg(f"--- Google status code: {resp.status_code} ---")
         data = resp.json()
 
         # Phase 2.3: surface 403/429 as exceptions so the backoff layer
@@ -229,13 +250,13 @@ def search_google_api(query: str, domain: str | None = None) -> list[str]:
             err_text = json.dumps(data)[:200]
             raise RuntimeError(f"Google {resp.status_code}: {err_text}")
         if "items" not in data:
-            print("Google returned NO image results")
+            _dbg("Google returned NO image results")
             if resp.status_code != 200:
-                print(f"--- Google Response Error: {json.dumps(data)[:200]} ---")
+                _dbg(f"--- Google Response Error: {json.dumps(data)[:200]} ---")
             return []
 
         urls = [item["link"] for item in data.get("items", [])]
-        print(f"--- Google returned {len(urls)} image results ---")
+        _dbg(f"--- Google returned {len(urls)} image results ---")
         return urls
 
     try:
@@ -285,12 +306,12 @@ def search_duckduckgo(query: str, max_results: int = 10) -> list[str]:
         return []
 
     def _call():
-        print(f"--- DuckDuckGo Image Search: '{query}' ---")
+        _dbg(f"--- DuckDuckGo Image Search: '{query}' ---")
         ddgs = DDGS()
         results = _ddg_images(ddgs, query, max_results)
         urls = [r.get("image") or r.get("image_url") for r in (results or [])]
         urls = [u for u in urls if u]
-        print(f"--- DuckDuckGo returned {len(urls)} images ---")
+        _dbg(f"--- DuckDuckGo returned {len(urls)} images ---")
         return urls
 
     try:
@@ -302,6 +323,384 @@ def search_duckduckgo(query: str, max_results: int = 10) -> list[str]:
             print(f"--- DuckDuckGo Search Error: {e} ---")
         return []
 
+
+
+# ── Phase 3.1 — Brave Search API (primary URL discovery) ───────────────────
+# Brave returns *real ranked search results* — no LLM hallucination, no
+# stale URL citations, sub-second latency. It's the primary URL source for
+# the auto-extraction flow; Gemini grounded search (defined further down)
+# stays as the fallback when Brave returns empty or hits an error.
+
+_BRAVE_ENDPOINT = "https://api.search.brave.com/res/v1/web/search"
+
+
+def _brave_api_key() -> str | None:
+    return os.getenv("BRAVE_SEARCH_API_KEY")
+
+
+# Hosts we never want as a discovered product page — same list as
+# discover_supplier_url's `_BAD_URL_HOSTS`. Cross-checked here so search
+# engines don't smuggle social/marketplace URLs into the auto-extraction
+# pipeline.
+_BAD_DISCOVERY_HOSTS = (
+    "google.", "bing.", "duckduckgo.", "startpage.", "yahoo.",
+    "facebook.", "instagram.", "twitter.", "x.com", "tiktok.",
+    "youtube.", "wikipedia.", "pinterest.", "reddit.",
+    "alibaba.", "aliexpress.",
+)
+
+
+def _is_bad_discovery_url(url: str) -> bool:
+    u = (url or "").lower()
+    return any(h in u for h in _BAD_DISCOVERY_HOSTS)
+
+
+def discover_urls_via_brave(model_name: str,
+                              brand: str | None = None,
+                              max_results: int = 2,
+                              log_cb=None) -> list[str]:
+    """Query Brave Search for the top product page URLs. Returns up to
+    `max_results` http(s) URLs from the organic results. Returns [] on
+    any failure (no API key, HTTP error, no usable results) — caller
+    decides whether to fall back to another engine.
+
+    Brand-domain bias: when the brand is in our `BRAND_OFFICIAL_DOMAINS`
+    map, we try a `site:<domain>` query first (cheap shortcut to the
+    manufacturer page) and only fall back to a generic query if that
+    returns nothing.
+    """
+    if not model_name:
+        return []
+    api_key = _brave_api_key()
+    if not api_key:
+        if log_cb:
+            try: log_cb("Brave: no API key configured")
+            except Exception: pass
+        return []
+
+    clean = clean_search_query(model_name)
+    brand_clean = (brand or "").strip()
+    brand_domain = resolve_brand_domain(brand_clean)
+
+    queries: list[str] = []
+    # Manufacturer-locked first — typically gives the cleanest hero shot.
+    if brand_domain:
+        queries.append(f"{clean} site:{brand_domain}")
+    # Plain search — works for SKU-shaped names that don't match a known brand.
+    queries.append(f"{clean} official" if not brand_clean
+                   else f"{brand_clean} {clean} official")
+
+    headers = {
+        "X-Subscription-Token": api_key,
+        "Accept": "application/json",
+    }
+    seen: set[str] = set()
+    out: list[str] = []
+
+    for q in queries:
+        if len(out) >= max_results:
+            break
+        try:
+            r = requests.get(
+                _BRAVE_ENDPOINT,
+                headers=headers,
+                params={"q": q, "count": 10, "safesearch": "moderate"},
+                timeout=5,
+            )
+        except Exception as e:
+            if log_cb:
+                try: log_cb(f"Brave HTTP error: {type(e).__name__}")
+                except Exception: pass
+            continue
+        if r.status_code != 200:
+            if log_cb:
+                try: log_cb(f"Brave HTTP {r.status_code} for {q!r}")
+                except Exception: pass
+            continue
+        try:
+            data = r.json()
+        except Exception:
+            continue
+
+        for item in (data.get("web", {}) or {}).get("results", []) or []:
+            url = (item.get("url") or "").strip()
+            if not url or url in seen:
+                continue
+            if _is_bad_discovery_url(url):
+                continue
+            seen.add(url)
+            out.append(url)
+            if len(out) >= max_results:
+                break
+
+    if log_cb:
+        try: log_cb(f"Brave → {len(out)} URL(s)")
+        except Exception: pass
+    return out
+
+
+# ── Phase 3.0 — Gemini grounded URL discovery (fallback) ───────────────────
+# Used when Brave returns nothing — covers the rare cases where the product
+# is too obscure for Brave's index to rank. Cited URLs may be stale (404)
+# or wrapped in grounding-redirect proxies, both handled defensively below.
+
+def discover_urls_via_gemini(model_name: str,
+                              brand: str | None = None,
+                              max_results: int = 2,
+                              log_cb=None) -> list[str]:
+    """Ask Gemini (with Google Search grounding) for the most authoritative
+    product page URLs. Returns up to `max_results` http(s) URLs.
+
+    On any failure (grounding tool error, malformed JSON, no results)
+    returns []. Caller should treat that as "no web URLs available" and
+    rely on PDF-extracted images / manual entry instead — never raise.
+
+    `log_cb`: optional callable for one summary line per call. Internal
+    debug detail goes to stdout only when IMAGE_DEBUG=1.
+    """
+    if not model_name:
+        return []
+
+    brand_hint = f" by {brand}" if brand and brand.lower() not in model_name.lower() else ""
+    # Small oversample so that if the top suggestion 404s the downstream
+    # parallel fetch can still satisfy `max_results`. Bigger oversamples
+    # actually *hurt* quality because Gemini starts citing weaker results.
+    ask_for = max_results + 1
+    prompt = (
+        f'Find the {ask_for} most authoritative product page URLs for: '
+        f'"{model_name}"{brand_hint}.\n\n'
+        f'Prefer the manufacturer\'s official site first, then major retailers. '
+        f'Avoid comparison blogs, listicles, and social media. '
+        f'Only suggest URLs that appear in the search results — '
+        f'do NOT include URLs from memory.\n\n'
+        f'Return ONLY a JSON array of URL strings. No prose, no markdown, '
+        f'no code fences. Example: '
+        f'["https://manufacturer.com/product/x", "https://retailer.com/p/x"]'
+    )
+
+    try:
+        response = _get_client().models.generate_content(
+            model=_MODEL,
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                tools=[types.Tool(google_search=types.GoogleSearch())],
+                temperature=0.0,
+            ),
+        )
+    except Exception as e:
+        if log_cb:
+            try: log_cb(f"Gemini URL discovery failed: {type(e).__name__}")
+            except Exception: pass
+        return []
+
+    text = (getattr(response, 'text', None) or '').strip()
+    if text.startswith('```'):
+        text = re.sub(r'^```[a-zA-Z]*\s*|\s*```$', '', text).strip()
+
+    raw_urls: list[str] = []
+    seen: set[str] = set()
+
+    def _push(u: str) -> bool:
+        u = u.strip().rstrip('.,;:)')
+        if not (u.startswith('http://') or u.startswith('https://')):
+            return False
+        # Sanity guard against LLM repetition glitches: gemini-2.5-flash
+        # occasionally produces URLs with hundreds of repeated digits
+        # (e.g. `/p_1000…000…`). Cap on length AND reject any URL with a
+        # run of >20 identical chars — both are well clear of any sane
+        # real product URL.
+        if len(u) > 400 or re.search(r'(.)\1{20,}', u):
+            return False
+        if u in seen:
+            return False
+        seen.add(u)
+        raw_urls.append(u)
+        return len(raw_urls) >= ask_for
+
+    try:
+        parsed = json.loads(text)
+        if isinstance(parsed, list):
+            for u in parsed:
+                if isinstance(u, str) and _push(u):
+                    break
+    except Exception:
+        for m in re.finditer(r'https?://[^\s\'")>\]]+', text):
+            if _push(m.group(0)):
+                break
+
+    # Fallback: if the model returned no URLs in text (or all were
+    # malformed), pull from grounding metadata directly.
+    if not raw_urls:
+        try:
+            gm = response.candidates[0].grounding_metadata
+            for chunk in (getattr(gm, 'grounding_chunks', None) or []):
+                web = getattr(chunk, 'web', None)
+                if web and getattr(web, 'uri', None):
+                    if _push(web.uri):
+                        break
+        except Exception:
+            pass
+
+    # Resolve Gemini's grounding-redirect proxy URLs to the real target.
+    # We deliberately do NOT HEAD-check live-ness — empirically that costs
+    # more than it saves: HEAD on the malformed/large URLs Gemini sometimes
+    # cites can hang for minutes (server doesn't fast-fail on a 400-char
+    # path), and the downstream parallel fetcher already returns [] cleanly
+    # in ~1s on a 404. The small oversample above (ask_for = max_results+1)
+    # gives us one spare URL in case the top suggestion is dead.
+    resolved: list[str] = []
+    if raw_urls:
+        with ThreadPoolExecutor(max_workers=len(raw_urls)) as ex:
+            for live in ex.map(_resolve_grounding_redirect, raw_urls):
+                if live and live not in resolved:
+                    resolved.append(live)
+                    if len(resolved) >= max_results:
+                        break
+
+    if log_cb:
+        try: log_cb(f"Gemini → {len(resolved)} URL(s)")
+        except Exception: pass
+    return resolved[:max_results]
+
+
+_GROUNDING_PROXY_HOST = "vertexaisearch.cloud.google.com"
+
+
+def _resolve_grounding_redirect(url: str) -> str | None:
+    """Follow Gemini's grounding-api-redirect proxy to its real target via
+    one HEAD request. Pass-through for non-proxy URLs. Returns None only
+    if a proxy URL fails to resolve."""
+    if not url:
+        return None
+    if _GROUNDING_PROXY_HOST not in url:
+        return url
+    try:
+        r = requests.head(url, allow_redirects=False, timeout=5)
+        loc = r.headers.get('location')
+        if loc and (loc.startswith('http://') or loc.startswith('https://')):
+            return loc
+    except Exception:
+        pass
+    return None
+
+
+def discover_urls(model_name: str,
+                  brand: str | None = None,
+                  max_results: int = 2,
+                  log_cb=None) -> list[str]:
+    """Discover the top product page URLs for `model_name`.
+
+    Strategy: Brave Search API first (real ranked results, ~300ms, no
+    hallucination). If Brave returns empty (no key, HTTP error, no
+    matching results), fall back to Gemini grounded search (`google_search`
+    tool, ~3-5s, may cite stale URLs but covers the long tail).
+
+    Returns up to `max_results` URLs, never raises.
+    """
+    urls = discover_urls_via_brave(model_name, brand=brand,
+                                   max_results=max_results, log_cb=log_cb)
+    if urls:
+        return urls
+    if log_cb:
+        try: log_cb("Brave returned 0 — trying Gemini fallback")
+        except Exception: pass
+    return discover_urls_via_gemini(model_name, brand=brand,
+                                    max_results=max_results, log_cb=log_cb)
+
+
+# ── Phase 3.3 — Web context for PIS content extraction ─────────────────────
+# Pulls clean page text from the same Brave-discovered URLs the image
+# pipeline uses, then feeds it to `generate_pis_data` as `web_context`.
+# Without this, content extraction sees only the proforma — which often
+# yields zero technical specs for sparse spec sheets. With it, Gemini
+# cross-references the proforma against the manufacturer page and pulls
+# the full spec table from the live site.
+
+# Tags inside the HTML we strip before extracting text — these contain
+# nav, scripts, ads, etc., which would just consume tokens without adding
+# any product information.
+_HTML_NOISE_TAGS = (
+    'script', 'style', 'noscript',
+    'nav', 'header', 'footer', 'aside',
+    'iframe', 'svg', 'form', 'button',
+)
+
+# Soft cap on the combined page text before we send it to Gemini. ~8KB is
+# roughly 2k tokens, generous enough to cover a full spec table + product
+# description from one page, cheap enough to stay well under input limits.
+_WEB_CONTEXT_BYTE_CAP = 8000
+
+
+def _fetch_clean_page_text(url: str, timeout: float = 8.0) -> str:
+    """HTTP GET `url`, strip nav/script/footer/etc., return cleaned text.
+    Returns '' on any failure — never raises. Cap individual page text
+    to half the global cap so two pages can't blow the budget combined."""
+    if not url:
+        return ""
+    try:
+        from bs4 import BeautifulSoup
+        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
+                                 'AppleWebKit/537.36'}
+        r = requests.get(url, headers=headers, timeout=timeout)
+        if r.status_code != 200:
+            return ""
+        soup = BeautifulSoup(r.content, 'html.parser')
+        for tag in soup(_HTML_NOISE_TAGS):
+            tag.decompose()
+        # `.get_text(' ', strip=True)` collapses each text node and joins
+        # them with single spaces — keeps spec table cells separated
+        # without preserving every line break.
+        text = soup.get_text(' ', strip=True)
+        # Collapse runs of whitespace.
+        text = re.sub(r'\s+', ' ', text)
+        # Trim to half the global cap so a single bloated page can't
+        # drown out the second page's contribution.
+        return text[: _WEB_CONTEXT_BYTE_CAP // 2]
+    except Exception:
+        return ""
+
+
+def gather_web_context_for_content(model_name: str,
+                                     brand: str | None = None,
+                                     max_urls: int = 2,
+                                     log_cb=None) -> str:
+    """Discover the top product-page URLs via the same Brave→Gemini
+    pipeline used for image discovery, fetch each page's text in parallel,
+    and return ONE combined cleaned string suitable for handing to
+    `generate_pis_data` as `web_context`.
+
+    Returns '' on any failure (no URLs discovered, all fetches failed).
+    Caller treats '' as "no web context available" and proceeds with
+    proforma-only extraction.
+    """
+    if not model_name:
+        return ""
+
+    urls = discover_urls(model_name, brand=brand,
+                         max_results=max_urls, log_cb=log_cb)
+    if not urls:
+        return ""
+
+    with ThreadPoolExecutor(max_workers=len(urls)) as ex:
+        texts = list(ex.map(_fetch_clean_page_text, urls))
+
+    # Tag each page with its source URL so Gemini knows where each block
+    # came from when it cross-references against the proforma.
+    parts: list[str] = []
+    for url, text in zip(urls, texts):
+        if not text:
+            continue
+        parts.append(f"--- SOURCE: {url} ---\n{text}")
+
+    combined = "\n\n".join(parts)
+    if len(combined) > _WEB_CONTEXT_BYTE_CAP:
+        combined = combined[:_WEB_CONTEXT_BYTE_CAP] + "\n[…truncated]"
+
+    if log_cb:
+        try: log_cb(f"web context: {len(combined)} chars from "
+                    f"{sum(1 for t in texts if t)}/{len(urls)} page(s)")
+        except Exception: pass
+    return combined
 
 
 def clean_search_query(query: str) -> str:
@@ -340,7 +739,7 @@ def clean_search_query(query: str) -> str:
     query = re.sub(r"(\s|^)-(?=\S)", r"\1", query)
 
     cleaned = " ".join(query.split())
-    print(f"--- Cleaned Search Query: '{cleaned}' ---")
+    _dbg(f"--- Cleaned Search Query: '{cleaned}' ---")
     return cleaned
 
 
@@ -423,6 +822,240 @@ def ai_select_best_image(image_list: list[bytes], product_name: str) -> int | No
     except Exception as e:
         print(f"Batch AI Image Selection failed: {e}")
         return None
+
+
+# ── Phase 3.2 — User-triggered AI image actions (Edit PIS) ─────────────────
+# Two distinct flows backed by two different Google models:
+#   • enhance_image_with_gemini → gemini-2.5-flash-image (image-in + image-out).
+#     Faithful retouch — keeps the product pixel-identical, only fixes
+#     background, lighting, stray artifacts. User picks a starting image.
+#   • generate_image_with_imagen → imagen-4.0-generate-001 (text-only).
+#     Synthetic generation from the product description. No source image.
+# Both honour an optional user_note that's appended to the system prompt
+# so the user can steer ("remove the white line on the left", "modern
+# living-room background", etc.).
+
+_IMAGEN_MODEL = 'imagen-4.0-generate-001'
+_RETOUCH_MODEL = 'gemini-2.5-flash-image'
+
+_RETOUCH_SYSTEM_PROMPT = (
+    "You are a professional product-photo retoucher.\n\n"
+    "Clean up the attached product photo for an e-commerce catalog.\n\n"
+    "ABSOLUTELY STRICT RULES — NO EXCEPTIONS:\n"
+    "1. Do NOT alter the product itself in any way. Do NOT change colors, "
+    "   materials, textures, proportions, or shape.\n"
+    "2. Do NOT add or remove product features, buttons, knobs, ports, or "
+    "   labels.\n"
+    "3. Do NOT change the product's pose, framing, or perspective.\n"
+    "4. Only fix surrounding issues: distracting backgrounds, stray lines, "
+    "   shadows that obscure the product, watermarks, color casts, "
+    "   uneven lighting on the backdrop.\n"
+    "5. Output the product on a clean, uniform background — pure white "
+    "   (#FFFFFF) by default unless the user direction below says otherwise.\n"
+    "6. 4:3 LANDSCAPE aspect ratio. Product centered with modest margin.\n"
+    "7. No text, watermarks, borders, or decorative elements added.\n\n"
+    "USER DIRECTION (optional — overrides the default cleanup behaviour "
+    "where it conflicts):\n"
+    "{user_note}"
+)
+
+
+def enhance_image_with_gemini(image_path: str,
+                               product_name: str,
+                               upload_folder: str,
+                               user_note: str | None = None) -> str | None:
+    """Send an existing product photo to Gemini's image-out model with the
+    'retouch, don't recreate' system prompt + an optional user note.
+
+    `image_path` should be either an absolute path to an image file on disk
+    OR a relative path (`uploads/foo.jpg`). The function tries a few common
+    roots before giving up.
+
+    Returns the saved relative path (e.g. `uploads/enhanced_…jpg`) on
+    success, or None on any failure (file missing, model error, output
+    was solid/blank). Never raises.
+    """
+    from PIL import Image as _PIL_Image
+    if not image_path:
+        return None
+
+    # Locate the source file. Candidates: absolute, project-static, project-root.
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    rel = image_path.lstrip('/')
+    src_candidates = [
+        image_path,
+        os.path.join(project_root, 'static', rel),
+        os.path.join(project_root, rel),
+        os.path.join(upload_folder, os.path.basename(rel)),
+    ]
+    src_bytes: bytes | None = None
+    for cand in src_candidates:
+        try:
+            with open(cand, 'rb') as f:
+                src_bytes = f.read()
+            break
+        except OSError:
+            continue
+    if not src_bytes:
+        print(f"  ⚠ Retouch: source image not found ({image_path!r})")
+        return None
+
+    note = (user_note or "").strip() or "(none — apply default cleanup)"
+    prompt = _RETOUCH_SYSTEM_PROMPT.format(user_note=note)
+
+    # Heterogeneous content list (str + Part) — widened so Pyrefly accepts
+    # it against the SDK's `Content | str | Part | list[...]` union.
+    from typing import Any
+    contents: list[Any] = [prompt,
+                           types.Part.from_bytes(data=src_bytes, mime_type="image/png")]
+
+    try:
+        response = _get_client().models.generate_content(
+            model=_RETOUCH_MODEL,
+            contents=contents,
+        )
+    except Exception as e:
+        print(f"  ⚠ Retouch model call failed: {type(e).__name__}: {e}")
+        return None
+
+    # Walk response parts looking for inline image bytes — same shape as
+    # the nano-banana isolation pipeline.
+    candidates = getattr(response, 'candidates', None) or []
+    for cand in candidates:
+        content = getattr(cand, 'content', None)
+        parts = getattr(content, 'parts', None) or []
+        for part in parts:
+            inline = getattr(part, 'inline_data', None)
+            if not (inline and getattr(inline, 'data', None)):
+                continue
+            try:
+                out_img = _PIL_Image.open(io.BytesIO(inline.data))
+                if out_img.mode != 'RGB':
+                    out_img = out_img.convert('RGB')
+            except Exception as e:
+                print(f"  ⚠ Retouch: PIL failed on returned bytes: {e}")
+                continue
+
+            safe_name = secure_filename(product_name) or 'product'
+            filename = f"enhanced_{safe_name}_{int(time.time())}.jpg"
+            save_path = os.path.join(upload_folder, filename)
+            try:
+                out_img.save(save_path, 'JPEG', quality=92)
+            except Exception as e:
+                print(f"  ⚠ Retouch: save failed: {e}")
+                return None
+            try:
+                print(f"  ✨ Retouch saved → {filename} ({out_img.size[0]}x{out_img.size[1]})")
+            except UnicodeEncodeError:
+                print(f"  Retouch saved -> {filename} ({out_img.size[0]}x{out_img.size[1]})")
+            return f"uploads/{filename}"
+
+    print("  Retouch: model returned no inline image data")
+    return None
+
+
+def generate_image_with_imagen(product_name: str,
+                                upload_folder: str,
+                                brand: str | None = None,
+                                description: str | None = None,
+                                user_note: str | None = None) -> str | None:
+    """Generate a synthetic product photo from a text description via
+    Google Imagen 4 (`imagen-4.0-generate-001`). No source image needed —
+    the model invents one from the spec block.
+
+    Returns the saved relative path (e.g. `uploads/generated_…jpg`) on
+    success, or None on any failure. Never raises.
+
+    The output is always tagged synthetic at the call site
+    (`source='ai_synthetic'`) so the gallery can warn reviewers it's not
+    a real photo.
+    """
+    from PIL import Image as _PIL_Image
+    if not product_name:
+        return None
+
+    spec_lines = [f"Product: {product_name}"]
+    if brand:
+        spec_lines.append(f"Brand: {brand}")
+    if description:
+        # Keep the description short — Imagen prompts work best under ~500 chars.
+        spec_lines.append(f"Description: {description.strip()[:400]}")
+
+    spec = "\n".join(spec_lines)
+    note = (user_note or "").strip()
+
+    # IMPORTANT: don't embed hex color codes or numeric-looking specs in the
+    # prompt — Imagen has been observed to render them literally as text
+    # watermarks (e.g. rendering "#FFFFFF" in the corner). Use plain English.
+    prompt = (
+        "Professional e-commerce product photograph.\n\n"
+        f"{spec}\n\n"
+        "Studio lighting, pure white seamless background, 4:3 landscape, "
+        "product centered, modest margin on all sides. Sharp focus, "
+        "true-to-life colors, no watermark, no decorative props.\n\n"
+        "ABSOLUTELY NO TEXT, NUMBERS, OR LABELS ANYWHERE IN THE IMAGE — STRICT:\n"
+        "- Do NOT render the product name, brand name, model number, "
+        "  description, year, size, resolution, audio brand, or any words "
+        "  or digits anywhere in the image — not on the product, not "
+        "  beside it, not in the corner, not as a watermark.\n"
+        "- Do NOT paint captions, taglines, badges, stickers, version "
+        "  numbers, hex codes, or UI overlays onto the product.\n"
+        "- If the product has a screen (TV, phone, tablet, monitor, "
+        "  appliance display), show ONLY a clean abstract visual — a soft "
+        "  gradient or neutral solid color. ABSOLUTELY NO app tiles, NO "
+        "  icons, NO menus, NO 'Smart TV' or 'Google TV' or 'Dolby' "
+        "  labels, NO on-screen text, NO row of app shortcuts.\n"
+        "- The only acceptable graphic mark is the small physical brand "
+        "  logo where it naturally appears on the product hardware "
+        "  (e.g. a stamped bezel logo). Render it small, neutral, and "
+        "  do not invent a logo that isn't in the actual brand's "
+        "  identity.\n"
+        "- No background text, no floor text, no shelf-talker labels, "
+        "  no hex color codes visible anywhere."
+    )
+    if note:
+        prompt += f"\n\nADDITIONAL DIRECTION FROM USER:\n{note}"
+
+    try:
+        response = _get_client().models.generate_images(
+            model=_IMAGEN_MODEL,
+            prompt=prompt,
+            config={'number_of_images': 1, 'aspect_ratio': '4:3'},
+        )
+    except Exception as e:
+        print(f"  ⚠ Imagen call failed: {type(e).__name__}: {e}")
+        return None
+
+    images = getattr(response, 'generated_images', None) or []
+    if not images:
+        print("  ⚠ Imagen returned no images")
+        return None
+
+    img_data = getattr(images[0].image, 'image_bytes', None)
+    if not img_data:
+        return None
+
+    try:
+        out_img = _PIL_Image.open(io.BytesIO(img_data))
+        if out_img.mode != 'RGB':
+            out_img = out_img.convert('RGB')
+    except Exception as e:
+        print(f"  ⚠ Imagen: PIL failed on returned bytes: {e}")
+        return None
+
+    safe_name = secure_filename(product_name) or 'product'
+    filename = f"generated_{safe_name}_{int(time.time())}.jpg"
+    save_path = os.path.join(upload_folder, filename)
+    try:
+        out_img.save(save_path, 'JPEG', quality=92)
+    except Exception as e:
+        print(f"  ⚠ Imagen: save failed: {e}")
+        return None
+    try:
+        print(f"  🎨 Imagen saved → {filename} ({out_img.size[0]}x{out_img.size[1]})")
+    except UnicodeEncodeError:
+        print(f"  Imagen saved -> {filename} ({out_img.size[0]}x{out_img.size[1]})")
+    return f"uploads/{filename}"
 
 
 def download_image_bytes(image_url: str) -> bytes | None:
@@ -571,7 +1204,7 @@ def scrape_images_from_url(url: str) -> list[str]:
         if twitter_image and twitter_image.get('content'):
             add_image(twitter_image['content'])
         
-        print(f"--- Scraped {len(images)} images from {url} ---")
+        _dbg(f"--- Scraped {len(images)} images from {url} ---")
         return images[:15]  # Cap at 15
         
     except Exception as e:
@@ -755,7 +1388,7 @@ def download_web_image(image_url, model_name, upload_folder):
             return None 
             
         headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
-        print(f"--- Attempting Web Download for {model_name}: {image_url} ---")
+        _dbg(f"--- Attempting Web Download for {model_name}: {image_url} ---")
         response = requests.get(image_url, headers=headers, timeout=15)
         
         if response.status_code == 200:
@@ -805,7 +1438,7 @@ def download_web_image(image_url, model_name, upload_folder):
             
             # Final check: verify saved file has content
             if os.path.exists(save_path) and os.path.getsize(save_path) > 500:
-                print(f"--- Web Download Success: {filename} ({len(image_data)} bytes) ---")
+                _dbg(f"--- Web Download Success: {filename} ({len(image_data)} bytes) ---")
                 return f"uploads/{filename}"
             else:
                 # Clean up corrupt file
