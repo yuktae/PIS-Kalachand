@@ -100,8 +100,11 @@ def classify_product_category(product_data):
     print("\n📤 Sending request to Gemini AI...")
 
     try:
-        response = _get_client().models.generate_content(
+        from .api_metering import gemini_call
+        response = gemini_call(
+            prompt_id='category_classification',
             model=_MODEL,
+            client=_get_client(),
             contents=prompt,
             config=types.GenerateContentConfig(response_mime_type="application/json")
         )

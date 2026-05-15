@@ -148,6 +148,22 @@ def create_app() -> Flask:
         except Exception:
             pass
 
+        # ── Idempotent column adds for tables that existed before a model
+        # column was introduced. `create_all(checkfirst=True)` only creates
+        # missing TABLES — it never alters existing tables. Use Postgres'
+        # `ADD COLUMN IF NOT EXISTS` so this is a safe no-op on every boot.
+        try:
+            with db.engine.connect() as conn:
+                conn.execute(db.text(
+                    "ALTER TABLE job ADD COLUMN IF NOT EXISTS total_cost_usd NUMERIC(12, 6) DEFAULT 0"
+                ))
+                conn.execute(db.text(
+                    "ALTER TABLE job ADD COLUMN IF NOT EXISTS total_calls INTEGER DEFAULT 0"
+                ))
+                conn.commit()
+        except Exception as e:
+            print(f'ℹ️ Job column migration note: {e}')
+
         # Install PostgreSQL audit trigger (uses advisory lock for multi-worker safety)
         try:
             audit_trigger_path = os.path.join(basedir, 'audit_trigger.sql')

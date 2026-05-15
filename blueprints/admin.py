@@ -5,7 +5,7 @@ import json
 
 from flask import Blueprint, session, redirect, url_for, render_template, request, jsonify, flash
 
-from model import db, User, ProductVersion, FieldChangeLog, Product, ProductHistory, Job
+from model import db, User, ProductVersion, FieldChangeLog, Product, ProductHistory, Job, ApiCallLog
 from utils.prompt_manager import (
     load_all_prompts, save_prompt as save_prompt_to_db,
     reset_prompt as reset_prompt_to_default, reset_all_prompts,
@@ -162,28 +162,141 @@ def admin_stats():
         daily_counts.append({'label': day.strftime('%d %b'), 'short': day.strftime('%a'), 'value': cnt})
 
     # ── Section 3: AI / Job Activity ──────────────────────────────────────
+    # Period scope — admin can pass ?ai_period=7|30|all (default 30 days).
+    # Spend/calls/breakdowns all use the same window so the section reads
+    # coherently. Success Rate stays all-time because it's a quality metric.
+    period_arg = (request.args.get('ai_period') or '30').lower()
+    if period_arg == '7':
+        period_days = 7
+        period_label = 'Last 7 days'
+    elif period_arg in ('all', '0'):
+        period_days = None
+        period_label = 'All time'
+    else:
+        period_days = 30
+        period_label = 'Last 30 days'
+
+    period_start = (now - timedelta(days=period_days)) if period_days else None
+
+    # Success rate uses ALL completed/failed jobs — health, not spend.
     total_jobs     = Job.query.count()
     completed_jobs = Job.query.filter_by(status='completed').count()
     failed_jobs    = Job.query.filter_by(status='failed').count()
-    queued_jobs    = Job.query.filter(Job.status.in_(['queued', 'processing'])).count()
     success_rate   = round((completed_jobs / total_jobs * 100), 1) if total_jobs else 0
 
-    # Average job duration (completed jobs only)
-    avg_job_seconds = 0
-    completed_with_times = (Job.query
-                            .filter(Job.status == 'completed',
-                                    Job.completed_at.isnot(None))
-                            .all())
-    if completed_with_times:
-        durations = [(j.completed_at - j.created_at).total_seconds()
-                     for j in completed_with_times if j.created_at]
-        if durations:
-            avg_job_seconds = round(sum(durations) / len(durations), 1)
+    # Spend / call aggregates — period-scoped on ApiCallLog.
+    log_q = ApiCallLog.query
+    if period_start is not None:
+        log_q = log_q.filter(ApiCallLog.created_at >= period_start)
 
-    recent_jobs = Job.query.order_by(Job.created_at.desc()).limit(8).all()
+    period_calls = log_q.count()
+    period_cost  = (db.session.query(func.coalesce(func.sum(ApiCallLog.cost_usd), 0))
+                    .filter(ApiCallLog.created_at >= period_start)
+                    .scalar() if period_start is not None else
+                    db.session.query(func.coalesce(func.sum(ApiCallLog.cost_usd), 0)).scalar())
+    period_cost = float(period_cost or 0)
 
-    # Jobs over last 7 days
-    jobs_last_week = Job.query.filter(Job.created_at >= week_ago).count()
+    # Spend per completed job in window — use window-scoped completed jobs
+    # so the avg matches the rest of the panel.
+    if period_start is not None:
+        period_jobs_done = Job.query.filter(Job.status == 'completed',
+                                            Job.created_at >= period_start).count()
+    else:
+        period_jobs_done = completed_jobs
+    avg_cost_per_job = (period_cost / period_jobs_done) if period_jobs_done else 0.0
+
+    # Provider breakdown — one row per (provider, model) pair, sorted by spend.
+    provider_rows_q = (db.session.query(
+            ApiCallLog.provider,
+            ApiCallLog.model,
+            func.count(ApiCallLog.id).label('calls'),
+            func.coalesce(func.sum(ApiCallLog.input_tokens), 0).label('in_tok'),
+            func.coalesce(func.sum(ApiCallLog.output_tokens), 0).label('out_tok'),
+            func.coalesce(func.sum(ApiCallLog.image_count), 0).label('images'),
+            func.coalesce(func.sum(ApiCallLog.query_count), 0).label('queries'),
+            func.coalesce(func.sum(ApiCallLog.cost_usd), 0).label('cost'),
+        )
+        .group_by(ApiCallLog.provider, ApiCallLog.model))
+    if period_start is not None:
+        provider_rows_q = provider_rows_q.filter(ApiCallLog.created_at >= period_start)
+    provider_rows_raw = provider_rows_q.all()
+
+    def _provider_label(provider, model):
+        # Friendly labels for the UI.
+        if provider == 'gemini':
+            return f"Gemini {model.replace('gemini-', '')}" if model else 'Gemini'
+        return {
+            'google_cse':   'Google Custom Search',
+            'brave_search': 'Brave Search',
+            'duckduckgo':   'DuckDuckGo',
+            'web_scraper':  'Web scraper',
+        }.get(provider, provider.title())
+
+    provider_breakdown = []
+    for r in provider_rows_raw:
+        cost = float(r.cost or 0)
+        usage_bits = []
+        if r.in_tok or r.out_tok:
+            usage_bits.append(f"{int(r.in_tok):,} in / {int(r.out_tok):,} out tokens")
+        if r.images:
+            usage_bits.append(f"{int(r.images):,} images")
+        if r.queries:
+            usage_bits.append(f"{int(r.queries):,} queries")
+        provider_breakdown.append({
+            'label': _provider_label(r.provider, r.model),
+            'provider': r.provider,
+            'calls':  int(r.calls or 0),
+            'usage':  ' · '.join(usage_bits) or '—',
+            'cost':   cost,
+            'share':  (cost / period_cost * 100) if period_cost > 0 else 0,
+        })
+    provider_breakdown.sort(key=lambda x: x['cost'], reverse=True)
+    providers_count = len(provider_breakdown)
+
+    # Top prompts by spend.
+    prompt_rows_q = (db.session.query(
+            ApiCallLog.prompt_id,
+            func.count(ApiCallLog.id).label('calls'),
+            func.coalesce(func.sum(ApiCallLog.cost_usd), 0).label('cost'),
+        )
+        .filter(ApiCallLog.prompt_id.isnot(None))
+        .group_by(ApiCallLog.prompt_id))
+    if period_start is not None:
+        prompt_rows_q = prompt_rows_q.filter(ApiCallLog.created_at >= period_start)
+    top_prompts = []
+    for r in prompt_rows_q.all():
+        cost = float(r.cost or 0)
+        calls = int(r.calls or 0)
+        top_prompts.append({
+            'prompt_id': r.prompt_id,
+            'calls':     calls,
+            'cost':      cost,
+            'avg_cost':  (cost / calls) if calls else 0.0,
+        })
+    top_prompts.sort(key=lambda x: x['cost'], reverse=True)
+    top_prompts = top_prompts[:5]
+    top_prompt_label = str(top_prompts[0]['prompt_id']).replace('_', ' ').title() if top_prompts else None
+    top_prompt_cost  = top_prompts[0]['cost'] if top_prompts else 0.0
+
+    # 14-day spend trend (oldest → newest).
+    trend = []
+    for i in range(13, -1, -1):
+        day = now - timedelta(days=i)
+        day_start = day.replace(hour=0, minute=0, second=0, microsecond=0)
+        day_end   = day_start + timedelta(days=1)
+        day_cost = (db.session.query(func.coalesce(func.sum(ApiCallLog.cost_usd), 0))
+                    .filter(ApiCallLog.created_at >= day_start,
+                            ApiCallLog.created_at < day_end).scalar()) or 0
+        day_calls = (db.session.query(func.count(ApiCallLog.id))
+                     .filter(ApiCallLog.created_at >= day_start,
+                             ApiCallLog.created_at < day_end).scalar()) or 0
+        trend.append({
+            'label': day.strftime('%d %b'),
+            'short': day.strftime('%a'),
+            'cost':  float(day_cost),
+            'calls': int(day_calls),
+        })
+    trend_max_cost = max((d['cost'] for d in trend), default=0.0)
 
     # ── Section 4: Team Activity ──────────────────────────────────────────
     user_activity = (db.session.query(
@@ -224,11 +337,21 @@ def admin_stats():
         total_jobs=total_jobs,
         completed_jobs=completed_jobs,
         failed_jobs=failed_jobs,
-        queued_jobs=queued_jobs,
         success_rate=success_rate,
-        avg_job_seconds=avg_job_seconds,
-        jobs_last_week=jobs_last_week,
-        recent_jobs=recent_jobs,
+        # AI / Job Activity — period-scoped panel
+        ai_period=period_arg,
+        ai_period_label=period_label,
+        period_calls=period_calls,
+        period_cost=period_cost,
+        period_jobs_done=period_jobs_done,
+        avg_cost_per_job=avg_cost_per_job,
+        providers_count=providers_count,
+        provider_breakdown=provider_breakdown,
+        top_prompts=top_prompts,
+        top_prompt_label=top_prompt_label,
+        top_prompt_cost=top_prompt_cost,
+        spend_trend=trend,
+        trend_max_cost=trend_max_cost,
         user_activity=user_activity_list,
         role_activity=role_activity,
         most_active_user=most_active_user,

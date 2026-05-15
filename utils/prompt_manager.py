@@ -473,7 +473,7 @@ IMPORTANT:
     },
     {
         "id": "image_match_verification",
-        "name": "Image Match Verification (Phase 2.2)",
+        "name": "Image Match Verification",
         "description": "Yes/no check that a candidate image (a PDF crop or webpage screenshot crop) actually shows the requested product. Used immediately after extraction to catch mis-aligned crops before they get saved.",
         "category": "Image Processing",
         "prompt": """You are a strict visual quality gate.
@@ -499,7 +499,7 @@ or
     },
     {
         "id": "webpage_product_crop",
-        "name": "Webpage Product Bounding Box (Phase 2.2)",
+        "name": "Webpage Product Bounding Box",
         "description": "Used in the screenshot fallback: given a full-page screenshot of a product detail page, returns the bounding box of the primary product photo so we can crop it out cleanly.",
         "category": "Image Processing",
         "prompt": """You are looking at a full-page screenshot of a product detail webpage.

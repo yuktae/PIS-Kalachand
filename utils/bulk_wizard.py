@@ -351,8 +351,11 @@ def triage_scan(file_paths: list[str], origin_hint: str | None = None,
             time.sleep(0.5)
             uploaded = _get_client().files.get(name=file_name)
 
-        response = _get_client().models.generate_content(
+        from .api_metering import gemini_call
+        response = gemini_call(
+            prompt_id='bulk_triage_scan',
             model=_MODEL,
+            client=_get_client(),
             contents=[prompt, uploaded],
             config=types.GenerateContentConfig(response_mime_type="application/json"),
         )
@@ -555,8 +558,11 @@ def _extract_variant_pis(file_paths: list[str], primary_name: str,
             uploaded.append(uf)
 
         contents = [prompt] + uploaded
-        response = client.models.generate_content(
+        from .api_metering import gemini_call
+        response = gemini_call(
+            prompt_id='bulk_variant_pis_extraction',
             model=_MODEL,
+            client=client,
             contents=contents,
             config=types.GenerateContentConfig(response_mime_type="application/json"),
         )

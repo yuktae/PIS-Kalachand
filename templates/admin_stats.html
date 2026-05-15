@@ -146,96 +146,136 @@
 
     <!-- ========== Section 3: AI Job Activity ========== -->
     <section id="section-jobs" class="mb-12 scroll-mt-24">
-        <div class="flex items-center gap-3 mb-4">
-            <div class="w-1 h-6 bg-violet-600 rounded-full"></div>
-            <h3 class="text-lg font-bold text-slate-800">AI Job Activity</h3>
+        <div class="flex items-center justify-between gap-3 mb-4">
+            <div class="flex items-center gap-3">
+                <div class="w-1 h-6 bg-violet-600 rounded-full"></div>
+                <h3 class="text-lg font-bold text-slate-800">AI Job Activity</h3>
+            </div>
+            {# Period selector — drives every tile, breakdown, and trend below. #}
+            <div class="flex items-center gap-1 bg-white rounded-xl border border-gray-100 shadow-sm p-1">
+                {% for opt_val, opt_label in [('7','7d'), ('30','30d'), ('all','All')] %}
+                <a href="?ai_period={{ opt_val }}#section-jobs"
+                   class="px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all
+                          {% if ai_period == opt_val or (opt_val == '30' and ai_period not in ['7', 'all']) %}bg-slate-900 text-white{% else %}text-slate-500 hover:bg-slate-50{% endif %}">
+                    {{ opt_label }}
+                </a>
+                {% endfor %}
+            </div>
         </div>
 
+        {# ── Top KPI strip — 4 tiles: success rate, calls, spend, avg/job ── #}
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-            <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
-                <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Total Jobs</p>
-                <p class="text-3xl font-bold text-slate-900 mt-2">{{ total_jobs }}</p>
-                <p class="text-[11px] text-slate-400 mt-1.5">All time</p>
-            </div>
             <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
                 <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Success Rate</p>
                 <p class="text-3xl font-bold text-emerald-600 mt-2">{{ success_rate }}<span class="text-base text-slate-500">%</span></p>
-                <p class="text-[11px] text-slate-400 mt-1.5">{{ completed_jobs }} of {{ total_jobs }}</p>
+                <p class="text-[11px] text-slate-400 mt-1.5">{{ completed_jobs }} of {{ total_jobs }} jobs completed</p>
             </div>
             <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
-                <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Avg Duration</p>
-                <p class="text-3xl font-bold text-slate-900 mt-2">{{ '%.1f' % (avg_job_seconds / 60) if avg_job_seconds else 0 }}<span class="text-base text-slate-500">m</span></p>
-                <p class="text-[11px] text-slate-400 mt-1.5">Per completed job</p>
+                <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">API Calls</p>
+                <p class="text-3xl font-bold text-slate-900 mt-2">{{ '{:,}'.format(period_calls) }}</p>
+                <p class="text-[11px] text-slate-400 mt-1.5">{{ ai_period_label }} · {{ providers_count }} provider{{ '' if providers_count == 1 else 's' }}</p>
             </div>
             <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
-                <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Last 7 Days</p>
-                <p class="text-3xl font-bold text-violet-600 mt-2">{{ jobs_last_week }}</p>
-                <p class="text-[11px] text-slate-400 mt-1.5">Jobs queued</p>
+                <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Total Spend</p>
+                <p class="text-3xl font-bold text-violet-600 mt-2"><span class="text-base text-slate-500">$</span>{{ '%.2f' % period_cost }}</p>
+                <p class="text-[11px] text-slate-400 mt-1.5">{{ ai_period_label }}</p>
+            </div>
+            <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+                <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Avg Cost / Job</p>
+                <p class="text-3xl font-bold text-slate-900 mt-2"><span class="text-base text-slate-500">$</span>{{ '%.4f' % avg_cost_per_job }}</p>
+                <p class="text-[11px] text-slate-400 mt-1.5">Across {{ period_jobs_done }} completed job{{ '' if period_jobs_done == 1 else 's' }}</p>
             </div>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            <!-- Donut: status breakdown -->
-            <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-                <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Status Breakdown</p>
-                {% if total_jobs %}
-                {% set p_complete = (completed_jobs / total_jobs * 100) %}
-                {% set p_failed   = (failed_jobs / total_jobs * 100) %}
-                {% set p_queued   = (queued_jobs / total_jobs * 100) %}
-                <div class="flex items-center gap-4">
-                    <svg viewBox="0 0 42 42" class="w-28 h-28 -rotate-90">
-                        <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="#f1f5f9" stroke-width="6"/>
-                        <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="#10b981" stroke-width="6"
-                            stroke-dasharray="{{ p_complete }} {{ 100 - p_complete }}" stroke-dashoffset="0"/>
-                        <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="#ef4444" stroke-width="6"
-                            stroke-dasharray="{{ p_failed }} {{ 100 - p_failed }}" stroke-dashoffset="-{{ p_complete }}"/>
-                        <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="#f59e0b" stroke-width="6"
-                            stroke-dasharray="{{ p_queued }} {{ 100 - p_queued }}" stroke-dashoffset="-{{ p_complete + p_failed }}"/>
-                    </svg>
-                    <div class="space-y-1.5 text-xs flex-1">
-                        <div class="flex items-center gap-2"><span class="w-2.5 h-2.5 bg-emerald-500 rounded-sm"></span><span class="font-bold text-slate-700 flex-1">Completed</span><span class="text-slate-500">{{ completed_jobs }}</span></div>
-                        <div class="flex items-center gap-2"><span class="w-2.5 h-2.5 bg-red-500 rounded-sm"></span><span class="font-bold text-slate-700 flex-1">Failed</span><span class="text-slate-500">{{ failed_jobs }}</span></div>
-                        <div class="flex items-center gap-2"><span class="w-2.5 h-2.5 bg-amber-500 rounded-sm"></span><span class="font-bold text-slate-700 flex-1">Active/Queued</span><span class="text-slate-500">{{ queued_jobs }}</span></div>
-                    </div>
+        {# ── Middle row: provider breakdown (left) + top prompts (right) ── #}
+        <div class="grid grid-cols-1 lg:grid-cols-5 gap-4 mb-4">
+            {# Spend by Provider — wider card #}
+            <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm lg:col-span-3">
+                <div class="flex items-center justify-between mb-4">
+                    <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Spend by Provider</p>
+                    <span class="text-[10px] text-slate-400">{{ ai_period_label }}</span>
                 </div>
-                {% else %}
-                <p class="text-sm text-slate-400 text-center py-8">No jobs run yet.</p>
-                {% endif %}
-            </div>
-
-            <!-- Recent jobs list -->
-            <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm lg:col-span-2">
-                <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Recent Jobs</p>
-                {% if recent_jobs %}
-                <div class="space-y-2 max-h-[280px] overflow-y-auto">
-                    {% for j in recent_jobs %}
-                    <div class="flex items-center justify-between gap-3 p-3 rounded-xl bg-slate-50/50 border border-gray-100 hover:bg-slate-50 transition-colors">
-                        <div class="flex items-center gap-3 min-w-0 flex-1">
-                            <span class="w-2 h-2 rounded-full flex-shrink-0
-                                {% if j.status == 'completed' %}bg-emerald-500
-                                {% elif j.status == 'failed' %}bg-red-500
-                                {% elif j.status == 'processing' %}bg-amber-500 animate-pulse
-                                {% else %}bg-slate-400{% endif %}"></span>
+                {% if provider_breakdown %}
+                <div class="space-y-3">
+                    {% for p in provider_breakdown %}
+                    <div>
+                        <div class="flex items-baseline justify-between gap-3 mb-1.5">
                             <div class="min-w-0 flex-1">
-                                <p class="text-xs font-bold text-slate-700 truncate">{{ j.model_name or 'Untitled job' }}</p>
-                                <p class="text-[10px] text-slate-400 truncate">{{ j.message or '—' }}</p>
+                                <p class="text-xs font-bold text-slate-700 truncate">{{ p.label }}</p>
+                                <p class="text-[10px] text-slate-400 truncate">{{ p.calls }} call{{ '' if p.calls == 1 else 's' }} · {{ p.usage }}</p>
+                            </div>
+                            <div class="text-right flex-shrink-0">
+                                {% if p.cost > 0 %}
+                                <p class="text-xs font-bold text-slate-900">${{ '%.4f' % p.cost }}</p>
+                                <p class="text-[10px] text-slate-400">{{ '%.1f' % p.share }}%</p>
+                                {% else %}
+                                <p class="text-xs font-bold text-emerald-600">free</p>
+                                <p class="text-[10px] text-slate-400">—</p>
+                                {% endif %}
                             </div>
                         </div>
-                        <div class="flex flex-col items-end gap-0.5 flex-shrink-0">
-                            <span class="px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider
-                                {% if j.status == 'completed' %}bg-emerald-50 text-emerald-700
-                                {% elif j.status == 'failed' %}bg-red-50 text-red-700
-                                {% elif j.status == 'processing' %}bg-amber-50 text-amber-700
-                                {% else %}bg-slate-100 text-slate-700{% endif %}">{{ j.status }}</span>
-                            <span class="text-[10px] text-slate-400">{{ j.created_at.strftime('%d %b %H:%M') if j.created_at else '' }}</span>
+                        <div class="h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                            <div class="h-full {% if p.provider == 'gemini' %}bg-violet-500{% elif p.provider == 'brave_search' %}bg-orange-500{% elif p.provider == 'google_cse' %}bg-blue-500{% else %}bg-slate-300{% endif %}"
+                                 style="width: {{ p.share if p.cost > 0 else 0 }}%"></div>
                         </div>
                     </div>
                     {% endfor %}
                 </div>
                 {% else %}
-                <p class="text-sm text-slate-400 text-center py-8">No jobs run yet.</p>
+                <p class="text-sm text-slate-400 text-center py-8">No API calls in this window.</p>
                 {% endif %}
             </div>
+
+            {# Top Prompts by Spend #}
+            <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm lg:col-span-2">
+                <div class="flex items-center justify-between mb-4">
+                    <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Top Prompts by Spend</p>
+                    <span class="text-[10px] text-slate-400">{{ ai_period_label }}</span>
+                </div>
+                {% if top_prompts %}
+                <div class="space-y-2">
+                    {% for tp in top_prompts %}
+                    <div class="flex items-center gap-3 p-3 rounded-xl bg-slate-50/50 border border-gray-100">
+                        <div class="w-6 h-6 rounded-lg bg-violet-100 text-violet-700 flex items-center justify-center text-[10px] font-bold flex-shrink-0">{{ loop.index }}</div>
+                        <div class="min-w-0 flex-1">
+                            <p class="text-xs font-bold text-slate-700 truncate">{{ tp.prompt_id.replace('_', ' ').title() }}</p>
+                            <p class="text-[10px] text-slate-400">{{ tp.calls }} call{{ '' if tp.calls == 1 else 's' }} · ${{ '%.4f' % tp.avg_cost }} avg</p>
+                        </div>
+                        <p class="text-xs font-bold text-slate-900 flex-shrink-0">${{ '%.4f' % tp.cost }}</p>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-sm text-slate-400 text-center py-8">No prompts logged yet.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        {# ── 14-day spend trend — slim full-width bar chart ── #}
+        <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+            <div class="flex items-baseline justify-between mb-4">
+                <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">14-Day Spend Trend</p>
+                {% if top_prompt_label %}
+                <p class="text-[11px] text-slate-500">Top prompt: <span class="font-bold text-slate-700">{{ top_prompt_label }}</span> · ${{ '%.4f' % top_prompt_cost }}</p>
+                {% endif %}
+            </div>
+            {% if spend_trend and trend_max_cost > 0 %}
+            <div class="flex items-end gap-1.5 h-24">
+                {% for d in spend_trend %}
+                {% set pct = (d.cost / trend_max_cost * 100) if trend_max_cost > 0 else 0 %}
+                <div class="flex-1 flex flex-col items-center gap-1 group cursor-default">
+                    <div class="w-full bg-slate-100 rounded-t-md relative overflow-hidden" style="height: 80px;">
+                        <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-violet-500 to-violet-400 rounded-t-md transition-all"
+                             style="height: {{ pct }}%"
+                             title="{{ d.label }} · ${{ '%.4f' % d.cost }} · {{ d.calls }} calls"></div>
+                    </div>
+                    <p class="text-[9px] text-slate-400 font-medium">{{ d.short }}</p>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="text-sm text-slate-400 text-center py-6">No spend recorded in the last 14 days.</p>
+            {% endif %}
         </div>
     </section>
 

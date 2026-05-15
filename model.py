@@ -241,3 +241,38 @@ class Job(db.Model):
     result = db.Column(JSONB, nullable=True)
     created_at = db.Column(db.DateTime, default=_utcnow_naive)
     completed_at = db.Column(db.DateTime, nullable=True)
+
+    # Cached aggregates updated by utils.api_metering as calls flow in.
+    # Truth lives in ApiCallLog rows; these columns just save a SUM() per
+    # job-row render in the admin Recent Jobs list.
+    total_cost_usd = db.Column(db.Numeric(12, 6), default=0)
+    total_calls    = db.Column(db.Integer, default=0)
+
+
+# ================= API CALL LOG =================
+# One row per external AI / search call. Drives the AI Job Activity admin
+# panel: success rate, spend, call volume, per-provider and per-prompt
+# breakdowns. job_id is nullable because some calls (verify-marketing
+# fixes, compare exports) run outside the Job tracker.
+
+class ApiCallLog(db.Model):
+    __tablename__ = 'api_call_log'
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    id            = db.Column(db.Integer, primary_key=True)
+    job_id        = db.Column(db.String(8), db.ForeignKey('job.id', ondelete='SET NULL'),
+                              nullable=True, index=True)
+    prompt_id     = db.Column(db.String(80), index=True)
+    provider      = db.Column(db.String(40), nullable=False, index=True)
+    model         = db.Column(db.String(80))
+    input_tokens  = db.Column(db.Integer, default=0)
+    output_tokens = db.Column(db.Integer, default=0)
+    cached_tokens = db.Column(db.Integer, default=0)
+    image_count   = db.Column(db.Integer, default=0)
+    query_count   = db.Column(db.Integer, default=0)
+    latency_ms    = db.Column(db.Integer, default=0)
+    cost_usd      = db.Column(db.Numeric(12, 6), default=0)
+    error         = db.Column(db.String(200), nullable=True)
+    created_at    = db.Column(db.DateTime, default=_utcnow_naive, index=True)

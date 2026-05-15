@@ -81,8 +81,11 @@ def _call_gemini(products, category_context: str) -> dict[str, Any] | None:
     try:
         template = _require_prompt('compare_align_specs')
         prompt = template.format(**_build_table_payload(products, category_context))
-        response = _get_client().models.generate_content(
+        from .api_metering import gemini_call
+        response = gemini_call(
+            prompt_id='compare_align_specs',
             model=_MODEL,
+            client=_get_client(),
             contents=prompt,
             config=types.GenerateContentConfig(response_mime_type='application/json'),
         )

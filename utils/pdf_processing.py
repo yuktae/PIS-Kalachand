@@ -168,10 +168,13 @@ def extract_product_from_image(image_path, target_model, upload_folder,
             return empty_return
         prompt = tpl.format(target_model=target_model)
         response = None
+        from .api_metering import gemini_call
         for attempt in range(3):
             try:
-                response = _get_client().models.generate_content(
+                response = gemini_call(
+                    prompt_id='pdf_screenshot_scan',
                     model=_MODEL,
+                    client=_get_client(),
                     contents=[prompt, types.Part.from_bytes(data=png_bytes, mime_type="image/png")],
                     config=types.GenerateContentConfig(response_mime_type="application/json"),
                 )
@@ -451,10 +454,13 @@ def _extract_via_screenshot(pdf_path, target_model, upload_folder, skip_verify: 
                 prompt = tpl.format(target_model=target_model)
 
                 response = None
+                from .api_metering import gemini_call
                 for attempt in range(3):
                     try:
-                        response = _get_client().models.generate_content(
+                        response = gemini_call(
+                            prompt_id='pdf_screenshot_scan',
                             model=_MODEL,
+                            client=_get_client(),
                             contents=[prompt, types.Part.from_bytes(data=page_img_bytes, mime_type="image/png")],
                             config=types.GenerateContentConfig(response_mime_type="application/json")
                         )
@@ -607,8 +613,11 @@ def _ai_pick_best_from_candidates(candidates, target_model, upload_folder, avail
             content.append(f"IMAGE {i+1} ({candidate['width']}x{candidate['height']}, page {candidate['page']+1}):")
             content.append(types.Part.from_bytes(data=candidate['bytes'], mime_type=mime))
 
-        response = _get_client().models.generate_content(
+        from .api_metering import gemini_call
+        response = gemini_call(
+            prompt_id='pdf_embedded_image_selection',
             model=_MODEL,
+            client=_get_client(),
             contents=content,
             config=types.GenerateContentConfig(response_mime_type="application/json")
         )
@@ -774,8 +783,11 @@ def _ai_allocate_photos_to_variants(
     parts.append(prompt)
 
     try:
-        response = _get_client().models.generate_content(
+        from .api_metering import gemini_call
+        response = gemini_call(
+            prompt_id='bulk_variant_photo_alloc',
             model=_MODEL,
+            client=_get_client(),
             contents=parts,
             config=types.GenerateContentConfig(response_mime_type="application/json"),
         )
@@ -1405,9 +1417,13 @@ def extract_isolated_product_with_nano_banana(
             color=color, description=description,
         )
         prompt = _NANO_BANANA_PROMPT.format(product_spec_block=spec_block)
-        response = _get_client().models.generate_content(
+        from .api_metering import gemini_call
+        response = gemini_call(
+            prompt_id='nano_banana_retouch',
             model=_NANO_BANANA_MODEL,
+            client=_get_client(),
             contents=[prompt, types.Part.from_bytes(data=png_bytes, mime_type="image/png")],
+            image_count_hint=1,
         )
 
         # Walk the response parts looking for the inline image bytes.

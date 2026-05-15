@@ -128,9 +128,12 @@ def generate_pis_data(file_paths, model_name, url_data) -> dict[str, Any]:
     
     # Build content list: prompt + any uploaded files
     content_parts = [prompt] + uploaded_files
-    
-    response = _get_client().models.generate_content(
+
+    from .api_metering import gemini_call
+    response = gemini_call(
+        prompt_id='pis_extraction',
         model=_MODEL,
+        client=_get_client(),
         contents=content_parts,
         config=types.GenerateContentConfig(response_mime_type="application/json")
     )
@@ -424,8 +427,11 @@ def generate_comprehensive_spec_data(pis_data, forbidden_words=None, categories=
         **seo_ctx,
     )
     try:
-        response = _get_client().models.generate_content(
+        from .api_metering import gemini_call
+        response = gemini_call(
+            prompt_id='spec_sheet_generation',
             model=_MODEL,
+            client=_get_client(),
             contents=prompt,
             config=types.GenerateContentConfig(response_mime_type="application/json")
         )
@@ -567,8 +573,11 @@ def regenerate_seo_only(pis_data, spec_data=None, forbidden_words=None):
             if ctx['forbidden_instruction']:
                 prompt += "\n" + ctx['forbidden_instruction']
 
-        response = _get_client().models.generate_content(
+        from .api_metering import gemini_call
+        response = gemini_call(
+            prompt_id='seo_regeneration',
             model=_MODEL,
+            client=_get_client(),
             contents=prompt,
             config=types.GenerateContentConfig(response_mime_type="application/json")
         )
@@ -763,8 +772,11 @@ def generate_proforma_data(
     prompt = prompt_template.format(**fmt_kwargs)
     content_parts = [prompt] + uploaded_files
 
-    response = _get_client().models.generate_content(
+    from .api_metering import gemini_call
+    response = gemini_call(
+        prompt_id=prompt_id,
         model=_MODEL,
+        client=_get_client(),
         contents=content_parts,
         config=types.GenerateContentConfig(response_mime_type="application/json"),
     )
@@ -836,9 +848,12 @@ def generate_bulk_pis_data(file_paths, url_data, product_filter="") -> list[dict
     )
     
     content_parts = [prompt] + uploaded_files
-    
-    response = _get_client().models.generate_content(
+
+    from .api_metering import gemini_call
+    response = gemini_call(
+        prompt_id='bulk_pis_extraction',
         model=_MODEL,
+        client=_get_client(),
         contents=content_parts,
         config=types.GenerateContentConfig(response_mime_type="application/json")
     )
@@ -860,8 +875,11 @@ def generate_specsheet_optimization(product_data):
     prompt_template = _require_prompt('spec_optimization')
     prompt = prompt_template.format(product_data_json=json.dumps(product_data))
     try:
-        response = _get_client().models.generate_content(
+        from .api_metering import gemini_call
+        response = gemini_call(
+            prompt_id='spec_optimization',
             model=_MODEL,
+            client=_get_client(),
             contents=prompt,
             config=types.GenerateContentConfig(response_mime_type="application/json")
         )
@@ -906,7 +924,13 @@ def generate_ai_revision(section_name, original_content, director_comment):
     )
 
     try:
-        response = _get_client().models.generate_content(model=_MODEL, contents=prompt)
+        from .api_metering import gemini_call
+        response = gemini_call(
+            prompt_id='ai_revision',
+            model=_MODEL,
+            client=_get_client(),
+            contents=prompt,
+        )
         result = _response_text(response).strip()
 
         # ---------- CLEAN MARKDOWN ----------

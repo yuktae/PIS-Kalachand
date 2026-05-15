@@ -72,7 +72,8 @@ def _update_job(job_id, **kwargs):
 
 def _pis_worker(app, job_id, model_name, supplier_url, ai_filepaths, contains_images, user_name):
     """Background worker that generates a single PIS and updates job status."""
-    with app.app_context():
+    from utils.api_metering import job_scope
+    with app.app_context(), job_scope(job_id):
         try:
             upload_folder = app.config['UPLOAD_FOLDER']
             _update_job(job_id, status='processing', progress=10, message='Initializing Analysis...')
@@ -144,7 +145,8 @@ def _pis_worker(app, job_id, model_name, supplier_url, ai_filepaths, contains_im
 
 def _bulk_pis_worker(app, job_id, supplier_url, ai_filepaths, contains_images, product_filter, user_name):
     """Background worker that generates multiple PIS from a bulk document."""
-    with app.app_context():
+    from utils.api_metering import job_scope
+    with app.app_context(), job_scope(job_id):
         try:
             upload_folder = app.config['UPLOAD_FOLDER']
             _update_job(job_id, status='processing', progress=5, message='Analyzing document...')
@@ -346,7 +348,8 @@ def _single_finalize_worker(app, job_id, token, model_name,
     `selected_image` / `gallery_paths` arguments are kept for backwards
     compatibility but ignored (the old picker UI is gone).
     """
-    with app.app_context():
+    from utils.api_metering import job_scope
+    with app.app_context(), job_scope(job_id):
         try:
             _update_job(job_id, status='processing', progress=5,
                         message='Reading proforma...')
@@ -531,7 +534,8 @@ def _bulk_extract_worker(app, job_id, token, edited_groups, edited_items,
     category + image candidates).
     """
     import uuid as _uuid
-    with app.app_context():
+    from utils.api_metering import job_scope
+    with app.app_context(), job_scope(job_id):
         try:
             _update_job(job_id, status='processing', progress=5,
                         message='Preparing drafts...')
@@ -604,7 +608,11 @@ def _bulk_extract_worker(app, job_id, token, edited_groups, edited_items,
                 # context, so we push a fresh one per worker. Without this,
                 # `_update_job`'s db.session.rollback() blows up with
                 # "Working outside of application context."
-                with app.app_context():
+                # ContextVars (incl. job_scope's _current_job_id) ALSO
+                # don't propagate from the parent thread to ThreadPoolExecutor
+                # children — re-enter the job_scope here so metering rows
+                # written from inside enrichment get attributed to this job.
+                with app.app_context(), job_scope(job_id):
                     display_name = entry['model_name'] or 'Draft'
                     try:
                         entry['pis'] = bw.enrich_product(
@@ -2926,7 +2934,8 @@ def _proforma_extract_worker(app, job_id, ai_filepaths, supplier_url,
     the result in Job.payload with status='preview_ready'. Used for both the
     initial extract and the rework flow (when feedback is provided)."""
     from utils.ai_generation import generate_proforma_data
-    with app.app_context():
+    from utils.api_metering import job_scope
+    with app.app_context(), job_scope(job_id):
         try:
             upload_folder = app.config['UPLOAD_FOLDER']
             _update_job(job_id, status='processing', progress=10,

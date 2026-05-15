@@ -231,11 +231,23 @@ def search_google_api(query: str, domain: str | None = None) -> list[str]:
         if domain:
             _dbg(f"--- Domain filter: {domain} ---")
 
+        import time as _time
+        _started = _time.monotonic()
         resp = requests.get(
             "https://www.googleapis.com/customsearch/v1",
             params=params,
             timeout=10,
         )
+        try:
+            from .api_metering import log_search_call
+            log_search_call(
+                provider="google_cse",
+                query_count=1,
+                latency_ms=int((_time.monotonic() - _started) * 1000),
+                error=None if resp.status_code == 200 else f"HTTP {resp.status_code}",
+            )
+        except Exception:
+            pass
         _dbg(f"--- Google status code: {resp.status_code} ---")
         data = resp.json()
 
@@ -305,6 +317,10 @@ def search_duckduckgo(query: str, max_results: int = 10) -> list[str]:
     if not HAS_DDGS or _DDG_DISABLED:
         return []
 
+    import time as _time
+    from .api_metering import log_search_call
+    _started = _time.monotonic()
+
     def _call():
         _dbg(f"--- DuckDuckGo Image Search: '{query}' ---")
         ddgs = DDGS()
@@ -315,8 +331,18 @@ def search_duckduckgo(query: str, max_results: int = 10) -> list[str]:
         return urls
 
     try:
-        return _retry_with_backoff(_call, max_attempts=1)
+        out = _retry_with_backoff(_call, max_attempts=1)
+        try:
+            log_search_call(provider="duckduckgo", query_count=1,
+                            latency_ms=int((_time.monotonic() - _started) * 1000))
+        except Exception: pass
+        return out
     except Exception as e:
+        try:
+            log_search_call(provider="duckduckgo", query_count=1,
+                            latency_ms=int((_time.monotonic() - _started) * 1000),
+                            error=f"{type(e).__name__}")
+        except Exception: pass
         if _is_ddg_ratelimit(e):
             _disable_ddg(f"{type(e).__name__}: {e}")
         else:
@@ -397,9 +423,12 @@ def discover_urls_via_brave(model_name: str,
     seen: set[str] = set()
     out: list[str] = []
 
+    import time as _time
+    from .api_metering import log_search_call
     for q in queries:
         if len(out) >= max_results:
             break
+        _started = _time.monotonic()
         try:
             r = requests.get(
                 _BRAVE_ENDPOINT,
@@ -408,10 +437,20 @@ def discover_urls_via_brave(model_name: str,
                 timeout=5,
             )
         except Exception as e:
+            try:
+                log_search_call(provider="brave_search", query_count=1,
+                                latency_ms=int((_time.monotonic() - _started) * 1000),
+                                error=f"{type(e).__name__}")
+            except Exception: pass
             if log_cb:
                 try: log_cb(f"Brave HTTP error: {type(e).__name__}")
                 except Exception: pass
             continue
+        try:
+            log_search_call(provider="brave_search", query_count=1,
+                            latency_ms=int((_time.monotonic() - _started) * 1000),
+                            error=None if r.status_code == 200 else f"HTTP {r.status_code}")
+        except Exception: pass
         if r.status_code != 200:
             if log_cb:
                 try: log_cb(f"Brave HTTP {r.status_code} for {q!r}")
@@ -479,8 +518,11 @@ def discover_urls_via_gemini(model_name: str,
     )
 
     try:
-        response = _get_client().models.generate_content(
+        from .api_metering import gemini_call
+        response = gemini_call(
+            prompt_id='discover_urls_via_gemini',
             model=_MODEL,
+            client=_get_client(),
             contents=prompt,
             config=types.GenerateContentConfig(
                 tools=[types.Tool(google_search=types.GoogleSearch())],
@@ -774,8 +816,11 @@ def ai_validate_image(image_bytes: bytes, product_name: str) -> bool:
             print("❌ Image too large for validation")
             return False
 
-        response = _get_client().models.generate_content(
+        from .api_metering import gemini_call
+        response = gemini_call(
+            prompt_id='image_validation',
             model=_MODEL,
+            client=_get_client(),
             contents=[prompt, types.Part.from_bytes(data=image_bytes, mime_type="image/jpeg")],
             config=types.GenerateContentConfig(response_mime_type="application/json")
         )
@@ -807,8 +852,11 @@ def ai_select_best_image(image_list: list[bytes], product_name: str) -> int | No
         content.append(types.Part.from_bytes(data=img_bytes, mime_type="image/jpeg"))
 
     try:
-        response = _get_client().models.generate_content(
+        from .api_metering import gemini_call
+        response = gemini_call(
+            prompt_id='best_image_selection',
             model=_MODEL,
+            client=_get_client(),
             contents=content,
             config=types.GenerateContentConfig(response_mime_type="application/json")
         )
@@ -1503,8 +1551,11 @@ def ai_verify_crop_matches(image_bytes: bytes, target_label: str) -> bool:
         return False
     try:
         prompt = get_prompt('image_match_verification').format(target_label=target_label)
-        response = _get_client().models.generate_content(
+        from .api_metering import gemini_call
+        response = gemini_call(
+            prompt_id='image_match_verification',
             model=_MODEL,
+            client=_get_client(),
             contents=[prompt, types.Part.from_bytes(data=image_bytes, mime_type="image/jpeg")],
             config=types.GenerateContentConfig(response_mime_type="application/json"),
         )
@@ -2026,13 +2077,26 @@ def _build_screenshot_candidate_pages(target_label: str, supplier_url: str | Non
             candidate_pages.extend(_search_google_pages(query))
 
     if not candidate_pages and HAS_DDGS and not _DDG_DISABLED:
+        import time as _time2
+        _started = _time2.monotonic()
         try:
             with DDGS() as ddgs:
                 for r in ddgs.text(query, max_results=6):
                     href = r.get("href") or r.get("url")
                     if href:
                         candidate_pages.append(href)
+            try:
+                from .api_metering import log_search_call
+                log_search_call(provider="duckduckgo", query_count=1,
+                                latency_ms=int((_time2.monotonic() - _started) * 1000))
+            except Exception: pass
         except Exception as e:
+            try:
+                from .api_metering import log_search_call
+                log_search_call(provider="duckduckgo", query_count=1,
+                                latency_ms=int((_time2.monotonic() - _started) * 1000),
+                                error=f"{type(e).__name__}")
+            except Exception: pass
             if _is_ddg_ratelimit(e):
                 _disable_ddg(f"{type(e).__name__}: {e}")
             else:
@@ -2110,8 +2174,11 @@ def _crop_product_from_page(page_url: str, target_label: str, upload_folder: str
     box_prompt = get_prompt('webpage_product_crop')
     try:
         prompt = box_prompt.format(target_label=target_label)
-        response = _get_client().models.generate_content(
+        from .api_metering import gemini_call
+        response = gemini_call(
+            prompt_id='webpage_product_crop',
             model=_MODEL,
+            client=_get_client(),
             contents=[prompt, types.Part.from_bytes(data=png_bytes, mime_type="image/png")],
             config=types.GenerateContentConfig(response_mime_type="application/json"),
         )

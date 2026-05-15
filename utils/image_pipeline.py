@@ -444,8 +444,11 @@ def _detect_regions_on_page(pil_page: Image.Image, page_num: int,
 
     try:
         client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY"))
-        resp = client.models.generate_content(
+        from .api_metering import gemini_call
+        resp = gemini_call(
+            prompt_id='unified_image_extraction',
             model="gemini-2.5-flash",
+            client=client,
             contents=[prompt_text,
                       types.Part.from_bytes(data=buf.getvalue(),
                                              mime_type="image/png")],
