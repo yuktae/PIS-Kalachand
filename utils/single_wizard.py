@@ -26,9 +26,12 @@ import json
 import time
 import uuid
 import threading
+import logging
 
 from google import genai
 from google.genai import types
+
+logger = logging.getLogger(__name__)
 
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
@@ -346,7 +349,7 @@ def extract_images_from_user_url(suggested_url: str,
     def _emit(msg: str) -> None:
         if log_cb:
             try: log_cb(msg)
-            except Exception: pass
+            except Exception: logger.debug("emit/log callback failed", exc_info=True)
 
     if not suggested_url or not suggested_url.strip():
         return []
@@ -610,7 +613,7 @@ def extract_images_from_top_pages(model_name: str,
     def _emit(msg: str) -> None:
         if log_cb:
             try: log_cb(msg)
-            except Exception: pass
+            except Exception: logger.debug("emit/log callback failed", exc_info=True)
 
     def _cancelled() -> bool:
         return cancel_event is not None and cancel_event.is_set()
@@ -716,7 +719,7 @@ def extract_image_candidates_from_web(model_name: str,
     def _emit(msg: str) -> None:
         if log_cb:
             try: log_cb(msg)
-            except Exception: pass
+            except Exception: logger.debug("emit/log callback failed", exc_info=True)
 
     def _cancelled() -> bool:
         return cancel_event is not None and cancel_event.is_set()
@@ -847,7 +850,7 @@ def _ai_pick_and_trim(pool: list[dict], model_name: str,
         ai_idx = ai_select_best_image(image_bytes_list, model_name)
     except Exception as e:
         try: emit(f"AI hero-pick failed ({type(e).__name__}) — keeping scrape order")
-        except Exception: pass
+        except Exception: logger.debug("emit/log callback failed", exc_info=True)
         return pool[:max_results]
 
     if ai_idx is None or not (0 <= ai_idx < len(valid_indexes)):
@@ -856,7 +859,7 @@ def _ai_pick_and_trim(pool: list[dict], model_name: str,
     pool_idx = valid_indexes[ai_idx]
     if pool_idx == 0:
         try: emit(f"AI hero-pick: kept #1 of {len(pool)}")
-        except Exception: pass
+        except Exception: logger.debug("emit/log callback failed", exc_info=True)
         return pool[:max_results]
 
     # Move the AI's pick to the front so callers that take pool[0] as the
@@ -864,5 +867,5 @@ def _ai_pick_and_trim(pool: list[dict], model_name: str,
     # gallery still ranks runner-ups by Brave's original ranking.
     reordered = [pool[pool_idx]] + [r for j, r in enumerate(pool) if j != pool_idx]
     try: emit(f"AI hero-pick: promoted #{pool_idx + 1} of {len(pool)}")
-    except Exception: pass
+    except Exception: logger.debug("emit/log callback failed", exc_info=True)
     return reordered[:max_results]

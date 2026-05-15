@@ -12,7 +12,10 @@ import random
 import requests
 import shutil
 import warnings
+import logging
 from urllib.parse import urlparse, urljoin, quote_plus
+
+logger = logging.getLogger(__name__)
 
 # Phase 3.0: gate the per-URL scrape/download/search trace prints behind
 # an env var. Default = quiet (just the structured `[STAGE]` markers from
@@ -192,7 +195,7 @@ def _is_org_blocked_error(body: dict) -> bool:
             if (d.get("reason") or "").upper() in ("API_KEY_SERVICE_BLOCKED", "SERVICE_DISABLED"):
                 return True
     except Exception:
-        pass
+        logger.debug("Failed to parse Google Search error payload", exc_info=True)
     return False
 
 
@@ -247,7 +250,7 @@ def search_google_api(query: str, domain: str | None = None) -> list[str]:
                 error=None if resp.status_code == 200 else f"HTTP {resp.status_code}",
             )
         except Exception:
-            pass
+            logger.debug("Failed to log Google Search API call", exc_info=True)
         _dbg(f"--- Google status code: {resp.status_code} ---")
         data = resp.json()
 
@@ -335,14 +338,14 @@ def search_duckduckgo(query: str, max_results: int = 10) -> list[str]:
         try:
             log_search_call(provider="duckduckgo", query_count=1,
                             latency_ms=int((_time.monotonic() - _started) * 1000))
-        except Exception: pass
+        except Exception: logger.debug("suppressed in image_processing", exc_info=True)
         return out
     except Exception as e:
         try:
             log_search_call(provider="duckduckgo", query_count=1,
                             latency_ms=int((_time.monotonic() - _started) * 1000),
                             error=f"{type(e).__name__}")
-        except Exception: pass
+        except Exception: logger.debug("suppressed in image_processing", exc_info=True)
         if _is_ddg_ratelimit(e):
             _disable_ddg(f"{type(e).__name__}: {e}")
         else:
@@ -401,7 +404,7 @@ def discover_urls_via_brave(model_name: str,
     if not api_key:
         if log_cb:
             try: log_cb("Brave: no API key configured")
-            except Exception: pass
+            except Exception: logger.debug("suppressed in image_processing", exc_info=True)
         return []
 
     clean = clean_search_query(model_name)
@@ -441,20 +444,20 @@ def discover_urls_via_brave(model_name: str,
                 log_search_call(provider="brave_search", query_count=1,
                                 latency_ms=int((_time.monotonic() - _started) * 1000),
                                 error=f"{type(e).__name__}")
-            except Exception: pass
+            except Exception: logger.debug("suppressed in image_processing", exc_info=True)
             if log_cb:
                 try: log_cb(f"Brave HTTP error: {type(e).__name__}")
-                except Exception: pass
+                except Exception: logger.debug("suppressed in image_processing", exc_info=True)
             continue
         try:
             log_search_call(provider="brave_search", query_count=1,
                             latency_ms=int((_time.monotonic() - _started) * 1000),
                             error=None if r.status_code == 200 else f"HTTP {r.status_code}")
-        except Exception: pass
+        except Exception: logger.debug("suppressed in image_processing", exc_info=True)
         if r.status_code != 200:
             if log_cb:
                 try: log_cb(f"Brave HTTP {r.status_code} for {q!r}")
-                except Exception: pass
+                except Exception: logger.debug("suppressed in image_processing", exc_info=True)
             continue
         try:
             data = r.json()
@@ -474,7 +477,7 @@ def discover_urls_via_brave(model_name: str,
 
     if log_cb:
         try: log_cb(f"Brave → {len(out)} URL(s)")
-        except Exception: pass
+        except Exception: logger.debug("suppressed in image_processing", exc_info=True)
     return out
 
 
@@ -532,7 +535,7 @@ def discover_urls_via_gemini(model_name: str,
     except Exception as e:
         if log_cb:
             try: log_cb(f"Gemini URL discovery failed: {type(e).__name__}")
-            except Exception: pass
+            except Exception: logger.debug("suppressed in image_processing", exc_info=True)
         return []
 
     text = (getattr(response, 'text', None) or '').strip()
@@ -581,7 +584,7 @@ def discover_urls_via_gemini(model_name: str,
                     if _push(web.uri):
                         break
         except Exception:
-            pass
+            logger.debug("Grounding-chunk URL extraction failed", exc_info=True)
 
     # Resolve Gemini's grounding-redirect proxy URLs to the real target.
     # We deliberately do NOT HEAD-check live-ness — empirically that costs
@@ -601,7 +604,7 @@ def discover_urls_via_gemini(model_name: str,
 
     if log_cb:
         try: log_cb(f"Gemini → {len(resolved)} URL(s)")
-        except Exception: pass
+        except Exception: logger.debug("suppressed in image_processing", exc_info=True)
     return resolved[:max_results]
 
 
@@ -622,7 +625,7 @@ def _resolve_grounding_redirect(url: str) -> str | None:
         if loc and (loc.startswith('http://') or loc.startswith('https://')):
             return loc
     except Exception:
-        pass
+        logger.debug("Redirect resolution failed", exc_info=True)
     return None
 
 
@@ -645,7 +648,7 @@ def discover_urls(model_name: str,
         return urls
     if log_cb:
         try: log_cb("Brave returned 0 — trying Gemini fallback")
-        except Exception: pass
+        except Exception: logger.debug("suppressed in image_processing", exc_info=True)
     return discover_urls_via_gemini(model_name, brand=brand,
                                     max_results=max_results, log_cb=log_cb)
 
@@ -741,7 +744,7 @@ def gather_web_context_for_content(model_name: str,
     if log_cb:
         try: log_cb(f"web context: {len(combined)} chars from "
                     f"{sum(1 for t in texts if t)}/{len(urls)} page(s)")
-        except Exception: pass
+        except Exception: logger.debug("suppressed in image_processing", exc_info=True)
     return combined
 
 
@@ -1292,7 +1295,7 @@ def _parse_srcset_best(srcset: str) -> str | None:
             entries.sort(key=lambda x: x[1], reverse=True)
             return entries[0][0]
     except Exception:
-        pass
+        logger.debug("Entry-ranking pass failed", exc_info=True)
     return None
 
 
@@ -1680,7 +1683,7 @@ def _capture_full_page_screenshot(url: str) -> bytes | None:
                 page.evaluate("window.scrollTo(0, 0);")
                 page.wait_for_timeout(800)
             except Exception:
-                pass
+                logger.debug("Screenshot scroll/settle step failed", exc_info=True)
 
             # 2) Wait for network to settle — most e-commerce pages stop
             # fetching images after this. networkidle can hang on pages with
@@ -1688,7 +1691,7 @@ def _capture_full_page_screenshot(url: str) -> bytes | None:
             try:
                 page.wait_for_load_state("networkidle", timeout=10_000)
             except Exception:
-                pass
+                logger.debug("networkidle wait timed out", exc_info=True)
 
             # 3) Final breathing room for CSS/font reflows.
             page.wait_for_timeout(800)
@@ -1784,7 +1787,7 @@ def _normalize_serp_link(href: str, base: str) -> str | None:
                     href = qs[key][0]
                     break
         except Exception:
-            pass
+            logger.debug("DuckDuckGo redirect parse failed", exc_info=True)
     if href.startswith("/"):
         href = urljoin(base, href)
     if not href.startswith("http"):
@@ -2089,14 +2092,14 @@ def _build_screenshot_candidate_pages(target_label: str, supplier_url: str | Non
                 from .api_metering import log_search_call
                 log_search_call(provider="duckduckgo", query_count=1,
                                 latency_ms=int((_time2.monotonic() - _started) * 1000))
-            except Exception: pass
+            except Exception: logger.debug("suppressed in image_processing", exc_info=True)
         except Exception as e:
             try:
                 from .api_metering import log_search_call
                 log_search_call(provider="duckduckgo", query_count=1,
                                 latency_ms=int((_time2.monotonic() - _started) * 1000),
                                 error=f"{type(e).__name__}")
-            except Exception: pass
+            except Exception: logger.debug("suppressed in image_processing", exc_info=True)
             if _is_ddg_ratelimit(e):
                 _disable_ddg(f"{type(e).__name__}: {e}")
             else:
@@ -2281,7 +2284,7 @@ def find_multi_images_via_screenshot(target_label: str,
     def _emit(msg: str) -> None:
         if log_cb:
             try: log_cb(msg)
-            except Exception: pass
+            except Exception: logger.debug("suppressed in image_processing", exc_info=True)
 
     def _cancelled() -> bool:
         return cancel_event is not None and cancel_event.is_set()

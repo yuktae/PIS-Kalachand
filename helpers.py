@@ -5,12 +5,15 @@ import os
 import re
 import copy
 import json
+import logging
 
 from flask import session, current_app
 from sqlalchemy.orm.attributes import flag_modified
 
 from model import db, User, Product, ProductVersion, FieldChangeLog
 from utils.validation import validate_pis_data, validate_spec_data
+
+logger = logging.getLogger(__name__)
 
 
 # ================= SESSION HELPERS =================
@@ -53,11 +56,11 @@ def save_version_snapshot(product, label='Auto-save', is_major=False):
         if product.pis_data:
             ok, warnings = validate_pis_data(product.pis_data)
             if not ok or warnings:
-                print(f"⚠️  pis_data schema warnings for product {product.id}: {warnings}")
+                logger.warning("pis_data schema warnings for product %s: %s", product.id, warnings)
         if product.spec_data:
             ok, warnings = validate_spec_data(product.spec_data)
             if not ok or warnings:
-                print(f"⚠️  spec_data schema warnings for product {product.id}: {warnings}")
+                logger.warning("spec_data schema warnings for product %s: %s", product.id, warnings)
 
         last_version = ProductVersion.query.filter_by(
             product_id=product.id
@@ -113,11 +116,12 @@ def save_version_snapshot(product, label='Auto-save', is_major=False):
 
         db.session.add(version)
         db.session.commit()
-        print(f"📸 Version {next_num} ({'major' if version.is_major else 'minor'}) saved for product {product.id}: {label}")
+        logger.info("Version %s (%s) saved for product %s: %s",
+                    next_num, 'major' if version.is_major else 'minor', product.id, label)
         return version
-    except Exception as e:
+    except Exception:
         db.session.rollback()
-        print(f"❌ Failed to save version: {e}")
+        logger.exception("Failed to save version for product %s", getattr(product, 'id', '?'))
         return None
 
 
@@ -308,7 +312,7 @@ def diff_and_log(product_id, old_data, new_data, prefix='', _version_num=None,
                         workflow_stage=_workflow_stage,
                     ))
             except Exception as e:
-                print(f"Diff log error: {e}")
+                logger.exception("Diff log error")
             return
         if _normalize(old_data) == _normalize(new_data):
             return
@@ -322,7 +326,7 @@ def diff_and_log(product_id, old_data, new_data, prefix='', _version_num=None,
                 workflow_stage=_workflow_stage,
             ))
         except Exception as e:
-            print(f"Diff log error: {e}")
+            logger.exception("Diff log error")
         return
 
     all_keys = set(list(old_data.keys()) + list(new_data.keys()))
@@ -355,7 +359,7 @@ def diff_and_log(product_id, old_data, new_data, prefix='', _version_num=None,
                     workflow_stage=_workflow_stage,
                 ))
             except Exception as e:
-                print(f"Diff log error: {e}")
+                logger.exception("Diff log error")
 
 
 def _diff_and_log_changes(product_id, old_data, new_data, prefix=''):
@@ -399,7 +403,7 @@ def _diff_and_log_changes(product_id, old_data, new_data, prefix=''):
                                 workflow_stage=workflow_stage,
                             ))
                     except Exception as e:
-                        print(f"Diff log error: {e}")
+                        logger.exception("Diff log error")
                 return
             if _normalize(old) == _normalize(new):
                 return
@@ -415,7 +419,7 @@ def _diff_and_log_changes(product_id, old_data, new_data, prefix=''):
                     workflow_stage=workflow_stage,
                 ))
             except Exception as e:
-                print(f"Diff log error: {e}")
+                logger.exception("Diff log error")
             return
 
         for key in set(list(old.keys()) + list(new.keys())):
@@ -441,7 +445,7 @@ def _diff_and_log_changes(product_id, old_data, new_data, prefix=''):
                         workflow_stage=workflow_stage,
                     ))
                 except Exception as e:
-                    print(f"Diff log error: {e}")
+                    logger.exception("Diff log error")
 
     _recurse(old_data, new_data, prefix)
 
@@ -728,7 +732,7 @@ def extract_raw_text_from_files(file_paths) -> str:
                 except ImportError:
                     pass  # python-docx not installed; skip
         except Exception as e:
-            print(f"⚠ raw-text extraction failed for {os.path.basename(fp)}: {e}")
+            logger.warning("raw-text extraction failed for %s: %s", os.path.basename(fp), e)
     return "\n".join(chunks)
 
 

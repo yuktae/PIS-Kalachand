@@ -1,0 +1,17 @@
+# Normalize line endings on commit so working-copy CRLF on Windows does
+# not produce a CRLF/LF warning for every file in every diff. Stored as
+# LF in the repo; checked out as native by Git's autocrlf if configured.
+* text=auto eol=lf
+
+# Force LF for shell scripts and config files that some tools require.
+*.sh   text eol=lf
+*.toml text eol=lf
+*.yaml text eol=lf
+*.yml  text eol=lf
+
+# Binary — never normalize.
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.pdf  binary
+*.ico  binary

@@ -3,7 +3,7 @@ Admin blueprint — user management and prompt management routes.
 """
 import json
 
-from flask import Blueprint, session, redirect, url_for, render_template, request, jsonify, flash
+from flask import Blueprint, session, redirect, url_for, render_template, request, jsonify, flash, abort
 
 from model import db, User, ProductVersion, FieldChangeLog, Product, ProductHistory, Job, ApiCallLog
 from utils.prompt_manager import (
@@ -21,6 +21,15 @@ def _require_admin():
     return None
 
 
+def _json_body() -> dict:
+    """Parse the request JSON body as a dict, or abort(400) on a malformed
+    or non-object payload. Callers can rely on the return being a dict."""
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        abort(400, description="Request body must be a JSON object")
+    return data
+
+
 # ── USER MANAGEMENT ───────────────────────────────────────────────────────────
 
 @admin_bp.route('/admin/users')
@@ -35,7 +44,7 @@ def admin_users():
 def api_create_user():
     err = _require_admin()
     if err: return err
-    data = request.get_json(force=True)
+    data = _json_body()
     username = data.get('username', '').strip().lower()
     email    = data.get('email', '').strip().lower()
     password = data.get('password', '')
@@ -58,7 +67,7 @@ def api_update_user(user_id):
     err = _require_admin()
     if err: return err
     user = User.query.get_or_404(user_id)
-    data = request.get_json(force=True)
+    data = _json_body()
     if 'display_name' in data:
         user.display_name = data['display_name'].strip()
     if 'username' in data:
@@ -420,7 +429,7 @@ def admin_prompts():
 def api_update_prompt(prompt_id):
     err = _require_admin()
     if err: return err
-    data = request.get_json(force=True)
+    data = _json_body()
     new_text = data.get('prompt', '').strip()
     if not new_text:
         return jsonify({"error": "Prompt text cannot be empty"}), 400
