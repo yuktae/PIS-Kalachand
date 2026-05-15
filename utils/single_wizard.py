@@ -156,7 +156,7 @@ def log_err(msg: str) -> str:
 
 
 def log_progress(pct: int, msg: str | None = None) -> str:
-    payload: dict = {"progress": int(pct)}
+    payload: dict = {"progress": pct}
     if msg:
         payload["message"] = msg
     return json.dumps(payload) + "\n"
@@ -210,7 +210,7 @@ def render_proforma_preview(file_paths: list[str], target_model: str,
 
         if ext == '.pdf':
             import fitz  # PyMuPDF — already a hard dep
-            doc = fitz.open(fp)
+            doc = fitz.open(fp)  # type: ignore[attr-defined]  # PyMuPDF lacks typeshed for module-level `open`
             target_page = 0
             model_parts = [p for p in (target_model or '').split() if len(p) >= 4]
             for page_num in range(min(15, len(doc))):
@@ -250,9 +250,12 @@ def quick_scan_for_name(file_paths: list[str]) -> dict:
         uploaded = _get_client().files.upload(file=fp)
         # Wait up to ~15s for processing.
         for _ in range(30):
-            if uploaded.state.name != "PROCESSING":
+            state = uploaded.state
+            if state is None or state.name != "PROCESSING":
                 break
             time.sleep(0.5)
+            if not uploaded.name:
+                break
             uploaded = _get_client().files.get(name=uploaded.name)
 
         response = _get_client().models.generate_content(
@@ -311,9 +314,12 @@ def triage_has_images(file_paths: list[str]) -> str:
     try:
         uploaded = _get_client().files.upload(file=fp)
         for _ in range(30):
-            if uploaded.state.name != "PROCESSING":
+            state = uploaded.state
+            if state is None or state.name != "PROCESSING":
                 break
             time.sleep(0.5)
+            if not uploaded.name:
+                break
             uploaded = _get_client().files.get(name=uploaded.name)
 
         response = _get_client().models.generate_content(
