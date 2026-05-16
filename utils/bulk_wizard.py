@@ -959,6 +959,12 @@ def enrich_product(pis_data: dict, upload_folder: str,
                     _con_warn(f"web context fetch failed: {e}")
                     web_context = ""
             url_data = {"text": web_context, "html": ""}
+            # Persist the exact Brave web text the generator saw so the
+            # downstream origin classifier can split web_grounded from
+            # hallucinated, and the AI-accuracy eval can re-use it as
+            # the second source for LLM judging.
+            if web_context:
+                result['_web_context'] = web_context
 
             ai: dict = {}
             if cluster_kind == 'variants' and len(variants_full) > 1:
@@ -1024,6 +1030,8 @@ def enrich_product(pis_data: dict, upload_folder: str,
                         'seo_data'):
                 if key in r:
                     out[key] = r[key]
+            if r.get('_web_context'):
+                out['_web_context'] = r['_web_context']
             if r.get('_seo_keywords'):
                 out['_seo_keywords_pending'] = r['_seo_keywords']
             # Apply AI header_info for variant clusters — but only when
@@ -1057,7 +1065,8 @@ def enrich_product(pis_data: dict, upload_folder: str,
                 )
                 raw_doc_text = extract_raw_text_from_files(file_paths) or ""
                 field_origins, spec_origins = classify_flat_pis_origins(
-                    out, raw_doc_text
+                    out, raw_doc_text,
+                    web_context=out.get('_web_context', ''),
                 )
                 out['_field_origins'] = field_origins
                 out['_spec_origins'] = spec_origins

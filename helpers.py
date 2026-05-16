@@ -969,46 +969,62 @@ def proforma_to_pis_data(product_obj: dict, raw_text: str | None = None,
     return pis
 
 
-def classify_flat_pis_origins(pis_data: dict, raw_text: str | None) -> tuple[dict, dict]:
+def classify_flat_pis_origins(
+    pis_data: dict,
+    raw_text: str | None,
+    web_context: str | None = None,
+) -> tuple[dict, dict]:
     """Produce (_field_origins, _spec_origins) maps for a FLAT pis_data shape
     — the one the bulk wizard's content task fills in via generate_pis_data,
     which doesn't split into source_facts / ai_enriched_details.
 
-    Same strict-fact rule as proforma_to_pis_data: only values literally
-    present in the uploaded Proforma's raw text become 'verified'. Without
-    raw text, nothing can be a fact — every field collapses to 'ai' (header/
-    warranty) or 'inferred' (specs).
+    When `web_context` is provided (the frozen Brave supplier-page text the
+    generator saw), classification is 4-state:
+        verified      — value appears in the Proforma raw text
+        web_grounded  — value appears in the Brave web_context
+        inferred      — spec from the AI's inferred_specs path (legacy fallback)
+        hallucinated  — value found in NEITHER source (AI invented it)
 
-    No 'discrepancy' state here: in the flat shape the AI never explicitly
-    cited the Proforma per-field, so there's nothing to flag as a lied-about
-    source claim. The verify_marketing.html template already treats both
-    'ai' and 'inferred' as the AI-generated bucket.
+    Without web_context, falls back to legacy 3-state ('verified' / 'ai' /
+    'inferred') so any caller that hasn't been updated keeps working.
+
+    Why: lets the eval harness count hallucinations directly instead of
+    lumping web-grounded specs and invented specs into the same 'inferred'
+    bucket. Narrative fields (range_overview, sales_arguments, seo_*) stay
+    'ai' here — they're paragraphs the grep can't usefully match; Layer 3
+    LLM judging covers them.
     """
     if not isinstance(pis_data, dict):
         return ({}, {})
 
     raw_lower = (raw_text or '').lower()
+    web_lower = (web_context or '').lower()
     have_text = bool(raw_lower)
+    have_web = bool(web_lower)
+    new_mode = have_web  # 4-state only when there's web text to ground against
 
-    def _fact_or_ai(value) -> str:
+    def _classify_field(value) -> str:
         if not value:
             return 'ai'
-        if not have_text:
-            return 'ai'
-        return 'verified' if _value_appears_in_text(value, raw_lower) else 'ai'
+        if have_text and _value_appears_in_text(value, raw_lower):
+            return 'verified'
+        if new_mode:
+            if _value_appears_in_text(value, web_lower):
+                return 'web_grounded'
+            return 'hallucinated'
+        return 'ai'
 
     header = pis_data.get('header_info') or {}
     warranty = pis_data.get('warranty_service') or {}
     specs = pis_data.get('technical_specifications') or {}
 
     field_origins = {
-        'header_info.product_name':   _fact_or_ai(header.get('product_name')),
-        'header_info.model_number':   _fact_or_ai(header.get('model_number')),
-        'header_info.brand':          _fact_or_ai(header.get('brand')),
-        'header_info.price_estimate': _fact_or_ai(header.get('price_estimate')),
-        'warranty_service.period':    _fact_or_ai(warranty.get('period')),
-        'warranty_service.coverage':  _fact_or_ai(warranty.get('coverage')),
-        # Narrative fields the AI always composes — never facts.
+        'header_info.product_name':   _classify_field(header.get('product_name')),
+        'header_info.model_number':   _classify_field(header.get('model_number')),
+        'header_info.brand':          _classify_field(header.get('brand')),
+        'header_info.price_estimate': _classify_field(header.get('price_estimate')),
+        'warranty_service.period':    _classify_field(warranty.get('period')),
+        'warranty_service.coverage':  _classify_field(warranty.get('coverage')),
         'range_overview':             'ai',
         'sales_arguments':            'ai',
         'seo_data.generated_keywords':   'ai',
@@ -1020,10 +1036,12 @@ def classify_flat_pis_origins(pis_data: dict, raw_text: str | None) -> tuple[dic
     spec_origins = {}
     if isinstance(specs, dict):
         for k, v in specs.items():
-            if not have_text:
-                spec_origins[k] = 'inferred'
-            elif _value_appears_in_text(v, raw_lower) or _value_appears_in_text(k, raw_lower):
+            if have_text and (_value_appears_in_text(v, raw_lower) or _value_appears_in_text(k, raw_lower)):
                 spec_origins[k] = 'verified'
+            elif new_mode and (_value_appears_in_text(v, web_lower) or _value_appears_in_text(k, web_lower)):
+                spec_origins[k] = 'web_grounded'
+            elif new_mode:
+                spec_origins[k] = 'hallucinated'
             else:
                 spec_origins[k] = 'inferred'
 
