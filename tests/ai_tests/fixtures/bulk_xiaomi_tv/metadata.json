@@ -1,0 +1,8 @@
+{
+  "fixture": "bulk_xiaomi_tv",
+  "kind": "bulk",
+  "product_name": "Xiaomi TV A Pro 32\"",
+  "brand": "Xiaomi",
+  "input_file": "proforma.pdf",
+  "notes": "Multi-product TVs; first row in invoice"
+}

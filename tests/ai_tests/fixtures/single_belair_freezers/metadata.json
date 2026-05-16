@@ -1,0 +1,8 @@
+{
+  "fixture": "single_belair_freezers",
+  "kind": "single",
+  "product_name": "BelAir BACF210W Chest Freezer",
+  "brand": "BelAir",
+  "input_file": "proforma.pdf",
+  "notes": "PI document — first product is chest freezer"
+}

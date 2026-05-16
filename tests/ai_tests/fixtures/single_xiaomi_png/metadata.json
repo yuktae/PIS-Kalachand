@@ -1,0 +1,8 @@
+{
+  "fixture": "single_xiaomi_png",
+  "kind": "single",
+  "product_name": "Xiaomi Product",
+  "brand": "Xiaomi",
+  "input_file": "proforma.png",
+  "notes": "PNG only — stresses image OCR path; rename product after first run"
+}

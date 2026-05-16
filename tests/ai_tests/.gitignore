@@ -1,0 +1,26 @@
+# Cached artifacts produced by the eval pipeline.
+# These regenerate from proforma.pdf + the live Brave/Gemini/Claude APIs
+# whenever they're missing — committing them would create churn and bloat.
+#
+# Keep checked in:
+#   - source files (test_*.py, conftest.py, judge.py, judge_cache.py, ...)
+#   - fixture inputs (proforma.pdf, metadata.json)
+#   - documentation (TEST_PLAN.md, README.md, results.md)
+#
+# Ignore the derived caches and reports:
+
+# Per-fixture caches
+fixtures/*/web_context.txt
+fixtures/*/pis_data*.json
+fixtures/*/judge_*_cache.json
+
+adversarial/*/web_context.txt
+adversarial/*/pis_data*.json
+adversarial/*/judge_*_cache.json
+
+# Timestamped run reports
+runs/*.json
+
+# Python bytecode
+__pycache__/
+*.pyc

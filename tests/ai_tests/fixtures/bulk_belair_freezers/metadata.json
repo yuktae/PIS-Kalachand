@@ -1,0 +1,8 @@
+{
+  "fixture": "bulk_belair_freezers",
+  "kind": "bulk",
+  "product_name": "BelAir BACF210W Chest Freezer",
+  "brand": "BelAir",
+  "input_file": "proforma.pdf",
+  "notes": "Bulk PI of multiple BelAir freezers; brand in brand-context library"
+}

@@ -1,0 +1,7 @@
+# Dev-only dependencies for the AI accuracy eval suite.
+# NOT in the main requirements.txt — production doesn't run these tests.
+#
+# Install:  pip install -r tests/ai_tests/requirements.txt
+
+anthropic>=0.40.0
+reportlab>=4.0.0       # for generating adversarial trap PDFs in Layer 5
