@@ -413,11 +413,21 @@ def discover_urls_via_brave(model_name: str,
 
     queries: list[str] = []
     # Manufacturer-locked first — typically gives the cleanest hero shot.
+    # Phase 2 Fix #3: append "specifications" so we hit the spec page on the
+    # brand site rather than the homepage / catalogue landing page.
     if brand_domain:
+        queries.append(f"{clean} specifications site:{brand_domain}")
         queries.append(f"{clean} site:{brand_domain}")
-    # Plain search — works for SKU-shaped names that don't match a known brand.
-    queries.append(f"{clean} official" if not brand_clean
-                   else f"{brand_clean} {clean} official")
+    # Brand+model query targeted at spec pages — for large brands like Xiaomi
+    # this avoids the generic catalogue page (monitors, earbuds, TVs all
+    # mixed). Falls back to the legacy `... official` query if specs query
+    # returns nothing usable.
+    if brand_clean:
+        queries.append(f"{brand_clean} {clean} specifications")
+        queries.append(f"{brand_clean} {clean} official")
+    else:
+        queries.append(f"{clean} specifications")
+        queries.append(f"{clean} official")
 
     headers = {
         "X-Subscription-Token": api_key,
@@ -705,6 +715,45 @@ def _fetch_clean_page_text(url: str, timeout: float = 8.0) -> str:
         return ""
 
 
+_RELEVANCE_TOKEN_MIN_LEN = 3
+
+
+def _relevance_tokens(text: str) -> list[str]:
+    """Tokenise an identifier for relevance checking — drops stop-noise like
+    bare "the", keeps model numbers and product nouns intact."""
+    if not text:
+        return []
+    raw = re.findall(r"[A-Za-z0-9]+", text)
+    return [t.lower() for t in raw if len(t) >= _RELEVANCE_TOKEN_MIN_LEN]
+
+
+def _page_is_relevant(text: str, model_name: str) -> bool:
+    """Phase 2 Fix #3 — relevance check. A fetched page is considered
+    relevant if its text contains either the model number/SKU OR at least
+    two distinct tokens from the model name. Brand alone is NOT enough
+    (a Xiaomi catalogue page mentions the brand on every product, but
+    that's exactly the irrelevant content we want to drop).
+    """
+    if not text:
+        return False
+    haystack = text.lower()
+    model_tokens = _relevance_tokens(model_name)
+    if not model_tokens:
+        # No tokens to check against — fall back to accepting whatever we
+        # got so we don't accidentally starve a niche product of context.
+        return True
+    # SKU-shape token (mixed letters+digits, length ≥ 4) is the strongest
+    # signal — one match is enough to call the page relevant.
+    for tok in model_tokens:
+        if len(tok) >= 4 and any(c.isdigit() for c in tok) and any(c.isalpha() for c in tok):
+            if tok in haystack:
+                return True
+    # Otherwise require ≥2 distinct model-name tokens to appear, so a page
+    # that only mentions the generic word "TV" isn't accepted as relevant.
+    hits = sum(1 for tok in set(model_tokens) if tok in haystack)
+    return hits >= 2
+
+
 def gather_web_context_for_content(model_name: str,
                                      brand: str | None = None,
                                      max_urls: int = 2,
@@ -729,11 +778,19 @@ def gather_web_context_for_content(model_name: str,
     with ThreadPoolExecutor(max_workers=len(urls)) as ex:
         texts = list(ex.map(_fetch_clean_page_text, urls))
 
-    # Tag each page with its source URL so Gemini knows where each block
-    # came from when it cross-references against the proforma.
+    # Phase 2 Fix #3: drop pages whose text doesn't reference the model.
+    # Passing irrelevant catalogue text to Gemini is worse than passing
+    # nothing — it produces specs that look sourced but aren't.
     parts: list[str] = []
+    dropped = 0
     for url, text in zip(urls, texts):
         if not text:
+            continue
+        if not _page_is_relevant(text, model_name):
+            dropped += 1
+            if log_cb:
+                try: log_cb(f"web ctx: dropped irrelevant page {url}")
+                except Exception: logger.debug("suppressed in image_processing", exc_info=True)
             continue
         parts.append(f"--- SOURCE: {url} ---\n{text}")
 
@@ -743,7 +800,8 @@ def gather_web_context_for_content(model_name: str,
 
     if log_cb:
         try: log_cb(f"web context: {len(combined)} chars from "
-                    f"{sum(1 for t in texts if t)}/{len(urls)} page(s)")
+                    f"{len(parts)}/{len(urls)} page(s) "
+                    f"(dropped {dropped} as irrelevant)")
         except Exception: logger.debug("suppressed in image_processing", exc_info=True)
     return combined
 

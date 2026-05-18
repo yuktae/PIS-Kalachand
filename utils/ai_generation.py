@@ -135,7 +135,7 @@ def generate_pis_data(file_paths, model_name, url_data) -> dict[str, Any]:
         model=_MODEL,
         client=_get_client(),
         contents=content_parts,
-        config=types.GenerateContentConfig(response_mime_type="application/json")
+        config=types.GenerateContentConfig(response_mime_type="application/json", temperature=0.1)
     )
     # Normalize: AI sometimes returns a list-wrapped single product or null;
     # callers (api.py, marketing.py) treat the return value as a PIS dict and
@@ -433,7 +433,7 @@ def generate_comprehensive_spec_data(pis_data, forbidden_words=None, categories=
             model=_MODEL,
             client=_get_client(),
             contents=prompt,
-            config=types.GenerateContentConfig(response_mime_type="application/json")
+            config=types.GenerateContentConfig(response_mime_type="application/json", temperature=0.1)
         )
         spec_data = safe_json_loads(response.text, fallback={})
         
@@ -579,7 +579,7 @@ def regenerate_seo_only(pis_data, spec_data=None, forbidden_words=None):
             model=_MODEL,
             client=_get_client(),
             contents=prompt,
-            config=types.GenerateContentConfig(response_mime_type="application/json")
+            config=types.GenerateContentConfig(response_mime_type="application/json", temperature=0.1)
         )
         result = safe_json_loads(response.text, fallback={})
         if not isinstance(result, dict):
@@ -778,7 +778,7 @@ def generate_proforma_data(
         model=_MODEL,
         client=_get_client(),
         contents=content_parts,
-        config=types.GenerateContentConfig(response_mime_type="application/json"),
+        config=types.GenerateContentConfig(response_mime_type="application/json", temperature=0.1),
     )
     result = safe_json_loads(response.text, fallback={})
 
@@ -855,7 +855,7 @@ def generate_bulk_pis_data(file_paths, url_data, product_filter="") -> list[dict
         model=_MODEL,
         client=_get_client(),
         contents=content_parts,
-        config=types.GenerateContentConfig(response_mime_type="application/json")
+        config=types.GenerateContentConfig(response_mime_type="application/json", temperature=0.1)
     )
     # Normalize: AI sometimes wraps the products list under a key like
     # "products", or returns a single dict for a one-product document.
@@ -881,7 +881,7 @@ def generate_specsheet_optimization(product_data):
             model=_MODEL,
             client=_get_client(),
             contents=prompt,
-            config=types.GenerateContentConfig(response_mime_type="application/json")
+            config=types.GenerateContentConfig(response_mime_type="application/json", temperature=0.1)
         )
         return safe_json_loads(response.text, fallback={})
     except:

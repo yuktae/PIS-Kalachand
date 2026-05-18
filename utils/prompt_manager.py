@@ -24,7 +24,9 @@ TASK:
 2. FACTUAL INTEGRITY: Identify specific technical features, performance metrics, and unique selling points.
 3. **STRICT RULES**:
    - DO NOT invent, assume, or hallucinate any details.
-   - If a detail is not in the documents or website context, omit it or state it's unavailable.
+   - If a detail is not in the documents or website context, leave the field as an empty string "". Do NOT write placeholder text like "Unavailable", "Unavailable from document", "N/A", or "Not specified" — just leave it blank.
+   - **VERBATIM MODEL NUMBER**: Copy `model_number` exactly as it appears in the document — no rephrasing, no abbreviation, no reformatting.
+   - **NO-SOURCE GUARD**: If no source text was extracted from the document and no relevant web context is available, leave all narrative fields (range_overview, sales_arguments, seo_data.*) blank rather than composing them from general product knowledge.
    - **INDEPENDENT CONTENT**: This description must be standalone. NEVER refer to other products, model variations, or colors in your text. Each overview must be unique and fully populated.
 4. HERO IMAGE SELECTION:
    - Review the 'IMAGE CANDIDATES' list below.
@@ -70,6 +72,9 @@ Task:
 1. {filter_instruction}
 2. FACTUAL ENRICHMENT: Use the Website Context to identify deep specs and detailed descriptions.
 3. **STRICT ACCURACY**: Do NOT hallucinate or invent features.
+   - If a field is missing from the source, leave it as an empty string "". Do NOT write placeholder text like "Unavailable", "Unavailable from document", "N/A", or "Not specified".
+   - **VERBATIM MODEL NUMBER**: Copy `model_number` exactly as it appears in the document — no rephrasing, no abbreviation, no reformatting.
+   - **NO-SOURCE GUARD**: If no source text was extracted from a product entry and no relevant web context is available for it, leave that product's narrative fields (range_overview, sales_arguments, seo_data.*) blank rather than composing them from general product knowledge.
 4. **INDEPENDENT DESCRIPTIONS**:
    - Each product must have its own standalone, unique, and comprehensive description.
    - **CRITICAL**: NEVER refer to other products in the list (e.g., AVOID "See Model X for more info" or "Refer to the overview of the cream version").
@@ -164,6 +169,25 @@ For every product object you MUST split data into TWO nodes:
   do not apply (no "Refresh Rate" for furniture, no "Cooling Capacity"
   for a TV, no "Wattage" for a wardrobe). When in doubt, leave the spec
   out — empty is always safer than misleading.
+- **NO PLACEHOLDER TEXT**: When a field is absent in the source, use an
+  empty string "" (or null where the schema allows). NEVER write
+  "Unavailable", "Unavailable from document", "N/A", "Not specified",
+  "Unknown" or any similar placeholder phrase. The verification layer
+  treats those phrases as hallucinations because they never appear in
+  the source document.
+- **VERBATIM MODEL NUMBER**: Copy `source_facts.model_number` exactly as
+  it appears in the document — no rephrasing, no abbreviation, no
+  reformatting (do not collapse hyphens, do not change case, do not
+  drop a trailing finish/colour suffix). If the document shows
+  "XDY60.120060-OAK-W", output "XDY60.120060-OAK-W" — not "XDY60-OAK"
+  and not "XDY60.120060".
+- **NO-SOURCE GUARD**: If no source text was extracted from the
+  document AND the web context is empty or irrelevant, leave every
+  `ai_enriched_details` narrative field blank (range_overview = "",
+  sales_arguments = [], seo_data fields = "", inferred_specs = {{}}).
+  Do NOT compose marketing copy from general product knowledge — that
+  produces unverifiable claims. Only `source_facts` may be populated in
+  that case.
 - Each product's `range_overview` must be standalone — never refer to
   other products in the list.
 - For HERO IMAGE selection: pick the URL representing a clean main

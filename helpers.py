@@ -698,12 +698,88 @@ def normalize_pis_data(data):
 
 # ================= PROFORMA SCHEMA → PIS DATA =================
 
+_IMAGE_OCR_EXTS = ('.png', '.jpg', '.jpeg', '.webp', '.bmp', '.tiff', '.tif')
+
+# Known install locations for the tesseract binary. Checked in order when
+# pytesseract can't find tesseract on PATH (e.g. Windows session that didn't
+# refresh PATH after install). Empty strings filter out platform mismatches
+# so the list works cross-platform without branching at import time.
+_TESSERACT_FALLBACK_PATHS = tuple(p for p in (
+    r"C:\Program Files\Tesseract-OCR\tesseract.exe",
+    r"C:\Program Files (x86)\Tesseract-OCR\tesseract.exe",
+    "/usr/bin/tesseract",
+    "/usr/local/bin/tesseract",
+    "/opt/homebrew/bin/tesseract",
+) if p)
+
+
+def _ensure_tesseract_cmd(pytesseract_mod) -> bool:
+    """Make sure pytesseract knows where the tesseract binary is.
+
+    On Windows the installer adds Tesseract-OCR to the system PATH, but
+    long-lived shells (and CI runners) often inherit a stale PATH that
+    doesn't include it. Probe the well-known install locations and pin
+    `pytesseract.tesseract_cmd` to the first one that exists. Returns
+    True when a usable binary is reachable, False otherwise."""
+    try:
+        pytesseract_mod.get_tesseract_version()
+        return True
+    except Exception:
+        pass
+    for cand in _TESSERACT_FALLBACK_PATHS:
+        if os.path.exists(cand):
+            pytesseract_mod.pytesseract.tesseract_cmd = cand
+            try:
+                pytesseract_mod.get_tesseract_version()
+                return True
+            except Exception:
+                continue
+    return False
+
+
+def _ocr_image_text(fp: str) -> str:
+    """Phase 5 Fix #8: run pytesseract on a PNG/JPG proforma so the
+    grep-verification pass has source text to match against. Without this,
+    every field on an image-only proforma falls back to the AI bucket and
+    shows as a red pill even when Gemini read the value correctly.
+
+    Soft dependency: pytesseract + a system-installed tesseract binary. If
+    either is missing we return "" and the caller falls through to AI-only
+    verification (current behaviour pre-Fix #8). Never raises."""
+    try:
+        import pytesseract  # type: ignore
+        from PIL import Image
+    except ImportError:
+        logger.info("OCR skipped (pytesseract not installed) for %s",
+                    os.path.basename(fp))
+        return ""
+    if not _ensure_tesseract_cmd(pytesseract):
+        logger.info("OCR skipped (tesseract binary not found) for %s",
+                    os.path.basename(fp))
+        return ""
+    try:
+        with Image.open(fp) as img:
+            text = pytesseract.image_to_string(img)
+        # image_to_string is typed bytes|dict|str depending on output_type;
+        # we always call with the default output_type=str, so coerce defensively.
+        if isinstance(text, bytes):
+            text = text.decode("utf-8", errors="replace")
+        elif not isinstance(text, str):
+            return ""
+        return text
+    except Exception as e:
+        logger.warning("OCR failed for %s: %s", os.path.basename(fp), e)
+        return ""
+
+
 def extract_raw_text_from_files(file_paths) -> str:
     """Phase 2.4: pull plain text out of every supported source file so the
     grep-verification pass can check whether the AI's claimed source_facts
     actually appear on the page. PDF goes through PyMuPDF; .docx through
-    python-docx (lazy-imported, optional). Image OCR is intentionally out of
-    scope here — those documents fall through to AI-only verification.
+    python-docx (lazy-imported, optional); image proformas go through
+    pytesseract OCR when available (Phase 5 Fix #8) — when the OCR
+    dependency is missing the image falls through silently and the file
+    contributes no verification text, matching the legacy behaviour.
     """
     if not file_paths:
         return ""
@@ -730,6 +806,10 @@ def extract_raw_text_from_files(file_paths) -> str:
                             chunks.append(p.text)
                 except ImportError:
                     pass  # python-docx not installed; skip
+            elif ext in _IMAGE_OCR_EXTS:
+                ocr_text = _ocr_image_text(fp)
+                if ocr_text:
+                    chunks.append(ocr_text)
         except Exception as e:
             logger.warning("raw-text extraction failed for %s: %s", os.path.basename(fp), e)
     return "\n".join(chunks)
