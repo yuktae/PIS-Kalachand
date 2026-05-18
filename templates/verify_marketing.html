@@ -186,58 +186,109 @@
 
 
         {% if _has_any_ai %}
-        <details class="legend-disclosure mt-6 mx-8 group rounded-2xl bg-gray-50 border border-gray-200">
-            <summary class="cursor-pointer select-none px-4 py-2.5 flex items-center justify-between gap-3">
-                <div class="text-xs text-gray-700 flex flex-wrap items-center gap-x-4 gap-y-1.5">
-                    <span class="inline-flex items-center gap-1.5" title="Fact — extracted from the Proforma.">
-                        <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-yellow-50 text-yellow-600 text-[11px] border border-yellow-200 font-bold">✔</span>
-                        <span class="font-bold">Fact</span>
-                    </span>
-                    {% if _has_web_grounded %}
-                    <span class="inline-flex items-center gap-1.5" title="Web-grounded — found on the supplier site, not the Proforma.">
-                        <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-blue-50 text-blue-600 text-[11px] border border-blue-200">🌐</span>
-                        <span class="font-bold">Web</span>
-                    </span>
-                    {% endif %}
-                    {% if _has_enriched %}
-                    <span class="inline-flex items-center gap-1.5" title="AI-enriched — likely correct, cross-check.">
-                        <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-purple-50 text-purple-600 text-[11px] border border-purple-200">✨</span>
-                        <span class="font-bold">AI-enriched</span>
-                    </span>
-                    {% endif %}
-                    <span class="inline-flex items-center gap-1.5" title="AI-generated — verify before sending.">
-                        <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-50 text-red-500 text-[11px] border border-red-100">✨</span>
-                        <span class="font-bold">AI-generated</span>
-                    </span>
-                    {% if _has_discrepancy %}
-                    <span class="inline-flex items-center gap-1.5" title="Discrepancy — claimed value not found in source.">
-                        <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-50 text-red-600 text-[11px] border border-red-200 font-bold">⚠</span>
-                        <span class="font-bold">Discrepancy</span>
-                    </span>
-                    {% endif %}
-                </div>
-                <span class="text-[11px] text-gray-500 hover:text-gray-700 flex items-center gap-1 shrink-0">
-                    <span class="group-open:hidden">What do these mean?</span>
-                    <span class="hidden group-open:inline">Hide</span>
-                    <svg class="w-3 h-3 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
-                </span>
-            </summary>
-            <div class="px-4 pb-3 pt-3 mt-0 border-t border-gray-200">
-                <div class="text-xs text-gray-600 leading-relaxed flex flex-wrap items-center gap-x-6 gap-y-1.5">
-                    <span><span class="font-bold text-yellow-700">Fact</span> — extracted from the Proforma.</span>
-                    {% if _has_web_grounded %}
-                    <span><span class="font-bold text-blue-700">Web-grounded</span> — found on the supplier site, not the Proforma.</span>
-                    {% endif %}
-                    {% if _has_enriched %}
-                    <span><span class="font-bold text-purple-700">AI-enriched</span> — likely correct, cross-check.</span>
-                    {% endif %}
-                    <span><span class="font-bold text-red-600">AI-generated</span> — verify before sending.</span>
-                    {% if _has_discrepancy %}
-                    <span><span class="font-bold text-red-700">Discrepancy</span> — claimed value not found in source.</span>
-                    {% endif %}
+        <div class="mt-5 mx-8" x-data="{ tagModal: false, selected: null, open(t){ this.selected = t; this.tagModal = true; } }">
+            <div class="flex flex-wrap items-center gap-2 text-xs text-gray-500">
+                <span class="text-[11px] font-medium uppercase tracking-wider text-gray-400 mr-1">Tags</span>
+                <button type="button" @click="open('fact')"
+                    class="inline-flex items-center gap-1.5 pl-1 pr-2.5 py-1 rounded-full bg-yellow-50 hover:bg-yellow-100 border border-yellow-200 text-yellow-800 transition-colors">
+                    <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-white text-yellow-600 text-[11px] font-bold border border-yellow-200">✔</span>
+                    <span class="font-semibold">Fact</span>
+                </button>
+                {% if _has_web_grounded %}
+                <button type="button" @click="open('web')"
+                    class="inline-flex items-center gap-1.5 pl-1 pr-2.5 py-1 rounded-full bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-800 transition-colors">
+                    <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-white text-blue-600 text-[11px] border border-blue-200">🌐</span>
+                    <span class="font-semibold">Web</span>
+                </button>
+                {% endif %}
+                {% if _has_enriched %}
+                <button type="button" @click="open('enriched')"
+                    class="inline-flex items-center gap-1.5 pl-1 pr-2.5 py-1 rounded-full bg-purple-50 hover:bg-purple-100 border border-purple-200 text-purple-800 transition-colors">
+                    <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-white text-purple-600 text-[11px] border border-purple-200">✨</span>
+                    <span class="font-semibold">AI-enriched</span>
+                </button>
+                {% endif %}
+                <button type="button" @click="open('ai')"
+                    class="inline-flex items-center gap-1.5 pl-1 pr-2.5 py-1 rounded-full bg-red-50 hover:bg-red-100 border border-red-200 text-red-700 transition-colors">
+                    <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-white text-red-500 text-[11px] border border-red-100">✨</span>
+                    <span class="font-semibold">AI-generated</span>
+                </button>
+                {% if _has_discrepancy %}
+                <button type="button" @click="open('discrepancy')"
+                    class="inline-flex items-center gap-1.5 pl-1 pr-2.5 py-1 rounded-full bg-red-100 hover:bg-red-200 border border-red-300 text-red-800 transition-colors">
+                    <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-white text-red-600 text-[11px] font-bold border border-red-200">⚠</span>
+                    <span class="font-semibold">Discrepancy</span>
+                </button>
+                {% endif %}
+            </div>
+
+            {# ── Tag definitions modal ───────────────────────────────── #}
+            {# z-[200] matches the other modals in this template — needed to
+               paint over the live-preview panel which sits at sticky z-[60]
+               and creates its own stacking context. #}
+            <div x-show="tagModal" x-cloak style="display:none"
+                 class="fixed inset-0 z-[200] flex items-center justify-center px-4"
+                 @keydown.escape.window="tagModal=false">
+                <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+                     x-transition.opacity
+                     @click="tagModal=false"></div>
+                <div class="relative bg-white rounded-2xl shadow-2xl max-w-2xl w-full overflow-hidden"
+                     x-transition.scale.origin.center>
+                    <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+                        <div>
+                            <h3 class="text-sm font-bold text-slate-900">Tag legend</h3>
+                            <p class="text-[11px] text-slate-500 mt-0.5">How each field on this page is sourced.</p>
+                        </div>
+                        <button type="button" @click="tagModal=false"
+                            class="w-7 h-7 rounded-full flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                        </button>
+                    </div>
+                    <div class="divide-y divide-slate-100">
+                        <div class="flex items-start gap-4 px-6 py-3.5 transition-colors"
+                             :class="selected==='fact' ? 'bg-yellow-50 border-l-4 border-yellow-400 pl-5' : ''">
+                            <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-yellow-50 text-yellow-600 text-[12px] border border-yellow-200 font-bold shrink-0 mt-0.5">✔</span>
+                            <div class="flex-1 min-w-0">
+                                <div class="text-sm font-bold text-slate-900">Fact</div>
+                                <div class="text-xs text-slate-600 mt-0.5">The value was extracted directly from the Proforma document.</div>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-4 px-6 py-3.5 transition-colors"
+                             :class="selected==='web' ? 'bg-blue-50 border-l-4 border-blue-400 pl-5' : ''">
+                            <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-blue-50 text-blue-600 text-[12px] border border-blue-200 shrink-0 mt-0.5">🌐</span>
+                            <div class="flex-1 min-w-0">
+                                <div class="text-sm font-bold text-slate-900">Web</div>
+                                <div class="text-xs text-slate-600 mt-0.5">The value was found on the supplier&rsquo;s public website rather than in the Proforma.</div>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-4 px-6 py-3.5 transition-colors"
+                             :class="selected==='enriched' ? 'bg-purple-50 border-l-4 border-purple-400 pl-5' : ''">
+                            <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-purple-50 text-purple-600 text-[12px] border border-purple-200 shrink-0 mt-0.5">✨</span>
+                            <div class="flex-1 min-w-0">
+                                <div class="text-sm font-bold text-slate-900">AI-enriched</div>
+                                <div class="text-xs text-slate-600 mt-0.5">The value was inferred from brand knowledge and is likely correct, but should still be cross-checked.</div>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-4 px-6 py-3.5 transition-colors"
+                             :class="selected==='ai' ? 'bg-red-50 border-l-4 border-red-400 pl-5' : ''">
+                            <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-red-50 text-red-500 text-[12px] border border-red-100 shrink-0 mt-0.5">✨</span>
+                            <div class="flex-1 min-w-0">
+                                <div class="text-sm font-bold text-slate-900">AI-generated</div>
+                                <div class="text-xs text-slate-600 mt-0.5">The value is fully synthetic and must be verified against the source before sending.</div>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-4 px-6 py-3.5 transition-colors"
+                             :class="selected==='discrepancy' ? 'bg-red-100 border-l-4 border-red-500 pl-5' : ''">
+                            <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-red-50 text-red-600 text-[12px] border border-red-200 font-bold shrink-0 mt-0.5">⚠</span>
+                            <div class="flex-1 min-w-0">
+                                <div class="text-sm font-bold text-slate-900">Discrepancy</div>
+                                <div class="text-xs text-slate-600 mt-0.5">The model claims this value is documented, but it cannot be found in the source text.</div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
-        </details>
+        </div>
         {% endif %}
 
         <div class="mt-8 px-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -1370,11 +1421,6 @@
 </div>
 
 <style>
-    /* Hide native disclosure marker on legend */
-    .legend-disclosure > summary { list-style: none; }
-    .legend-disclosure > summary::-webkit-details-marker { display: none; }
-    .legend-disclosure > summary::marker { display: none; }
-
     /* Modern Scroll Spy Nav */
     .nav-link {
         padding: 0.5rem 1rem;
