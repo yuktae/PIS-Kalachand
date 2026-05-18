@@ -1,0 +1,583 @@
+{
+  "schema_version": 1,
+  "judgments": {
+    "00f776c75a288010c7c3f0428ce67972428b88230de1f4aef87140dc931e8d19": {
+      "judge": "haiku_claim_extract",
+      "payload": {
+        "block": "range_overview",
+        "text_excerpt": "The Ariete Steam Iron 6234 is meticulously designed to offer an exceptional bala",
+        "text_len": 1206,
+        "text": "The Ariete Steam Iron 6234 is meticulously designed to offer an exceptional balance of performance and user-friendliness, making it a perfect appliance for daily ironing needs. Its compact and lightweight construction, coupled with an ergonomic soft-touch handle, ensures comfortable handling and reduced fatigue during extended ironing sessions. The innovative horizontal filling system further enhances convenience, streamlining the preparation process.\n\nEquipped with a robust 2000W power output, the 6234 delivers efficient and effective ironing results. It features a high-quality non-stick Teflon plate (21.5x11.5 cm) that glides smoothly over fabrics, preventing snags and ensuring even heat distribution. The iron offers versatile dry and steam functions, including a powerful 140gr/min steam shot for stubborn creases and a consistent 28gr/min steam emission. Additional functionalities like vertical steam for delicate garments, adjustable steam settings, a spray function for dampening, and an anti-drip system underscore its comprehensive design for superior garment care. The integrated auto-clean system simplifies maintenance, prolonging the iron's lifespan and ensuring optimal performance."
+      },
+      "verdict": {
+        "claims": [
+          "Ariete Steam Iron AR-6234 has a compact and lightweight construction.",
+          "Ariete Steam Iron AR-6234 features an ergonomic soft-touch handle.",
+          "Ariete Steam Iron AR-6234 has a horizontal filling system.",
+          "Ariete Steam Iron AR-6234 has 2000W power output.",
+          "Ariete Steam Iron AR-6234 has a non-stick Teflon plate measuring 21.5x11.5 cm.",
+          "Ariete Steam Iron AR-6234 offers dry and steam ironing functions.",
+          "Ariete Steam Iron AR-6234 delivers 140gr/min steam shot.",
+          "Ariete Steam Iron AR-6234 delivers 28gr/min consistent steam emission.",
+          "Ariete Steam Iron AR-6234 has vertical steam function for delicate garments.",
+          "Ariete Steam Iron AR-6234 has adjustable steam settings.",
+          "Ariete Steam Iron AR-6234 has a spray function for dampening.",
+          "Ariete Steam Iron AR-6234 has an anti-drip system.",
+          "Ariete Steam Iron AR-6234 has an integrated auto-clean system."
+        ]
+      },
+      "judged_at": "2026-05-17T16:03:27+00:00"
+    },
+    "68eb320beda5131032f93b40ba8c2532232e1d99cee046c3fd8333fd0ad711bb": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Ariete Steam Iron AR-6234 has a compact and lightweight construction.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Light weight and reduced size, ergonomic handle and horizontal filling, dry and well-distributed steam: The 6234 iron distinguishes itself for extreme ease of use and efficient ironing",
+        "reason": "The supplier web pages explicitly describe the AR-6234 as 'light weight and reduced size,' which supports the claim of compact and lightweight construction."
+      },
+      "judged_at": "2026-05-17T16:03:31+00:00"
+    },
+    "3eb67729f679b73c5f33e72be1db5741d26e3d9c8e9f8f2aefc0098a7dd08060": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Ariete Steam Iron AR-6234 features an ergonomic soft-touch handle.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": false,
+        "evidence": "Ergonomic handle",
+        "reason": "The sources list only 'Ergonomic handle' for the AR-6234; the 'soft-touch' qualifier is not confirmed in the spec table for this model."
+      },
+      "judged_at": "2026-05-17T16:03:39+00:00"
+    },
+    "e631e7706c58f629ef9a44905729721a8ec973556eb9bffeffda589287408ba0": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Ariete Steam Iron AR-6234 has a horizontal filling system.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "ergonomic handle and horizontal filling, dry and well-distributed steam: The 6234 iron distinguishes itself for extreme ease of use and efficient ironing",
+        "reason": "The supplier web page for the AR-6234 explicitly mentions a horizontal filling system."
+      },
+      "judged_at": "2026-05-17T16:03:44+00:00"
+    },
+    "c1c23d22457f19603193faee0a43082aff1d846ce8bfe6fca7e997569066f94d": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Ariete Steam Iron AR-6234 has 2000W power output.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Power 2000W",
+        "reason": "The proforma, PDF, and supplier web pages all explicitly state the AR-6234 has a power of 2000W."
+      },
+      "judged_at": "2026-05-17T16:03:46+00:00"
+    },
+    "53e7574e130132a247be4155232cac7d34322a7bf2ce8cfff9faaaaf9a1c06d2": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Ariete Steam Iron AR-6234 has a non-stick Teflon plate measuring 21.5x11.5 cm.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Soleplate coating: Teflon (21.5x11.5 cm)",
+        "reason": "The proforma PDF and supplier web pages both explicitly state the AR-6234 has a Teflon soleplate measuring 21.5x11.5 cm."
+      },
+      "judged_at": "2026-05-17T16:03:49+00:00"
+    },
+    "e30595ba9582b60a43b68c5a8867f1c5423deb1d13a46202cc9fc8cc52e54f9b": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Ariete Steam Iron AR-6234 offers dry and steam ironing functions.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Dry/steam function",
+        "reason": "The 'Dry/steam function' feature is explicitly listed in the product specifications for the AR-6234 in both the proforma PDF and supplier web pages."
+      },
+      "judged_at": "2026-05-17T16:03:52+00:00"
+    },
+    "9fcb36cbef9383f858d41b9aaa5422b82f903e78a1b20c05dcdadbb4709a8df9": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Ariete Steam Iron AR-6234 delivers 140gr/min steam shot.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Steam shot 140gr/min",
+        "reason": "The steam shot of 140gr/min for the AR-6234 is explicitly listed in the proforma PDF, plain-text dump, and supplier web pages."
+      },
+      "judged_at": "2026-05-17T16:03:55+00:00"
+    },
+    "9e7ecfb02de6a3724e6c37845f22e80b6d47b5e83947c0a74a7bf2357b82cbd9": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Ariete Steam Iron AR-6234 delivers 28gr/min consistent steam emission.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Steam emission 28gr/min",
+        "reason": "The steam emission of 28gr/min for the AR-6234 is explicitly listed in both the proforma and supplier web pages."
+      },
+      "judged_at": "2026-05-17T16:03:57+00:00"
+    },
+    "d967f01f1a4ea245c651c9fcf928470e65d28420da1005ae0f095836d97f92c2": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Ariete Steam Iron AR-6234 has vertical steam function for delicate garments.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": false,
+        "evidence": "Vertical steam",
+        "reason": "While vertical steam is confirmed as a feature, the claim adds 'for delicate garments' which does not appear in any source."
+      },
+      "judged_at": "2026-05-17T16:04:01+00:00"
+    },
+    "adebd0b8f901eb2278281152477ca99d956d226ba20e3906dd14face3c8f4f7c": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Ariete Steam Iron AR-6234 has adjustable steam settings.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Steam adjustment ✓ (ariete.net product page for 6234; also listed in proforma features for AR-6234)",
+        "reason": "The feature 'Steam adjustment' is explicitly listed for the AR-6234 in both the proforma and the supplier web page, which directly supports the claim of adjustable steam settings."
+      },
+      "judged_at": "2026-05-17T16:04:06+00:00"
+    },
+    "5f7bf05ef4bc02542ba1a4583b2a971a08495e51b34c7e17737a25b9e04ee1da": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Ariete Steam Iron AR-6234 has a spray function for dampening.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Spray function for dampening fabrics",
+        "reason": "The proforma PDF lists 'Spray function for dampening fabrics' as a feature shared by both AR-6234 and AR-6235."
+      },
+      "judged_at": "2026-05-17T16:04:11+00:00"
+    },
+    "1b883d0d2111ae6cc87a5aff6e4788389a9342b7f8308e315667e4613c4f8d7c": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Ariete Steam Iron AR-6234 has an anti-drip system.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Anti-drip [listed under shared Features row spanning both AR-6234 and AR-6235 in the proforma PDF table]",
+        "reason": "The proforma PDF table lists Anti-drip as a shared feature covering both AR-6234 and AR-6235 models."
+      },
+      "judged_at": "2026-05-17T16:04:18+00:00"
+    },
+    "a4a830dcefa576b47232f91b09a042cd469a712a1d3d2e7ca0deb65db0af088a": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Ariete Steam Iron AR-6234 has an integrated auto-clean system.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Auto-clean function (listed as a feature for AR-6234 in both the proforma PDF and ariete.net: '✓ Auto-clean function')",
+        "reason": "All sources confirm the AR-6234 includes an auto-clean function, which directly supports the claim of an integrated auto-clean system."
+      },
+      "judged_at": "2026-05-17T16:04:23+00:00"
+    },
+    "82784ff43d5d6406e4653814ab42973dc179b1337ef5ccc2d9121279c81d60b1": {
+      "judge": "haiku_claim_extract",
+      "payload": {
+        "block": "sales_arguments",
+        "text_excerpt": "- Lightweight and reduced size with an ergonomic soft-touch handle for extreme e",
+        "text_len": 617,
+        "text": "- Lightweight and reduced size with an ergonomic soft-touch handle for extreme ease of use and comfortable daily ironing.\n- Powerful 2000W motor combined with a non-stick Teflon plate (21.5x11.5 cm) ensures efficient and smooth gliding over fabrics.\n- Features a robust 140gr/min steam shot and 28gr/min continuous steam emission for effective wrinkle removal.\n- Equipped with an auto-clean system, anti-drip function, and vertical steam capability for comprehensive garment care and easy maintenance.\n- Convenient 250ml tank capacity and 2mt cable length provide ample reach and reduce the need for frequent refills."
+      },
+      "verdict": {
+        "claims": [
+          "Ariete Steam Iron AR-6234 has an ergonomic soft-touch handle.",
+          "Ariete Steam Iron AR-6234 has a 2000W motor.",
+          "Ariete Steam Iron AR-6234 has a non-stick Teflon plate measuring 21.5x11.5 cm.",
+          "Ariete Steam Iron AR-6234 produces 140gr/min steam shot.",
+          "Ariete Steam Iron AR-6234 produces 28gr/min continuous steam emission.",
+          "Ariete Steam Iron AR-6234 has an auto-clean system.",
+          "Ariete Steam Iron AR-6234 has an anti-drip function.",
+          "Ariete Steam Iron AR-6234 has vertical steam capability.",
+          "Ariete Steam Iron AR-6234 has a 250ml tank capacity.",
+          "Ariete Steam Iron AR-6234 has a 2 meter cable length."
+        ]
+      },
+      "judged_at": "2026-05-17T16:04:25+00:00"
+    },
+    "f7208df8a555bc63a6c0c1684d34a1b94f4fb9802c889a9bff01d3fb9fe5eceb": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Ariete Steam Iron AR-6234 has an ergonomic soft-touch handle.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "The non-stick plate, the auto-cleaning system, the intense blue color and the soft touch handle complete the product",
+        "reason": "The ariete.net page describes the AR-6234 as having a 'soft touch handle', and the proforma lists 'Ergonomic handle', together supporting 'ergonomic soft-touch handle'."
+      },
+      "judged_at": "2026-05-17T16:04:32+00:00"
+    },
+    "9bd173d37740a3101ab9b726f4aa1e33a2bb6d32ea4937b390d6b692bba9be3a": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Ariete Steam Iron AR-6234 has a 2000W motor.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Power 2000W",
+        "reason": "The proforma, PDF, and supplier web pages all clearly state the AR-6234 has a power rating of 2000W."
+      },
+      "judged_at": "2026-05-17T16:04:36+00:00"
+    },
+    "e4865f69edac27b7778a8e58263fb46bf54edfa913f4e11ad1ef8ded8684f649": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Ariete Steam Iron AR-6234 produces 140gr/min steam shot.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Steam shot 140gr/min",
+        "reason": "The steam shot of 140gr/min for the AR-6234 is explicitly listed in the proforma PDF, plain-text dump, and supplier web pages."
+      },
+      "judged_at": "2026-05-17T16:04:39+00:00"
+    },
+    "cbbdb14f571334451d24b062a1779c56a63cd832e13967f3d1125887514434a5": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Ariete Steam Iron AR-6234 produces 28gr/min continuous steam emission.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Steam rate 28gr/min",
+        "reason": "The proforma, PDF, and supplier web pages all confirm the AR-6234 has a steam emission/rate of 28gr/min."
+      },
+      "judged_at": "2026-05-17T16:04:42+00:00"
+    },
+    "10011c655ecf257e057d9fda2462eb2ad181363c05ae89cbeb48de5a363190d2": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Ariete Steam Iron AR-6234 has an auto-clean system.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Auto-clean function",
+        "reason": "The auto-clean function is listed as a feature for the AR-6234 in the proforma PDF, plain-text dump, and supplier web pages."
+      },
+      "judged_at": "2026-05-17T16:04:45+00:00"
+    },
+    "64841bd810a219b0457ab736fc95975901e4024dd3d58d59381aeb42a2eaa953": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Ariete Steam Iron AR-6234 has an anti-drip function.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Anti-drip [listed as a shared feature row spanning both AR-6234 and AR-6235 in the proforma PDF table]",
+        "reason": "The PDF table shows Anti-drip as a feature row spanning both AR-6234 and AR-6235 columns."
+      },
+      "judged_at": "2026-05-17T16:04:53+00:00"
+    },
+    "1b906a7e7bdfcabd5bd0d91a384baf5cfe529deca7217dca9b89a864afc32ad2": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Ariete Steam Iron AR-6234 has vertical steam capability.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Vertical steam",
+        "reason": "The feature 'Vertical steam' is explicitly listed for the AR-6234 in the proforma PDF, plain-text dump, and supplier web pages."
+      },
+      "judged_at": "2026-05-17T16:04:56+00:00"
+    },
+    "a05d00db6d7e940064c28788cf20f88b3d92d2277741f79f21bdeaa08c21e669": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Ariete Steam Iron AR-6234 has a 250ml tank capacity.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Water tank capacity 250 ml",
+        "reason": "The 250ml tank capacity for AR-6234 is explicitly stated in the proforma PDF, the plain-text dump, and both supplier web pages."
+      },
+      "judged_at": "2026-05-17T16:04:58+00:00"
+    },
+    "f3d8eae275fdf148426b7c2c911dbf49c835acbedd2d3125c0a82798ebdf25bf": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Ariete Steam Iron AR-6234 has a 2 meter cable length.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Cable length 2mt ✓",
+        "reason": "The supplier web page (ariete.net) explicitly lists the cable length as 2mt, and the proforma also states 'Power cord length 2mt' for the AR-6234."
+      },
+      "judged_at": "2026-05-17T16:05:01+00:00"
+    },
+    "328ea2127b17cee8a25c9a4dec41b6823804f10da78870790503295cc22d6f9e": {
+      "judge": "haiku_claim_extract",
+      "payload": {
+        "block": "seo_long_description",
+        "text_excerpt": "The Ariete Steam Iron 6234 is engineered for extreme ease of use and efficient i",
+        "text_len": 961,
+        "text": "The Ariete Steam Iron 6234 is engineered for extreme ease of use and efficient ironing, making it an ideal choice for everyday household tasks. Its lightweight and reduced size, combined with an ergonomic soft-touch handle and horizontal filling, ensure comfortable operation. The iron delivers dry and well-distributed steam, complemented by a powerful 140gr/min steam shot and a continuous steam emission of 28gr/min, ensuring effective wrinkle removal on various fabrics.\n\nKey features of the 6234 model include a durable non-stick Teflon plate measuring 21.5x11.5 cm, an auto-cleaning system for easy maintenance, and a convenient 250ml water tank capacity. It also offers versatile dry/steam functionality, vertical steam capability for hanging garments, and precise steam adjustment. The intense blue color adds a touch of brilliance to its compact and functional design, further enhanced by a spray function for dampening fabrics and an anti-drip system."
+      },
+      "verdict": {
+        "claims": [
+          "Ariete Steam Iron AR-6234 has a lightweight and reduced size design.",
+          "Ariete Steam Iron AR-6234 features an ergonomic soft-touch handle.",
+          "Ariete Steam Iron AR-6234 has horizontal filling capability.",
+          "Ariete Steam Iron AR-6234 delivers a steam shot of 140gr/min.",
+          "Ariete Steam Iron AR-6234 has continuous steam emission of 28gr/min.",
+          "Ariete Steam Iron AR-6234 has a non-stick Teflon plate measuring 21.5x11.5 cm.",
+          "Ariete Steam Iron AR-6234 includes an auto-cleaning system.",
+          "Ariete Steam Iron AR-6234 has a 250ml water tank capacity.",
+          "Ariete Steam Iron AR-6234 offers dry and steam ironing functionality.",
+          "Ariete Steam Iron AR-6234 has vertical steam capability for hanging garments.",
+          "Ariete Steam Iron AR-6234 features precise steam adjustment.",
+          "Ariete Steam Iron AR-6234 is intense blue in color.",
+          "Ariete Steam Iron AR-6234 includes a spray function for dampening fabrics.",
+          "Ariete Steam Iron AR-6234 has an anti-drip system."
+        ]
+      },
+      "judged_at": "2026-05-17T16:05:04+00:00"
+    },
+    "d6491b5d9f0ea5b713fb10379a154bb6d3cb3e72bd4451ec3b4daf51efbabe00": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Ariete Steam Iron AR-6234 has a lightweight and reduced size design.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Light weight and reduced size, ergonomic handle and horizontal filling, dry and well-distributed steam: The 6234 iron distinguishes itself for extreme ease of use",
+        "reason": "The supplier web pages explicitly describe the AR-6234 as having a lightweight and reduced size design."
+      },
+      "judged_at": "2026-05-17T16:05:07+00:00"
+    },
+    "3012d17952f681a3a28a8be15334d297caaacebbc1c0e5d85d5cac24f26be3d2": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Ariete Steam Iron AR-6234 has horizontal filling capability.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "ergonomic handle and horizontal filling, dry and well-distributed steam: The 6234 iron distinguishes itself for extreme ease of use",
+        "reason": "The supplier web pages (ariete.net and youneselectric.com) explicitly mention horizontal filling as a feature of the AR-6234."
+      },
+      "judged_at": "2026-05-17T16:05:12+00:00"
+    },
+    "b2e19144c3290c380a5365168cfae046a14e1ebfeefdc24e874b5cf6c8e3ea20": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Ariete Steam Iron AR-6234 delivers a steam shot of 140gr/min.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Steam shot 140gr/min",
+        "reason": "The steam shot of 140gr/min for the AR-6234 is explicitly listed in the proforma PDF, the plain-text dump, and both supplier web pages."
+      },
+      "judged_at": "2026-05-17T16:05:15+00:00"
+    },
+    "106f89d4fbed6ce890633b2017d9c0e4e33805d65c59d6bed3e58a133b37a8c8": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Ariete Steam Iron AR-6234 has continuous steam emission of 28gr/min.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Steam emission 28gr/min (ariete.net); Steam rate 28gr/min (PDF table for AR-6234)",
+        "reason": "All sources confirm the AR-6234 has a steam emission/rate of 28gr/min, which corresponds to continuous steam output."
+      },
+      "judged_at": "2026-05-17T16:05:20+00:00"
+    },
+    "23d55a90222df641a41f4fe808d5631789481568b9e8c0d812ded5c968589bd3": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Ariete Steam Iron AR-6234 includes an auto-cleaning system.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Auto-clean function",
+        "reason": "The auto-clean function is listed as a feature for the AR-6234 in the proforma PDF, the plain-text dump, and confirmed by supplier web pages."
+      },
+      "judged_at": "2026-05-17T16:05:23+00:00"
+    },
+    "a1658be44575bd73e90e82e557e1c4b8b0626b8deb7f4aa764e20ab863297ac0": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Ariete Steam Iron AR-6234 has a 250ml water tank capacity.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Water tank capacity: 250 ml (AR-6234)",
+        "reason": "The proforma PDF, plain-text dump, and supplier web pages all confirm the AR-6234 has a 250ml water tank capacity."
+      },
+      "judged_at": "2026-05-17T16:05:26+00:00"
+    },
+    "a5617439e3321f5b17b985466c7aa2993b80b23f9720c5db9ea4506b59900d17": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Ariete Steam Iron AR-6234 offers dry and steam ironing functionality.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Dry/steam function",
+        "reason": "The 'Dry/steam function' feature is explicitly listed in the product specifications for the AR-6234 in both the proforma PDF and supplier web pages."
+      },
+      "judged_at": "2026-05-17T16:05:29+00:00"
+    },
+    "1cd2000f7da110de19457d269d224169953cd8a226bf00285038e80aa1457f8c": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Ariete Steam Iron AR-6234 has vertical steam capability for hanging garments.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": false,
+        "evidence": "Vertical steam",
+        "reason": "While vertical steam is confirmed in the sources, the specific detail 'for hanging garments' is not mentioned anywhere in the sources."
+      },
+      "judged_at": "2026-05-17T16:05:33+00:00"
+    },
+    "82aba432d918659c907de34930f6b687195d46b7b1d186b7951ead30b4bc6cad": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Ariete Steam Iron AR-6234 features precise steam adjustment.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Steam adjustment ✓",
+        "reason": "The proforma, PDF, and supplier web pages all list 'Steam adjustment' as a feature of the AR-6234."
+      },
+      "judged_at": "2026-05-17T16:05:36+00:00"
+    },
+    "76c40144332f5460fd2bc061231feb89259b037d55d27a786a9fc42f7c2568b0": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Ariete Steam Iron AR-6234 is intense blue in color.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "The non-stick plate, the auto-cleaning system, the intense blue color and the soft touch handle complete the product, making it simply brilliant.",
+        "reason": "The supplier web page explicitly describes the AR-6234 as having an 'intense blue color'."
+      },
+      "judged_at": "2026-05-17T16:05:39+00:00"
+    },
+    "0d8e044c7f524da080663cc6393e556bf6d03b234bcb16348d8b47fa3bdc3a33": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Ariete Steam Iron AR-6234 includes a spray function for dampening fabrics.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Features: Spray function for dampening fabrics (listed for AR-6234 in the product information sheet table)",
+        "reason": "The proforma PDF explicitly lists 'Spray function for dampening fabrics' as a feature of the AR-6234."
+      },
+      "judged_at": "2026-05-17T16:05:45+00:00"
+    },
+    "f06fa91f496bc8db92c497c4c960c7e8499663c8fb63630105bf935926ad9a2d": {
+      "judge": "haiku_claim_extract",
+      "payload": {
+        "block": "meta_description",
+        "text_excerpt": "Experience effortless daily ironing with the Ariete 6234 Steam Iron. Boasting 20",
+        "text_len": 180,
+        "text": "Experience effortless daily ironing with the Ariete 6234 Steam Iron. Boasting 2000W power, a non-stick Teflon plate, auto-clean function, and ergonomic design for superior results."
+      },
+      "verdict": {
+        "claims": [
+          "Ariete Steam Iron AR-6234 has 2000W power.",
+          "Ariete Steam Iron AR-6234 has a non-stick Teflon plate.",
+          "Ariete Steam Iron AR-6234 has an auto-clean function.",
+          "Ariete Steam Iron AR-6234 has an ergonomic design."
+        ]
+      },
+      "judged_at": "2026-05-17T16:05:47+00:00"
+    },
+    "48f851ced001f8e694d1d14957e6c632ed242d58e2f50a220b0a468f0e3903d1": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Ariete Steam Iron AR-6234 has 2000W power.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Power 2000W",
+        "reason": "The proforma, PDF, and supplier web pages all explicitly state the AR-6234 has 2000W power."
+      },
+      "judged_at": "2026-05-17T16:05:49+00:00"
+    },
+    "f8b82badf3fe609985f40e2c74980e45885c59e4f236d5851d38885d37eb7d6b": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Ariete Steam Iron AR-6234 has a non-stick Teflon plate.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Soleplate coating: Teflon (21.5x11.5 cm) | Non-stick ultra-smooth plate",
+        "reason": "The proforma PDF and supplier web pages both confirm the AR-6234 has a Teflon soleplate coating described as non-stick."
+      },
+      "judged_at": "2026-05-17T16:05:52+00:00"
+    },
+    "e491dcc5126b2f10c3f9ffc12cd14e9c323cc76f31eb2b6ada5bb81a1793f2e1": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Ariete Steam Iron AR-6234 has an auto-clean function.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Auto-clean function",
+        "reason": "The auto-clean function is listed as a feature for the AR-6234 in the proforma PDF, the plain-text dump, and confirmed on both supplier web pages."
+      },
+      "judged_at": "2026-05-17T16:05:55+00:00"
+    },
+    "af48d8178cd52a5ec4e56f13c4e6abe27a1bc607ff6b5d6cc9d6311ec5ca158c": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Ariete Steam Iron AR-6234 has an ergonomic design.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "ergonomic handle and horizontal filling, dry and well-distributed steam: The 6234 iron distinguishes itself for extreme ease of use and efficient ironing",
+        "reason": "The sources explicitly mention an ergonomic handle for the AR-6234, supporting the claim of ergonomic design."
+      },
+      "judged_at": "2026-05-17T16:06:00+00:00"
+    }
+  }
+}

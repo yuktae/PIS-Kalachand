@@ -1,0 +1,56 @@
+{
+  "header_info": {
+    "product_name": "2D Wardrobe Oak/Warm White",
+    "model_number": "XDY60.120060-OAK-W",
+    "brand": "SUNON",
+    "price_estimate": "20,385"
+  },
+  "found_image_url": null,
+  "seo_data": {
+    "generated_keywords": "Sunon wardrobe, 2D wardrobe, oak wardrobe, warm white wardrobe, particle board, melamine, PVC edge banding, soft close hinges, key lock, clothes rail, storage, bedroom furniture, XDY60.120060-OAK-W",
+    "meta_title": "Sunon 2D Wardrobe XDY60.120060-OAK-W - Oak/Warm White",
+    "meta_description": "Discover the Sunon 2D Wardrobe XDY60.120060-OAK-W, featuring an oak frame and white doors. Constructed with E0 grade particle board, soft close hinges, and ample storage.",
+    "seo_long_description": "The Sunon 2D Wardrobe, model XDY60.120060-OAK-W, offers a practical and stylish storage solution for any bedroom. This wardrobe is meticulously crafted from 25/18mm E0 Grade Particle Board, ensuring durability and a high-quality finish. The material is further enhanced with Melamine and PVC Edge Banding, providing resistance to wear and tear while maintaining a sleek aesthetic. Its design features an elegant oak frame complemented by clean white doors, making it a versatile addition to various interior decors.\n\nDesigned for optimal organization, the XDY60.120060-OAK-W wardrobe includes a thoughtful configuration with two doors. Inside, it is equipped with both shelves and a clothes rail, allowing for flexible storage of folded garments and hanging items. Additionally, open shelves are integrated into the middle and bottom sections, perfect for displaying decorative items or providing easy access to frequently used essentials. The hardware includes soft close hinges for quiet operation and a key lock for added security, combining functionality with user convenience."
+  },
+  "range_overview": "The SUNON 2D Wardrobe, specifically the XDY60.120060-OAK-W model, is engineered to provide a robust and aesthetically pleasing storage solution. It is constructed using high-quality 25/18mm E0 Grade Particle Board, a material known for its environmental friendliness and structural integrity. The surfaces are finished with Melamine and PVC Edge Banding, which not only contribute to its visual appeal with an oak frame and white doors but also enhance its resistance to daily wear, ensuring longevity.\n\nThis wardrobe's design focuses on practical utility, featuring a two-door configuration that opens to reveal a well-organized interior. It incorporates both shelves and a dedicated clothes rail, catering to diverse storage needs from folded apparel to hanging garments. The inclusion of open shelves in the middle and bottom sections offers convenient access and display opportunities. Furthermore, the wardrobe is equipped with soft close hinges for smooth and silent operation, alongside a key lock mechanism, adding a layer of security for personal belongings. With dimensions of 1200mm (W) x 600mm (D) x 2000mm (H), it provides substantial storage capacity while maintaining a compact footprint suitable for various room sizes.",
+  "sales_arguments": [
+    "Constructed with durable 25/18mm E0 Grade Particle Board for lasting quality.",
+    "Features Melamine and PVC Edge Banding for enhanced durability and a refined finish.",
+    "Equipped with soft close hinges for quiet and smooth door operation.",
+    "Includes a key lock for added security of stored items.",
+    "Offers versatile storage with 2 doors, internal shelves, a clothes rail, and open shelves."
+  ],
+  "technical_specifications": {
+    "Material": "25/18mm E0 Grade Particle Board with Melamine + PVC Edge Banding",
+    "Configuration": "2 doors wardrobe with shelves and clothes rail inside, open shelves in middle and bottom",
+    "Hardware": "Soft close hinges + Key lock",
+    "Dimension WxDxH (mm)": "1200*600*2000",
+    "Color": "Oak frame + White doors"
+  },
+  "warranty_service": {
+    "period": "",
+    "coverage": ""
+  },
+  "_web_context": "",
+  "_field_origins": {
+    "header_info.product_name": "ai",
+    "header_info.model_number": "verified",
+    "header_info.brand": "verified",
+    "header_info.price_estimate": "verified",
+    "warranty_service.period": "ai",
+    "warranty_service.coverage": "ai",
+    "range_overview": "ai",
+    "sales_arguments": "ai",
+    "seo_data.generated_keywords": "ai",
+    "seo_data.meta_title": "ai",
+    "seo_data.meta_description": "ai",
+    "seo_data.seo_long_description": "ai"
+  },
+  "_spec_origins": {
+    "Material": "verified",
+    "Configuration": "verified",
+    "Hardware": "verified",
+    "Dimension WxDxH (mm)": "verified",
+    "Color": "verified"
+  }
+}

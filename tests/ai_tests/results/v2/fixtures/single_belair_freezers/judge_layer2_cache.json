@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "judgments": {
+    "7a12ffef93f88717f2c319f6a829d915c02cd54533d53bd2975def34ce51dcb7": {
+      "judge": "haiku_field_rescue",
+      "payload": {
+        "field": "header_info.product_name",
+        "value": "BelAir Chest Freezer"
+      },
+      "verdict": {
+        "supported": false,
+        "source": "neither",
+        "evidence": "Proforma lists 'Chest freezer' as item description, but no generic 'BelAir Chest Freezer' product name found. Web sources show BelAir is an agricultural company, not a freezer manufacturer."
+      },
+      "judged_at": "2026-05-17T16:03:10+00:00"
+    }
+  }
+}

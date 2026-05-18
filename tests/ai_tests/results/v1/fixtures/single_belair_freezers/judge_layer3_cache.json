@@ -1,0 +1,271 @@
+{
+  "schema_version": 1,
+  "judgments": {
+    "46f29b37b685ba6a323196b70529d32281c823cba411a86a0c625fa04ab5ef99": {
+      "judge": "haiku_claim_extract",
+      "payload": {
+        "block": "range_overview",
+        "text_excerpt": "The BelAir BACF-500 is a dedicated chest freezer designed for efficient and secu",
+        "text_len": 1191,
+        "text": "The BelAir BACF-500 is a dedicated chest freezer designed for efficient and secure frozen food storage. Finished in a clean white, this appliance integrates several key features aimed at enhancing user convenience and product longevity. A primary feature is the inclusion of a reliable lock and key mechanism, ensuring the security of its contents, a valuable asset for both residential and light commercial environments where peace of mind is paramount.\n\nFurther enhancing its utility, the BACF-500 is equipped with an internal LED light, illuminating the freezer's interior to facilitate easy location and retrieval of items, even in dimly lit spaces. For organizational purposes, the freezer comes with two robust storage baskets, allowing users to neatly compartmentalize different types of frozen goods, preventing clutter and improving accessibility. While specific volumetric capacity, energy efficiency ratings, or detailed refrigeration technology are not provided in the available documentation, the product's design focuses on practical functionality and secure, organized storage, aligning with BelAir's philosophy of delivering quality through diligence and attention to detail."
+      },
+      "verdict": {
+        "claims": [
+          "BelAir BACF210W is a chest freezer for frozen food storage.",
+          "BelAir BACF210W has a white finish.",
+          "BelAir BACF210W includes a lock and key mechanism.",
+          "BelAir BACF210W has an internal LED light.",
+          "BelAir BACF210W comes with two storage baskets."
+        ]
+      },
+      "judged_at": "2026-05-16T17:19:32+00:00"
+    },
+    "9b0a42f1e6a3000d99324b87b59375d43c99d26216e645805098c1dadf8c35e9": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "BelAir BACF210W is a chest freezer for frozen food storage."
+      },
+      "verdict": {
+        "supported": false,
+        "evidence": "",
+        "reason": "The sources contain no information about the BelAir BACF210W or any chest freezer products; the web pages only describe an agricultural estate in Mauritius."
+      },
+      "judged_at": "2026-05-16T17:19:35+00:00"
+    },
+    "996336b82d770dc016616e6b5fc2566b3d490dc4f2d2de8eed0f43a9574f3cdf": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "BelAir BACF210W has a white finish."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "BELAIR BACF210W HC-210 Chest freezer, white, one basket, A+",
+        "reason": "The proforma invoice explicitly states the BACF210W is white."
+      },
+      "judged_at": "2026-05-16T17:19:37+00:00"
+    },
+    "561db8dde522df53abfc383e3683b20f1576f938498e476d9def98327a5885fc": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "BelAir BACF210W includes a lock and key mechanism."
+      },
+      "verdict": {
+        "supported": false,
+        "evidence": "",
+        "reason": "The proforma invoice describes the BACF210W as 'Chest freezer, white, one basket, A+' with no mention of a lock and key mechanism; that feature is listed only for the BA-CF300 and BACF-500 models."
+      },
+      "judged_at": "2026-05-16T17:19:39+00:00"
+    },
+    "5182f9d75655767c5588caca305f96036a29647f052d7bc51f610ba5a1baf4a4": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "BelAir BACF210W has an internal LED light."
+      },
+      "verdict": {
+        "supported": false,
+        "evidence": "",
+        "reason": "The proforma invoice describes the BACF210W as 'Chest freezer, white, one basket, A+' with no mention of LED light; LED light is only listed for the BA-CF300 and BACF-500 models."
+      },
+      "judged_at": "2026-05-16T17:19:42+00:00"
+    },
+    "9264f6a765f511b46bd81e4b02035d62301ca282a80608934af4364eac7e6dc0": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "BelAir BACF210W comes with two storage baskets."
+      },
+      "verdict": {
+        "supported": false,
+        "evidence": "Chest freezer, white, one basket, A+",
+        "reason": "The proforma invoice explicitly states the BACF210W has one basket, not two."
+      },
+      "judged_at": "2026-05-16T17:19:45+00:00"
+    },
+    "7a68a2e365ad2c9b886695b4925015453175c0709c1ff97f1af0c080a4b43a61": {
+      "judge": "haiku_claim_extract",
+      "payload": {
+        "block": "sales_arguments",
+        "text_excerpt": "- Secure storage with integrated lock and key mechanism.\n- Clear interior visibi",
+        "text_len": 306,
+        "text": "- Secure storage with integrated lock and key mechanism.\n- Clear interior visibility provided by efficient LED lighting.\n- Optimized organization with two included storage baskets.\n- Clean white finish suitable for various environments.\n- Backed by BelAir's commitment to quality and customer satisfaction."
+      },
+      "verdict": {
+        "claims": [
+          "BelAir BACF210W Chest Freezer has an integrated lock and key mechanism.",
+          "BelAir BACF210W Chest Freezer has LED lighting for interior visibility.",
+          "BelAir BACF210W Chest Freezer includes two storage baskets.",
+          "BelAir BACF210W Chest Freezer has a white finish."
+        ]
+      },
+      "judged_at": "2026-05-16T17:19:46+00:00"
+    },
+    "2374a1f53bb1485a7872a6f8d478cdb75c93fea8ce93b7bb2b9a7607f66a9ada": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "BelAir BACF210W Chest Freezer has an integrated lock and key mechanism."
+      },
+      "verdict": {
+        "supported": false,
+        "evidence": "",
+        "reason": "The proforma invoice describes the BACF210W as having 'one basket, A+' with no mention of a lock and key mechanism; that feature is only listed for the BA-CF300 and BACF-500 models."
+      },
+      "judged_at": "2026-05-16T17:19:49+00:00"
+    },
+    "530187a3972e26f55a083d3d754f291905341ed0c2c20055dd191e280639428d": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "BelAir BACF210W Chest Freezer has LED lighting for interior visibility."
+      },
+      "verdict": {
+        "supported": false,
+        "evidence": "",
+        "reason": "The sources contain no product specifications for the BACF210W; the proforma invoice describes it as 'one basket, A+' with no mention of LED lighting."
+      },
+      "judged_at": "2026-05-16T17:19:51+00:00"
+    },
+    "241e092f9714fa669a4c630f94950792d32fa9aa0e1bec91e72f6fb25af2045b": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "BelAir BACF210W Chest Freezer includes two storage baskets."
+      },
+      "verdict": {
+        "supported": false,
+        "evidence": "",
+        "reason": "The proforma invoice describes the BACF210W as having 'one basket', directly contradicting the claim of two baskets, and neither source document supports the claim."
+      },
+      "judged_at": "2026-05-16T17:19:54+00:00"
+    },
+    "862b06775e96f977af4f82a69a34b8763e25ddb785755b16bb98a24777a9224d": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "BelAir BACF210W Chest Freezer has a white finish."
+      },
+      "verdict": {
+        "supported": false,
+        "evidence": "",
+        "reason": "The source documents are about BelAir Mauritius agricultural estate and contain no product specifications for any chest freezer."
+      },
+      "judged_at": "2026-05-16T17:19:57+00:00"
+    },
+    "d4f58fca4df0585f53026849d4c9b11f2ccf97be63ad47c2f272cf25cf3ae354": {
+      "judge": "haiku_claim_extract",
+      "payload": {
+        "block": "seo_long_description",
+        "text_excerpt": "The BelAir BACF-500 chest freezer is engineered to provide reliable and secure f",
+        "text_len": 1003,
+        "text": "The BelAir BACF-500 chest freezer is engineered to provide reliable and secure frozen food storage. This white-finished appliance integrates essential features for practical use, including a robust lock and key mechanism for content security and an internal LED light to ensure clear visibility of stored items. With two included storage baskets, users can easily organize and access their frozen goods, making it an efficient solution for households or commercial settings requiring dedicated freezing capacity.\n\nReflecting BelAir's commitment to quality, the BACF-500 is designed with diligence and attention to detail. While specific technical performance metrics are not detailed in available documentation, the inclusion of practical features like LED lighting and storage baskets underscores a focus on user convenience and functionality. This chest freezer offers an assurance of satisfaction, upholding the brand's philosophy of delivering products that meet high standards for everyday utility."
+      },
+      "verdict": {
+        "claims": [
+          "BelAir BACF210W is a chest freezer with white finish.",
+          "BelAir BACF210W has a lock and key mechanism.",
+          "BelAir BACF210W includes internal LED light.",
+          "BelAir BACF210W comes with two storage baskets.",
+          "BelAir BACF210W is designed for household or commercial frozen food storage."
+        ]
+      },
+      "judged_at": "2026-05-16T17:19:58+00:00"
+    },
+    "1417e97ce5f689bc964a8a591a17878db9300fa2a231ecc5f4468ff903328737": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "BelAir BACF210W is a chest freezer with white finish."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "BACF210W | HC-210 | Chest freezer, white, one basket, A+",
+        "reason": "The proforma invoice explicitly describes the BACF210W as a chest freezer in white."
+      },
+      "judged_at": "2026-05-16T17:20:01+00:00"
+    },
+    "04fd3b475bc40648cf2b3e9140bc7a24b8a97e94b94cb28f0b52f5ccd0c05021": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "BelAir BACF210W has a lock and key mechanism."
+      },
+      "verdict": {
+        "supported": false,
+        "evidence": "",
+        "reason": "The proforma invoice describes the BACF210W as 'one basket, A+' with no mention of a lock and key mechanism; that feature is listed only for the BA-CF300 and BACF-500 models."
+      },
+      "judged_at": "2026-05-16T17:20:03+00:00"
+    },
+    "b5ee20813290d0e7f5e60ce3abd3dfa424e9c0dadabcb311fd783e5ffb6af2c3": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "BelAir BACF210W includes internal LED light."
+      },
+      "verdict": {
+        "supported": false,
+        "evidence": "",
+        "reason": "The proforma invoice describes the BACF210W as 'Chest freezer, white, one basket, A+' with no mention of LED light; LED light is only listed for the BA-CF300 and BACF-500 models."
+      },
+      "judged_at": "2026-05-16T17:20:06+00:00"
+    },
+    "e09df0f70a849b9a3b4c46c50d966e56bab25505460431c745ba3f24cd06669c": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "BelAir BACF210W is designed for household or commercial frozen food storage."
+      },
+      "verdict": {
+        "supported": false,
+        "evidence": "",
+        "reason": "Neither source mentions the BelAir BACF210W product or any details about its intended use for household or commercial frozen food storage."
+      },
+      "judged_at": "2026-05-16T17:20:08+00:00"
+    },
+    "c917ff0171a90afb7f6e760f9d5d2af239e722ed45656edcd10f6514016bbf00": {
+      "judge": "haiku_claim_extract",
+      "payload": {
+        "block": "meta_description",
+        "text_excerpt": "Explore the BelAir BACF-500 chest freezer, a white model featuring a secure lock",
+        "text_len": 208,
+        "text": "Explore the BelAir BACF-500 chest freezer, a white model featuring a secure lock and key, internal LED lighting, and two convenient storage baskets for optimal frozen food organization. Built for reliability."
+      },
+      "verdict": {
+        "claims": [
+          "BelAir BACF210W Chest Freezer is white.",
+          "BelAir BACF210W Chest Freezer has a secure lock and key.",
+          "BelAir BACF210W Chest Freezer has internal LED lighting.",
+          "BelAir BACF210W Chest Freezer includes two storage baskets."
+        ]
+      },
+      "judged_at": "2026-05-16T17:20:09+00:00"
+    },
+    "9d5015e5bdbe8d3fc6349dafc29b80f8f7e3f87561edb73ca47d7d13fb2a2755": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "BelAir BACF210W Chest Freezer is white."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Chest freezer, white, one basket, A+",
+        "reason": "The proforma invoice explicitly states the BACF210W is a white chest freezer."
+      },
+      "judged_at": "2026-05-16T17:20:12+00:00"
+    },
+    "03aef2232c57f64aead9518551c11cc1174467da93f3fd14a3d65e4fcaa85b3a": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "BelAir BACF210W Chest Freezer has a secure lock and key."
+      },
+      "verdict": {
+        "supported": false,
+        "evidence": "",
+        "reason": "The proforma invoice describes the BACF210W as having 'one basket, A+' with no mention of a lock and key; that feature is only listed for the BA-CF300 and BACF-500 models."
+      },
+      "judged_at": "2026-05-16T17:20:15+00:00"
+    },
+    "6680084d4f9121bc7a43864918346d1c015d6b45869a0f90550bf59504b2417f": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "BelAir BACF210W Chest Freezer has internal LED lighting."
+      },
+      "verdict": {
+        "supported": false,
+        "evidence": "",
+        "reason": "The proforma invoice describes the BACF210W as having 'one basket, A+' with no mention of LED lighting; LED lighting is only listed for the BA-CF300 and BACF-500 models."
+      },
+      "judged_at": "2026-05-16T17:20:17+00:00"
+    }
+  }
+}

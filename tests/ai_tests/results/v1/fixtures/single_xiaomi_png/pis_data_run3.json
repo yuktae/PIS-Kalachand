@@ -1,0 +1,68 @@
+{
+  "header_info": {
+    "product_name": "Xiaomi TV A Pro 32\" GL",
+    "model_number": "50500",
+    "brand": "Xiaomi",
+    "price_estimate": "Unavailable"
+  },
+  "found_image_url": null,
+  "seo_data": {
+    "generated_keywords": "Xiaomi TV, A Pro, 32 inch, Television, GL model, Smart TV",
+    "meta_title": "Xiaomi TV A Pro 32\" GL - Immersive 32-inch Entertainment",
+    "meta_description": "Discover the Xiaomi TV A Pro 32\" GL. This 32-inch television offers an entertainment experience. Technical specifications are currently unavailable from provided sources.",
+    "seo_long_description": "The Xiaomi TV A Pro 32\" GL is identified as a 32-inch television from the reputable Xiaomi brand. This model, designated 'GL', represents a core offering within Xiaomi's product lineup, aiming to provide a dedicated display solution for users. The 32-inch screen size suggests suitability for various room environments, offering a balanced viewing experience. While specific technical features, performance metrics, and unique selling points beyond its brand and size are not detailed in the provided documents or website context, the product is part of Xiaomi's broad consumer electronics portfolio.\nFurther details regarding its operating system, smart features, display technology, and connectivity options are unavailable at this time. This product is positioned to integrate into a modern home entertainment setup, leveraging Xiaomi's commitment to consumer technology. The 'A Pro' nomenclature hints at a potentially advanced feature set, but without explicit documentation, these details remain unconfirmed."
+  },
+  "range_overview": "The Xiaomi TV A Pro 32\" GL is a television product from the global technology brand, Xiaomi. As indicated by its name, this model features a 32-inch display, positioning it as a compact yet capable option for various viewing needs, from personal spaces to secondary living areas. The 'GL' designation typically indicates a specific global version or market variant of the product, signifying its availability in certain regions.\n\nThis television is part of Xiaomi's extensive range of consumer electronics, which includes mobile devices, wearables, and smart home solutions. While its exact specifications such as resolution, smart TV capabilities, audio features, and connectivity ports are not provided in the source materials, the presence of 'A Pro' in its name suggests it might offer enhanced features compared to a base model. However, these specific enhancements or technological advancements are unconfirmed based solely on the available information.\n\nThe product is identified with an internal ID of 50500. Without further documentation, detailed insights into its specific technological implementations, build quality, or precise target use cases remain limited to its brand and screen size. The overall focus appears to be on delivering a functional television experience within the accessible 32-inch category under the Xiaomi brand.",
+  "sales_arguments": [
+    "Features a 32-inch display, suitable for diverse room sizes.",
+    "Comes from the globally recognized and trusted Xiaomi brand.",
+    "Designed to deliver visual entertainment.",
+    "Identified as the 'A Pro GL' model, suggesting a specific market variant.",
+    "Provides a dedicated television solution for home viewing."
+  ],
+  "technical_specifications": {
+    "Brand": "Xiaomi",
+    "Product Name": "Xiaomi TV A Pro 32\" GL",
+    "Screen Size": "32 inches",
+    "Model Identifier": "GL",
+    "Product ID": "50500",
+    "Display Technology": "Unavailable",
+    "Resolution": "Unavailable",
+    "Smart Features": "Unavailable",
+    "Connectivity": "Unavailable",
+    "Audio Output": "Unavailable",
+    "Operating System": "Unavailable"
+  },
+  "warranty_service": {
+    "period": "Unavailable",
+    "coverage": "Unavailable"
+  },
+  "_web_context": "--- SOURCE: https://www.mi.com/global/product-list/ ---\nProduct List | Xiaomi Global Login / Sign up All Products Mobile Wearables Smart Home Lifestyle Xiaomi Rainbow Batteries (10 Count) AA/AAA Learn more Xiaomi Monitor A27i 2026 Learn more Mijia Rotary Tool Kit Learn more Xiaomi Mini LED Gaming Monitor G Pro 27Qi 2026 Learn more Xiaomi Monitor A24i 2026 Learn more POCO F8 Ultra Learn more POCO F8 Pro Learn more POCO Smart Pen Learn more POCO Pad X1 Cover Learn more POCO Focus Pen Learn more POCO Pad X1 Floating Keyboard Learn more POCO Pad X1 Keyboard Learn more POCO Pad M1 Keyboard Learn more POCO Pad M1 Cover Learn more POCO Pad X1 Learn more POCO Pad M1 Learn more Xiaomi 3A Braided USB-C to USB-C Cable (10cm) Learn more Xiaomi 2K Monitor A27Qi 2026 Learn more Xiaomi Curved Gaming Monitor G34WQi 2026 Learn more Xiaomi 2K Gaming Monitor G27Qi 2026 Learn more\n\n--- SOURCE: https://www.mi.com/us/product-list/ ---\nXiaomi United States Sign in / Sign up All Products Wearables Smart Home Lifestyle Xiaomi Mini LED Gaming Monitor G Pro 27i Learn More Xiaomi Gaming Monitor G24i Learn More Xiaomi 2K Gaming Monitor G27Qi Learn More Xiaomi Smart Air Purifier 4 Compact Filter Learn More Mi TV Stick Learn More Mi Air Purifier Hepa Filter Learn More Redmi Buds 4 Pro Learn More Xiaomi TV Box S (2nd Gen) Learn More Xiaomi Portable Electric Air Compressor 2 Learn More Mi Vacuum Cleaner Mini Learn More Redmi Buds 5 Pro Learn More Xiaomi Rechargeable Mini Fan Learn More Xiaomi Instant Photo Printer 1S Set Learn More Redmi Buds 5 Learn More Xiaomi Smart Air Purifier 4 Learn More Xiaomi Smart Air Purifier 4 Lite Learn More Redmi Buds 4 Active Learn More Xiaomi Sound Pocket Learn More Xiaomi Sound Outdoor Learn More Xiaomi Gaming Monitor G27i Learn More",
+  "_field_origins": {
+    "header_info.product_name": "hallucinated",
+    "header_info.model_number": "hallucinated",
+    "header_info.brand": "web_grounded",
+    "header_info.price_estimate": "hallucinated",
+    "warranty_service.period": "hallucinated",
+    "warranty_service.coverage": "hallucinated",
+    "range_overview": "ai",
+    "sales_arguments": "ai",
+    "seo_data.generated_keywords": "ai",
+    "seo_data.meta_title": "ai",
+    "seo_data.meta_description": "ai",
+    "seo_data.seo_long_description": "ai"
+  },
+  "_spec_origins": {
+    "Brand": "web_grounded",
+    "Product Name": "hallucinated",
+    "Screen Size": "hallucinated",
+    "Model Identifier": "web_grounded",
+    "Product ID": "hallucinated",
+    "Display Technology": "hallucinated",
+    "Resolution": "hallucinated",
+    "Smart Features": "hallucinated",
+    "Connectivity": "hallucinated",
+    "Audio Output": "hallucinated",
+    "Operating System": "hallucinated"
+  }
+}

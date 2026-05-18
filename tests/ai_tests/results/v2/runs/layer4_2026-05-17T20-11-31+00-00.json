@@ -1,0 +1,1203 @@
+{
+  "layer": 4,
+  "timestamp": "2026-05-17T20:11:31+00:00",
+  "threshold": 0.5,
+  "fixtures": [
+    {
+      "name": "bulk_ariete",
+      "header_consistency": 1.0,
+      "header_per_field": {
+        "product_name": 1.0,
+        "model_number": 1.0,
+        "brand": 1.0,
+        "price_estimate": 1.0
+      },
+      "header_raw_values": {
+        "product_name": [
+          "ariete steam iron 2000w 6234",
+          "ariete steam iron 2000w 6234",
+          "ariete steam iron 2000w 6234"
+        ],
+        "model_number": [
+          "ar-6234",
+          "ar-6234",
+          "ar-6234"
+        ],
+        "brand": [
+          "ariete",
+          "ariete",
+          "ariete"
+        ],
+        "price_estimate": [
+          "rs 1,890",
+          "rs 1,890",
+          "rs 1,890"
+        ]
+      },
+      "spec_consistency": 0.8687,
+      "n_unique_specs": 33,
+      "overall_consistency": 0.9343,
+      "low_agreement_specs": {
+        "anti-drip": [
+          "yes",
+          "yes",
+          ""
+        ],
+        "cable length": [
+          "2 mt",
+          "2 mt",
+          "2mt"
+        ],
+        "code": [
+          "00s623400ar0",
+          "00s623400ar0",
+          ""
+        ],
+        "ean": [
+          "8003705114258",
+          "8003705114258",
+          ""
+        ],
+        "model": [
+          "6234",
+          "",
+          ""
+        ],
+        "non-stick ultra-smooth plate": [
+          "yes",
+          "",
+          "yes"
+        ],
+        "soleplate coating": [
+          "teflon",
+          "teflon (non-stick)",
+          "teflon"
+        ],
+        "steam emission": [
+          "28 gr/min",
+          "28 gr/min",
+          "28gr/min"
+        ],
+        "steam shot": [
+          "140 gr/min",
+          "140 gr/min",
+          "yes"
+        ],
+        "steam shot output": [
+          "",
+          "",
+          "140gr/min"
+        ],
+        "tank capacity": [
+          "250 ml",
+          "250 ml",
+          "250ml"
+        ]
+      }
+    },
+    {
+      "name": "bulk_belair_freezers",
+      "header_consistency": 0.5833,
+      "header_per_field": {
+        "product_name": 0.3333,
+        "model_number": 1.0,
+        "brand": 1.0,
+        "price_estimate": 0.0
+      },
+      "header_raw_values": {
+        "product_name": [
+          "belair bacf210w chest freezer",
+          "belair chest freezer",
+          "chest freezer"
+        ],
+        "model_number": [
+          "bacf210w",
+          "bacf210w",
+          "bacf210w"
+        ],
+        "brand": [
+          "belair",
+          "belair",
+          "belair"
+        ],
+        "price_estimate": [
+          "",
+          "",
+          ""
+        ]
+      },
+      "spec_consistency": 0.4359,
+      "n_unique_specs": 13,
+      "overall_consistency": 0.5096,
+      "low_agreement_specs": {
+        "baskets": [
+          "",
+          "",
+          "one basket"
+        ],
+        "carton quantity": [
+          "1hc",
+          "",
+          ""
+        ],
+        "energy efficiency class": [
+          "a+",
+          "",
+          ""
+        ],
+        "energy rating": [
+          "",
+          "a+",
+          "a+"
+        ],
+        "fob port": [
+          "lianyungang",
+          "",
+          ""
+        ],
+        "internal baskets": [
+          "",
+          "one basket",
+          ""
+        ],
+        "model (customer)": [
+          "bacf210w",
+          "",
+          ""
+        ],
+        "model (factory)": [
+          "hc-210",
+          "",
+          ""
+        ],
+        "order quantity": [
+          "149 units",
+          "",
+          ""
+        ],
+        "product type": [
+          "",
+          "chest freezer",
+          ""
+        ],
+        "storage baskets": [
+          "one",
+          "",
+          ""
+        ],
+        "type": [
+          "chest freezer",
+          "",
+          "chest freezer"
+        ]
+      }
+    },
+    {
+      "name": "bulk_sunon_wardrobes",
+      "header_consistency": 0.9167,
+      "header_per_field": {
+        "product_name": 0.6667,
+        "model_number": 1.0,
+        "brand": 1.0,
+        "price_estimate": 1.0
+      },
+      "header_raw_values": {
+        "product_name": [
+          "2d wardrobe oak/warm white",
+          "2d wardrobe oak/warm white",
+          "2d wardrobe-oak/warm white"
+        ],
+        "model_number": [
+          "xdy60.120060-oak-w",
+          "xdy60.120060-oak-w",
+          "xdy60.120060-oak-w"
+        ],
+        "brand": [
+          "sunon",
+          "sunon",
+          "sunon"
+        ],
+        "price_estimate": [
+          "20,385",
+          "20,385",
+          "20,385"
+        ]
+      },
+      "spec_consistency": 0.8095,
+      "n_unique_specs": 7,
+      "overall_consistency": 0.8631,
+      "low_agreement_specs": {
+        "description": [
+          "",
+          "2d wardrobe-oak/warm white",
+          ""
+        ],
+        "model": [
+          "",
+          "xdy60.120060-oak-w",
+          ""
+        ]
+      }
+    },
+    {
+      "name": "bulk_xiaomi_tv",
+      "header_consistency": 0.5,
+      "header_per_field": {
+        "product_name": 0.6667,
+        "model_number": 0.6667,
+        "brand": 0.6667,
+        "price_estimate": 0.0
+      },
+      "header_raw_values": {
+        "product_name": [
+          "xiaomi tv a pro 32",
+          "xiaomi tv a pro 32",
+          ""
+        ],
+        "model_number": [
+          "xiaomi tv a pro 32\" gl",
+          "xiaomi tv a pro 32\" gl",
+          ""
+        ],
+        "brand": [
+          "xiaomi",
+          "xiaomi",
+          ""
+        ],
+        "price_estimate": [
+          "",
+          "",
+          ""
+        ]
+      },
+      "spec_consistency": 0.5417,
+      "n_unique_specs": 16,
+      "overall_consistency": 0.5208,
+      "low_agreement_specs": {
+        "audio output": [
+          "2 × 10w (20w total)",
+          "2 × 10w (20w total)",
+          ""
+        ],
+        "audio technology": [
+          "dolby audio™, dts-x, dts virtual:x",
+          "dolby audio™, dts-x, dts virtual:x",
+          ""
+        ],
+        "casting features": [
+          "",
+          "chromecast built-in™, miracast",
+          ""
+        ],
+        "design": [
+          "premium metallic frame, bezel-less, unibody design",
+          "premium metallic frame with bezel-less design, unibody design",
+          ""
+        ],
+        "display resolution": [
+          "hd",
+          "hd",
+          ""
+        ],
+        "display size": [
+          "32\"",
+          "32\"",
+          ""
+        ],
+        "display type": [
+          "",
+          "smart led tv",
+          ""
+        ],
+        "operating system": [
+          "google tv™",
+          "google tv™",
+          ""
+        ],
+        "processor": [
+          "quad-core a55 cpu",
+          "quad-core a55 cpu",
+          ""
+        ],
+        "product type": [
+          "smart led tv",
+          "",
+          ""
+        ],
+        "ram": [
+          "1.5gb",
+          "1.5gb",
+          ""
+        ],
+        "remote control": [
+          "360° bluetooth remote control",
+          "360° bluetooth remote control",
+          ""
+        ],
+        "rom": [
+          "8gb",
+          "8gb",
+          ""
+        ],
+        "smart features": [
+          "google assistant, chromecast built-in™, miracast",
+          "",
+          ""
+        ],
+        "voice assistant": [
+          "",
+          "google assistant",
+          ""
+        ],
+        "wireless connectivity": [
+          "2.4ghz/5ghz wi-fi, bluetooth 5.0",
+          "2.4ghz/5ghz wi-fi, bluetooth 5.0",
+          ""
+        ]
+      }
+    },
+    {
+      "name": "single_ariete_1",
+      "header_consistency": 0.9167,
+      "header_per_field": {
+        "product_name": 1.0,
+        "model_number": 1.0,
+        "brand": 1.0,
+        "price_estimate": 0.6667
+      },
+      "header_raw_values": {
+        "product_name": [
+          "ariete stiromatic 6257 steam iron",
+          "ariete stiromatic 6257 steam iron",
+          "ariete stiromatic 6257 steam iron"
+        ],
+        "model_number": [
+          "ar-6257",
+          "ar-6257",
+          "ar-6257"
+        ],
+        "brand": [
+          "ariete",
+          "ariete",
+          "ariete"
+        ],
+        "price_estimate": [
+          "rs 5,490",
+          "$81.00",
+          "$81.00"
+        ]
+      },
+      "spec_consistency": 0.6667,
+      "n_unique_specs": 13,
+      "overall_consistency": 0.7917,
+      "low_agreement_specs": {
+        "boiler capacity": [
+          "0.8l (800ml)",
+          "",
+          "0.8l"
+        ],
+        "boiler type": [
+          "",
+          "",
+          "stainless steel, 660cc"
+        ],
+        "boiler volume": [
+          "",
+          "660 cc",
+          ""
+        ],
+        "dimensions (l×w×h)": [
+          "300×200×280 mm",
+          "300 × 200 × 280 mm",
+          "300×200×280 mm"
+        ],
+        "features": [
+          "professional iron with cork handle, single boiler / iron ignition button, continuous steam function, thermostat control light, steam ready light, end of water warning light, vertical ironing for hanging garments, safety cap, steam supply, steam \"blow\"",
+          "professional iron with cork handle, single boiler / iron ignition button, continuous steam function, thermostat control light, steam ready light, end of water warning light, vertical ironing for hanging garments, safety cap, steam supply, steam \"blow\"",
+          "professional cork handle, single boiler / iron ignition button, continuous steam function, thermostat control light, steam ready light, end of water warning light, vertical ironing for hanging garments, safety cap, steam supply, steam \"blow\""
+        ],
+        "power": [
+          "2000w",
+          "2000 w",
+          "2000w"
+        ],
+        "steam rate": [
+          "up to 80g/min",
+          "up to 80 g/min",
+          "up to 80g / min"
+        ],
+        "water tank volume": [
+          "",
+          "800 ml",
+          ""
+        ]
+      }
+    },
+    {
+      "name": "single_belair_freezers",
+      "header_consistency": 0.75,
+      "header_per_field": {
+        "product_name": 0.6667,
+        "model_number": 1.0,
+        "brand": 1.0,
+        "price_estimate": 0.3333
+      },
+      "header_raw_values": {
+        "product_name": [
+          "belair chest freezer",
+          "belair chest freezer",
+          "belair bacf-500 chest freezer"
+        ],
+        "model_number": [
+          "bacf-500",
+          "bacf-500",
+          "bacf-500"
+        ],
+        "brand": [
+          "belair",
+          "belair",
+          "belair"
+        ],
+        "price_estimate": [
+          "",
+          "",
+          "$0.00"
+        ]
+      },
+      "spec_consistency": 0.4048,
+      "n_unique_specs": 14,
+      "overall_consistency": 0.5774,
+      "low_agreement_specs": {
+        "factory model": [
+          "",
+          "",
+          "bd-500"
+        ],
+        "features": [
+          "",
+          "",
+          "lock and key, led light, two basket"
+        ],
+        "fob port": [
+          "",
+          "",
+          "ningbo and lianyungang"
+        ],
+        "interior illumination": [
+          "",
+          "led light",
+          ""
+        ],
+        "interior lighting": [
+          "led light",
+          "",
+          ""
+        ],
+        "model suffix/designation": [
+          "",
+          "f",
+          ""
+        ],
+        "product type": [
+          "",
+          "chest freezer",
+          ""
+        ],
+        "security feature": [
+          "",
+          "lock and key",
+          ""
+        ],
+        "security features": [
+          "lock and key",
+          "",
+          ""
+        ],
+        "spare parts included": [
+          "",
+          "",
+          "1%"
+        ],
+        "storage accessories": [
+          "",
+          "two basket",
+          ""
+        ],
+        "storage baskets": [
+          "two",
+          "",
+          ""
+        ],
+        "type": [
+          "chest freezer",
+          "",
+          "chest freezer"
+        ]
+      }
+    },
+    {
+      "name": "single_poco_m7",
+      "header_consistency": 0.1667,
+      "header_per_field": {
+        "product_name": 0.3333,
+        "model_number": 0.0,
+        "brand": 0.3333,
+        "price_estimate": 0.0
+      },
+      "header_raw_values": {
+        "product_name": [
+          "poco m7",
+          "",
+          ""
+        ],
+        "model_number": [
+          "",
+          "",
+          ""
+        ],
+        "brand": [
+          "poco",
+          "",
+          ""
+        ],
+        "price_estimate": [
+          "",
+          "",
+          ""
+        ]
+      },
+      "spec_consistency": 0.3333,
+      "n_unique_specs": 51,
+      "overall_consistency": 0.25,
+      "low_agreement_specs": {
+        "audio": [
+          "hi-res audio, dolby atmos®",
+          "",
+          ""
+        ],
+        "battery capacity": [
+          "7000mah (typ)",
+          "",
+          ""
+        ],
+        "battery longevity": [
+          "80%+ capacity after 1,600 charge cycles",
+          "",
+          ""
+        ],
+        "bluetooth": [
+          "5.0",
+          "",
+          ""
+        ],
+        "brand": [
+          "poco",
+          "",
+          ""
+        ],
+        "brightness": [
+          "700 nits (typ), 850 nits (hbm)",
+          "",
+          ""
+        ],
+        "charging engine": [
+          "smart charging engine 2.0 (zero power instant on, battery health 4.0, low-battery fast charging, smart battery protection)",
+          "",
+          ""
+        ],
+        "color gamut": [
+          "85% ntsc",
+          "",
+          ""
+        ],
+        "contrast ratio": [
+          "1400:1",
+          "",
+          ""
+        ],
+        "cpu": [
+          "qualcomm® kryo™ (octa-core, up to 2.8ghz)",
+          "",
+          ""
+        ],
+        "design": [
+          "quad-curved design",
+          "",
+          ""
+        ],
+        "dimensions (height)": [
+          "169.48mm",
+          "",
+          ""
+        ],
+        "dimensions (thickness)": [
+          "8.40mm",
+          "",
+          ""
+        ],
+        "dimensions (width)": [
+          "80.45mm",
+          "",
+          ""
+        ],
+        "display features": [
+          "9-level adaptive refresh rate, dc dimming, wet touch technology 2.0",
+          "",
+          ""
+        ],
+        "display ppi": [
+          "374",
+          "",
+          ""
+        ],
+        "display resolution": [
+          "2340 × 1080",
+          "",
+          ""
+        ],
+        "display size": [
+          "6.9 inches",
+          "",
+          ""
+        ],
+        "display type": [
+          "fhd+ dotdisplay",
+          "",
+          ""
+        ],
+        "expandable storage": [
+          "up to 2tb (microsd)",
+          "",
+          ""
+        ],
+        "eye care certifications": [
+          "tüv rheinland low blue light (software solution) certified, tüv rheinland flicker free certified, tüv rheinland circadian friendly certified",
+          "",
+          ""
+        ],
+        "fast charging": [
+          "33w turbo charging",
+          "",
+          ""
+        ],
+        "front camera": [
+          "8mp",
+          "",
+          ""
+        ],
+        "front camera aperture": [
+          "f/2",
+          "",
+          ""
+        ],
+        "front video recording": [
+          "1080p (1920x1080) hd at 30 fps, 720p (1280x720) hd at 30 fps",
+          "",
+          ""
+        ],
+        "gpu": [
+          "qualcomm® adreno™",
+          "",
+          ""
+        ],
+        "internal storage configurations": [
+          "128gb, 256gb",
+          "",
+          ""
+        ],
+        "low-temperature battery performance": [
+          "-20℃",
+          "",
+          ""
+        ],
+        "navigation": [
+          "gps, glonass, galileo, beidou",
+          "",
+          ""
+        ],
+        "nfc": [
+          "yes",
+          "",
+          ""
+        ],
+        "operating system": [
+          "xiaomi hyperos 2",
+          "",
+          ""
+        ],
+        "process technology": [
+          "6nm",
+          "",
+          ""
+        ],
+        "processor": [
+          "snapdragon® 685 4g mobile platform",
+          "",
+          ""
+        ],
+        "product name": [
+          "poco m7",
+          "",
+          ""
+        ],
+        "ram configurations": [
+          "6gb, 8gb",
+          "",
+          ""
+        ],
+        "ram extension": [
+          "up to 16gb with memory extension",
+          "",
+          ""
+        ],
+        "ram type": [
+          "lpddr4x",
+          "",
+          ""
+        ],
+        "rear camera": [
+          "50mp main camera",
+          "",
+          ""
+        ],
+        "rear camera aperture": [
+          "f/1.8",
+          "",
+          ""
+        ],
+        "rear camera lens": [
+          "5p lens",
+          "",
+          ""
+        ],
+        "rear video recording": [
+          "1080p (1920x1080) hd at 30 fps, 720p (1280x720) hd at 30 fps",
+          "",
+          ""
+        ],
+        "refresh rate": [
+          "up to 144hz adaptivesync",
+          "",
+          ""
+        ],
+        "reverse charging": [
+          "18w",
+          "",
+          ""
+        ],
+        "security": [
+          "side fingerprint sensor, ai face unlock",
+          "",
+          ""
+        ],
+        "sensors": [
+          "virtual proximity sensor, ambient light sensor, accelerometer, electronic compass, ir blaster",
+          "",
+          ""
+        ],
+        "sim type": [
+          "sim1 + hybrid (sim or microsd)",
+          "",
+          ""
+        ],
+        "storage type": [
+          "ufs2.2",
+          "",
+          ""
+        ],
+        "touch sampling rate": [
+          "up to 288hz",
+          "",
+          ""
+        ],
+        "water & dust resistance": [
+          "ip64",
+          "",
+          ""
+        ],
+        "weight": [
+          "214g",
+          "",
+          ""
+        ],
+        "wi-fi": [
+          "2.4ghz | 5ghz",
+          "",
+          ""
+        ]
+      }
+    },
+    {
+      "name": "single_poco_x7",
+      "header_consistency": 0.5833,
+      "header_per_field": {
+        "product_name": 0.6667,
+        "model_number": 0.6667,
+        "brand": 0.6667,
+        "price_estimate": 0.3333
+      },
+      "header_raw_values": {
+        "product_name": [
+          "",
+          "poco x7 pro",
+          "poco x7 pro"
+        ],
+        "model_number": [
+          "",
+          "2412dpc0ag",
+          "2412dpc0ag"
+        ],
+        "brand": [
+          "",
+          "poco",
+          "poco"
+        ],
+        "price_estimate": [
+          "",
+          "$378.29",
+          "$ 378.29"
+        ]
+      },
+      "spec_consistency": 0.4419,
+      "n_unique_specs": 43,
+      "overall_consistency": 0.5126,
+      "low_agreement_specs": {
+        "3.5mm jack": [
+          "",
+          "",
+          "no"
+        ],
+        "antutu score (v10)": [
+          "",
+          "1,704,330",
+          "1,704,330"
+        ],
+        "audio": [
+          "",
+          "dual speakers, dolby atmos®, hi-res audio, hi-res audio wireless",
+          "dual speakers, dolby atmos, 24-bit/192khz hi-res & hi-res wireless audio"
+        ],
+        "battery capacity": [
+          "",
+          "6000 mah (typ) (global model)",
+          ""
+        ],
+        "battery type": [
+          "",
+          "",
+          "si/c li-ion 6000 mah (global)"
+        ],
+        "bluetooth": [
+          "",
+          "5.4/6.0, a2dp, le",
+          "6.0, a2dp, le"
+        ],
+        "build": [
+          "",
+          "glass front (gorilla glass 7i), plastic back, silicone polymer back (eco leather)",
+          "glass front (gorilla glass 7i), plastic back, silicone polymer back (eco leather)"
+        ],
+        "card slot": [
+          "",
+          "",
+          "no"
+        ],
+        "charging": [
+          "",
+          "90w wired, pd3.0, qc3+, 100% in 42 min",
+          "90w wired, pd3.0, qc3+, 100% in 42 min"
+        ],
+        "colors": [
+          "",
+          "black/yellow, white, green, red (iron man edition)",
+          "black/yellow, white, green, red (iron man edition)"
+        ],
+        "cpu": [
+          "",
+          "octa-core (1x3.25 ghz cortex-a725 & 3x3.0 ghz cortex-a725 & 4x2.1 ghz cortex-a725)",
+          "octa-core (1x3.25 ghz cortex-a725 & 3x3.0 ghz cortex-a725 & 4x2.1 ghz cortex-a725)"
+        ],
+        "dimensions": [
+          "",
+          "160.8 x 75.2 x 8.3 mm",
+          "160.8 x 75.2 x 8.3 mm (6.33 x 2.96 x 0.33 in)"
+        ],
+        "display protection": [
+          "",
+          "corning gorilla glass 7i, mohs level 5",
+          "corning gorilla glass 7i, mohs level 5"
+        ],
+        "display resolution": [
+          "",
+          "1220 x 2712 pixels (1.5k resolution), ~446 ppi",
+          "1220 x 2712 pixels, 20:9 ratio (~446 ppi density)"
+        ],
+        "display size": [
+          "",
+          "6.67 inches",
+          "6.67 inches, 107.4 cm² (~88.8% screen-to-body ratio)"
+        ],
+        "display type": [
+          "",
+          "amoled, 68b colors, 120hz, 1920hz pwm, dolby vision, hdr10+, 1400 nits (hbm), 3200 nits (peak)",
+          "amoled, 68b colors, 120hz, 1920hz pwm, dolby vision, hdr10+, 1400 nits (hbm), 3200 nits (peak)"
+        ],
+        "dust and water resistance": [
+          "",
+          "ip68/ip69 (market/region dependent)",
+          ""
+        ],
+        "front camera": [
+          "",
+          "20 mp, f/2.2, 25mm (wide), 1/4.0\", 0.7µm",
+          ""
+        ],
+        "front camera video": [
+          "",
+          "1080p@30fps, 720p@30fps",
+          ""
+        ],
+        "geekbench score (v6)": [
+          "",
+          "",
+          "6311"
+        ],
+        "gpu": [
+          "",
+          "mali-g720 mc7",
+          "mali-g720 mc7"
+        ],
+        "infrared port": [
+          "",
+          "yes",
+          "yes"
+        ],
+        "internal storage": [
+          "",
+          "256gb, 512gb (ufs 4.0)",
+          "256gb 8gb ram, 256gb 12gb ram, 512gb 12gb ram (ufs 4.0)"
+        ],
+        "main camera": [
+          "",
+          "50 mp, f/1.5, 26mm (wide), 1/1.95\", 0.8µm, pdaf, ois",
+          ""
+        ],
+        "main camera (ultrawide)": [
+          "",
+          "",
+          "8 mp, f/2.2, 15mm (ultrawide), 1/4.0\", 1.12µm"
+        ],
+        "main camera (wide)": [
+          "",
+          "",
+          "50 mp, f/1.5, 26mm (wide), 1/1.95\", 0.8µm, pdaf, ois"
+        ],
+        "main camera video": [
+          "",
+          "4k@24/30/60fps, 1080p@30/60/120/240/960fps, hdr10+, gyro-eis, ois",
+          ""
+        ],
+        "navigation": [
+          "",
+          "gps (l1+l5), glonass (g1), bds (b1i+b1c+b2a), galileo (e1+e5a), navic (l5)",
+          ""
+        ],
+        "nfc": [
+          "",
+          "yes (market/region dependent)",
+          "yes (market/region dependent)"
+        ],
+        "operating system": [
+          "",
+          "android 15, hyperos 2",
+          "android 15, hyperos 2"
+        ],
+        "processor": [
+          "",
+          "mediatek dimensity 8400 ultra (4 nm)",
+          "mediatek dimensity 8400 ultra (4 nm)"
+        ],
+        "ram": [
+          "",
+          "8gb, 12gb (lpddr5x)",
+          ""
+        ],
+        "release date": [
+          "",
+          "2025, january 09",
+          ""
+        ],
+        "selfie camera": [
+          "",
+          "",
+          "20 mp, f/2.2, 25mm (wide), 1/4.0\", 0.7µm"
+        ],
+        "sensors": [
+          "",
+          "fingerprint (under display, optical), accelerometer, gyro, proximity, compass, ir blaster, x-axis linear vibration motor",
+          "fingerprint (under display, optical), accelerometer, gyro, proximity, compass"
+        ],
+        "sim": [
+          "",
+          "nano-sim + nano-sim, dual sim, dual standby (5g+5g, 5g+4g)",
+          "nano-sim + nano-sim"
+        ],
+        "ultrawide camera": [
+          "",
+          "8 mp, f/2.2, 15mm (ultrawide), 1/4.0\", 1.12µm",
+          ""
+        ],
+        "usb": [
+          "",
+          "usb type-c 2.0, otg",
+          "usb type-c 2.0, otg"
+        ],
+        "video recording (front)": [
+          "",
+          "",
+          "1080p@30fps"
+        ],
+        "video recording (rear)": [
+          "",
+          "",
+          "4k@24/30/60fps, 1080p@30/60/120/240/960fps, hdr10+, gyro-eis, ois"
+        ],
+        "water & dust resistance": [
+          "",
+          "",
+          "ip68/ip69 dust tight and water resistant (high pressure water jets; immersible up to 1.5m for 30 min)"
+        ],
+        "weight": [
+          "",
+          "195 g or 198 g",
+          "195 g or 198 g (6.88 oz)"
+        ],
+        "wlan": [
+          "",
+          "wi-fi 802.11 a/b/g/n/ac/6, dual-band, wi-fi direct",
+          "wi-fi 802.11 a/b/g/n/ac/6, dual-band, wi-fi direct"
+        ]
+      }
+    },
+    {
+      "name": "single_sunon_png",
+      "header_consistency": 0.6667,
+      "header_per_field": {
+        "product_name": 0.6667,
+        "model_number": 0.6667,
+        "brand": 0.6667,
+        "price_estimate": 0.6667
+      },
+      "header_raw_values": {
+        "product_name": [
+          "sunon 2d wardrobe felix walnut",
+          "",
+          "sunon 2d wardrobe felix walnut"
+        ],
+        "model_number": [
+          "xdy60.120060-fwal",
+          "",
+          "xdy60.120060-fwal"
+        ],
+        "brand": [
+          "sunon",
+          "",
+          "sunon"
+        ],
+        "price_estimate": [
+          "20,385",
+          "",
+          "20,385"
+        ]
+      },
+      "spec_consistency": 0.6667,
+      "n_unique_specs": 5,
+      "overall_consistency": 0.6667,
+      "low_agreement_specs": {
+        "color": [
+          "walnut frame & doors",
+          "",
+          "walnut frame & doors"
+        ],
+        "configuration": [
+          "2 doors wardrobe with shelves and clothes rail inside, open shelves in middle and bottom",
+          "",
+          "2 doors wardrobe with shelves and clothes rail inside, open shelves in middle and bottom"
+        ],
+        "dimension (wxdxh)": [
+          "1200*600*2000 mm",
+          "",
+          "1200*600*2000 mm"
+        ],
+        "hardware": [
+          "soft close hinges + key lock",
+          "",
+          "soft close hinges + key lock"
+        ],
+        "material": [
+          "25/18mm e0 grade particle board with melamine + pvc edge banding",
+          "",
+          "25/18mm e0 grade particle board with melamine + pvc edge banding"
+        ]
+      }
+    },
+    {
+      "name": "single_xiaomi_png",
+      "header_consistency": 0.75,
+      "header_per_field": {
+        "product_name": 1.0,
+        "model_number": 1.0,
+        "brand": 1.0,
+        "price_estimate": 0.0
+      },
+      "header_raw_values": {
+        "product_name": [
+          "xiaomi tv a pro 32\" gl",
+          "xiaomi tv a pro 32\" gl",
+          "xiaomi tv a pro 32\" gl"
+        ],
+        "model_number": [
+          "50500",
+          "50500",
+          "50500"
+        ],
+        "brand": [
+          "xiaomi",
+          "xiaomi",
+          "xiaomi"
+        ],
+        "price_estimate": [
+          "",
+          "",
+          ""
+        ]
+      },
+      "spec_consistency": 0.3333,
+      "n_unique_specs": 3,
+      "overall_consistency": 0.5417,
+      "low_agreement_specs": {
+        "model series": [
+          "",
+          "",
+          "a pro"
+        ],
+        "region/version": [
+          "",
+          "",
+          "global"
+        ],
+        "screen size": [
+          "",
+          "32\"",
+          "32 inches"
+        ]
+      }
+    }
+  ],
+  "totals": {
+    "n_fixtures": 10,
+    "mean_header_consistency": 0.6833,
+    "mean_spec_consistency": 0.5502,
+    "mean_overall_consistency": 0.6168
+  }
+}

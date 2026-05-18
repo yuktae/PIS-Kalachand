@@ -18,3 +18,15 @@ python-version = "3.12"
 # resolve against this directory's modules first.
 project-includes = ["**/*.py"]
 project-excludes = ["venv/**", "**/__pycache__/**", ".git/**"]
+
+# Extra import roots so the AI-eval suite's internal imports type-check.
+# After the 2026-05-18 folder refactor:
+#   - tests/ai_tests/  holds conftest.py at the root (test modules and
+#     tools both do `from conftest import …` against it)
+#   - tests/ai_tests/lib/  holds judge.py + judge_cache.py (imported via
+#     bare `import judge` / `import judge_cache` from the test modules)
+# Pyrefly's default heuristics anchor only on the repo root, so without
+# these entries it can't resolve those bare imports and lights up the
+# Problems panel even though the imports work at runtime via the sys.path
+# manipulation in tests/ai_tests/conftest.py.
+search-path = ["tests/ai_tests", "tests/ai_tests/lib"]

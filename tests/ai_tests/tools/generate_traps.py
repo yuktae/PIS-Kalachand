@@ -28,8 +28,11 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import mm
 from reportlab.pdfgen import canvas
 
-_HERE = Path(__file__).resolve().parent
-ADVERSARIAL_DIR = _HERE / "adversarial"
+# After the 2026-05-18 refactor the script lives under tools/ and the
+# fixtures live under data/adversarial/ — resolve relative to the ai_tests
+# root regardless of where you invoke this script from.
+_AI_TESTS_ROOT = Path(__file__).resolve().parent.parent
+ADVERSARIAL_DIR = _AI_TESTS_ROOT / "data" / "adversarial"
 
 
 def _write_pdf(path: Path, lines: list[str]) -> None:

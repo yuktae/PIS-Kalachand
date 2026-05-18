@@ -1,0 +1,56 @@
+{
+  "header_info": {
+    "product_name": "BelAir Chest Freezer",
+    "model_number": "BACF-500",
+    "brand": "BELAIR",
+    "price_estimate": ""
+  },
+  "found_image_url": null,
+  "seo_data": {
+    "generated_keywords": "BelAir, BACF-500, chest freezer, white freezer, lock and key, LED light, two basket freezer, secure storage, organized freezer",
+    "meta_title": "BelAir BACF-500 Chest Freezer with Lock & LED Light",
+    "meta_description": "Discover the BelAir BACF-500 chest freezer, featuring a secure lock and key, energy-efficient LED lighting, and two convenient baskets for organized storage.",
+    "seo_long_description": "The BelAir BACF-500 is a practical chest freezer designed for efficient and secure frozen storage. This model comes in a classic white finish, making it a versatile addition to various settings. Key features include a robust lock and key mechanism, ensuring the contents are kept safe and secure. \n\nEnhanced visibility inside the freezer is provided by an integrated LED light, making it easy to locate items even in low-light conditions. For improved organization, the BACF-500 is equipped with two storage baskets, allowing users to separate and access frequently used items with ease. BelAir's philosophy emphasizes quality through diligence and attention, aiming to ensure all products meet high standards and provide customer satisfaction."
+  },
+  "range_overview": "The BelAir BACF-500 chest freezer is engineered to provide reliable and organized frozen storage. This model is distinguished by its practical features, including a clean white exterior that blends seamlessly into various environments. Security is a primary consideration, with the inclusion of a lock and key system to safeguard stored contents.\n\nInside, the BACF-500 enhances user convenience with an integrated LED light, illuminating the interior for clear visibility and easy item retrieval. Furthermore, the freezer is equipped with two storage baskets, facilitating efficient organization and quick access to smaller or frequently used items. Reflecting BelAir's commitment to quality, the BACF-500 is designed to meet high standards, offering an assurance of satisfaction.",
+  "sales_arguments": [
+    "Secure storage with integrated lock and key.",
+    "Enhanced interior visibility with energy-efficient LED light.",
+    "Optimized organization through two convenient storage baskets.",
+    "Classic white finish for versatile placement.",
+    "Backed by BelAir's commitment to quality and customer satisfaction."
+  ],
+  "technical_specifications": {
+    "Type": "Chest freezer",
+    "Color": "white",
+    "Security Features": "Lock and key",
+    "Interior Lighting": "LED light",
+    "Storage Baskets": "Two"
+  },
+  "warranty_service": {
+    "period": "",
+    "coverage": ""
+  },
+  "_web_context": "--- SOURCE: https://belair.mu/ ---\nBelAir Mauritius HOMEPAGE admin 2019-01-11T14:16:56+00:00 A HISTORY OF EXCELLENCE WELCOME OUR PHILOSOPHY Our goal is to create quality through through diligence, attention, and respect. We put every effort to ensure all our products meet the highest standards; a product purchased from us comes with an assurance of satisfaction. READ MORE THE ESTATE Bel Air Estate is a private estate situated in the south of Mauritius. MORE THE COMPANY Bel Air has some of the most fertile agricultural land in Mauritius. MORE AGRICULTURE We specialise in sugarcane, horticulture, and arboriculture. MORE CONTACT US Give us a call or leave us a message. We would love to hear from you. MORE HISTORY THE BEL AIR ESTATE READ MORE AGRICULTURE PERFECT QUALITY Bel Air Agricultural produces a variety of crops, avocados, bananas, onions, potatoes, and many more all have a home on the estate. We have specialised in producing the very best quality crop since our very beginnings… READ MORE\n\n--- SOURCE: https://belair.mu/contact/ ---\nLOCATION & CONTACT – BelAir Mauritius LOCATION & CONTACT admin 2018-06-18T07:41:14+00:00 LOCATION & CONTACT FIND US OR GET IN TOUCH ASK US A QUESTION OR WRITE US A MESSAGE",
+  "_field_origins": {
+    "header_info.product_name": "hallucinated",
+    "header_info.model_number": "verified",
+    "header_info.brand": "verified",
+    "header_info.price_estimate": "ai",
+    "warranty_service.period": "ai",
+    "warranty_service.coverage": "ai",
+    "range_overview": "ai",
+    "sales_arguments": "ai",
+    "seo_data.generated_keywords": "ai",
+    "seo_data.meta_title": "ai",
+    "seo_data.meta_description": "ai",
+    "seo_data.seo_long_description": "ai"
+  },
+  "_spec_origins": {
+    "Type": "verified",
+    "Color": "verified",
+    "Security Features": "verified",
+    "Interior Lighting": "verified",
+    "Storage Baskets": "verified"
+  }
+}

@@ -1,0 +1,96 @@
+{
+  "schema_version": 1,
+  "judgments": {
+    "65a562ffafc1e45279f16515b839e54447095c87b3edf8132b4bd55d21accf18": {
+      "judge": "haiku_field_rescue",
+      "payload": {
+        "field": "spec:Display Size",
+        "value": "6.9 inches"
+      },
+      "verdict": {
+        "supported": true,
+        "source": "proforma",
+        "evidence": "6.9\" FHD+ DotDisplay"
+      },
+      "judged_at": "2026-05-17T16:03:11+00:00"
+    },
+    "07c33a6d95b2cacc4c0abdcc968e50a8cc85f44917ee86f5912d3798bd78621c": {
+      "judge": "haiku_field_rescue",
+      "payload": {
+        "field": "spec:Eye Care Certifications",
+        "value": "TÜV Rheinland Low Blue Light (Software Solution) Certified, TÜV Rheinland Flicker Free Certified, TÜV Rheinland Circadian Friendly Certified"
+      },
+      "verdict": {
+        "supported": true,
+        "source": "proforma",
+        "evidence": "TÜV Rheinland Low Blue Light (Software Solution) Certified, TÜV Rheinland Flicker Free Certified, TÜV Rheinland Circadian Friendly Certified"
+      },
+      "judged_at": "2026-05-17T16:03:12+00:00"
+    },
+    "ff6380f500afe843253d648964c8d542cfce0d115f8a28f323fa6048923ae2ad": {
+      "judge": "haiku_field_rescue",
+      "payload": {
+        "field": "spec:RAM Configurations",
+        "value": "6GB, 8GB"
+      },
+      "verdict": {
+        "supported": true,
+        "source": "proforma",
+        "evidence": "Storage & RAM: 6GB + 128GB, 8GB + 256GB"
+      },
+      "judged_at": "2026-05-17T16:03:14+00:00"
+    },
+    "b567ea5279e9ccefe2fc560dae086da7c91458a95ce41679817b4aaa07b31d07": {
+      "judge": "haiku_field_rescue",
+      "payload": {
+        "field": "spec:RAM Extension",
+        "value": "Up to 16GB with memory extension"
+      },
+      "verdict": {
+        "supported": true,
+        "source": "proforma",
+        "evidence": "Supports up to 16GB RAM with Memory extension"
+      },
+      "judged_at": "2026-05-17T16:03:15+00:00"
+    },
+    "218c7aa3831358fba9090eda5c7d4caa42c34ac77cb4d1c268d015220ca4550b": {
+      "judge": "haiku_field_rescue",
+      "payload": {
+        "field": "spec:Internal Storage Configurations",
+        "value": "128GB, 256GB"
+      },
+      "verdict": {
+        "supported": true,
+        "source": "proforma",
+        "evidence": "Storage & RAM: 6GB + 128GB, 8GB + 256GB"
+      },
+      "judged_at": "2026-05-17T16:03:17+00:00"
+    },
+    "8e5d1f22b9ff85f9d2ecac00273737bd319620596f0b53595099fb5bec236b14": {
+      "judge": "haiku_field_rescue",
+      "payload": {
+        "field": "spec:Sensors",
+        "value": "Virtual proximity sensor, Ambient light sensor, Accelerometer, Electronic compass, IR blaster"
+      },
+      "verdict": {
+        "supported": true,
+        "source": "proforma",
+        "evidence": "Virtual proximity sensor | Ambient light sensor | Accelerometer | Electron compass | IR blaster"
+      },
+      "judged_at": "2026-05-17T16:03:19+00:00"
+    },
+    "952df9b6c88df09ecc9c45fdb0c3b3b3ceb34eca4725d22023d3f675c162a93e": {
+      "judge": "haiku_field_rescue",
+      "payload": {
+        "field": "spec:Battery Longevity",
+        "value": "80%+ capacity after 1,600 charge cycles"
+      },
+      "verdict": {
+        "supported": true,
+        "source": "proforma",
+        "evidence": "after 1,600 charge cycles, POCO M7's battery can maintain 80% or more of its original capacity"
+      },
+      "judged_at": "2026-05-17T16:03:21+00:00"
+    }
+  }
+}

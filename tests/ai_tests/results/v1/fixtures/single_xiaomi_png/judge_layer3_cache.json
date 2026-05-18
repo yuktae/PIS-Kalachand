@@ -1,0 +1,334 @@
+{
+  "schema_version": 1,
+  "judgments": {
+    "f0b6dc469a0703ffce36b6ac2dd970fa05a24b9546b67fa466ca624e69614008": {
+      "judge": "haiku_claim_extract",
+      "payload": {
+        "block": "range_overview",
+        "text_excerpt": "The Xiaomi TV A Pro 32\" GL is identified as a 32-inch television offering from t",
+        "text_len": 1233,
+        "text": "The Xiaomi TV A Pro 32\" GL is identified as a 32-inch television offering from the Xiaomi brand. The 'A Pro' series designation suggests it is positioned within a specific range of Xiaomi televisions, likely indicating a focus on a balanced combination of features and performance for its segment. The 'GL' suffix typically denotes a global version of the product, implying it is designed for international markets with broad compatibility and potentially multi-language support. This model is engineered to provide a visual and interactive entertainment hub in a compact form factor.\n\nFurther specific technical features or performance metrics such as resolution, smart platform details, connectivity options, or display technology are not detailed in the available documentation. However, as a modern television, it is expected to offer fundamental capabilities for media consumption. Its 32-inch screen size makes it suitable for smaller rooms, bedrooms, or as a secondary display where space is a consideration. The product's ID, 50500, serves as an internal identifier within Xiaomi's product catalog. Without additional information, detailed insights into its unique selling points beyond its brand and size cannot be provided."
+      },
+      "verdict": {
+        "claims": [
+          "Xiaomi Product is a 32-inch television.",
+          "Xiaomi Product belongs to the 'A Pro' series.",
+          "Xiaomi Product has a 'GL' suffix indicating a global version.",
+          "Xiaomi Product is designed for international markets.",
+          "Xiaomi Product has multi-language support.",
+          "Xiaomi Product is suitable for smaller rooms and bedrooms.",
+          "Xiaomi Product can function as a secondary display.",
+          "Xiaomi Product has internal identifier 50500 in Xiaomi's catalog."
+        ]
+      },
+      "judged_at": "2026-05-16T17:25:00+00:00"
+    },
+    "352a7f5de96e6eeadebc242200e589744f5f5a26490f47cc8b23d39c03ee8b9d": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Xiaomi Product is a 32-inch television."
+      },
+      "verdict": {
+        "supported": false,
+        "evidence": "",
+        "reason": "Neither source mentions a 32-inch television; the sources list monitors, wearables, air purifiers, and other products but no such TV."
+      },
+      "judged_at": "2026-05-16T17:25:02+00:00"
+    },
+    "369ca28036ba9722e1d766e39eb175ffc69d4da7e830873cc6a4f019d8dee6f8": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Xiaomi Product belongs to the 'A Pro' series."
+      },
+      "verdict": {
+        "supported": false,
+        "evidence": "",
+        "reason": "Neither source mentions an 'A Pro' series for any Xiaomi product."
+      },
+      "judged_at": "2026-05-16T17:25:03+00:00"
+    },
+    "a96694daf6fa890ef286bf8da6182491d42f9ef841137e2f917bd407104ad01e": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Xiaomi Product has a 'GL' suffix indicating a global version."
+      },
+      "verdict": {
+        "supported": false,
+        "evidence": "",
+        "reason": "Neither source mentions any 'GL' suffix or global version designation for any Xiaomi product."
+      },
+      "judged_at": "2026-05-16T17:25:06+00:00"
+    },
+    "7f3e2924c04cdef820fca97c3a29f0d872db6c7fa3fbff9c2bb9cabcf2f6013f": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Xiaomi Product is designed for international markets."
+      },
+      "verdict": {
+        "supported": false,
+        "evidence": "",
+        "reason": "The sources only list product names on Xiaomi's global and US websites; no source states any product is 'designed for international markets.'"
+      },
+      "judged_at": "2026-05-16T17:25:08+00:00"
+    },
+    "938302d213e90fd23d9cd6a3571f12482ae579d2050f31591505ecdc40225ef9": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Xiaomi Product has multi-language support."
+      },
+      "verdict": {
+        "supported": false,
+        "evidence": "",
+        "reason": "Neither source mentions multi-language support for any Xiaomi product."
+      },
+      "judged_at": "2026-05-16T17:25:10+00:00"
+    },
+    "aa02b5f703e224fb4b628b441018986e5f6140f7c595dfce492f3a86d1a003d4": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Xiaomi Product is suitable for smaller rooms and bedrooms."
+      },
+      "verdict": {
+        "supported": false,
+        "evidence": "",
+        "reason": "Neither source contains any information about room suitability or bedroom use for any Xiaomi product."
+      },
+      "judged_at": "2026-05-16T17:25:12+00:00"
+    },
+    "0ef1abe0ccc8e7a192e49fd0ac90b50bf0a16830e60fce6f079f21ad955517d3": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Xiaomi Product can function as a secondary display."
+      },
+      "verdict": {
+        "supported": false,
+        "evidence": "",
+        "reason": "Neither source mentions any product functioning as a secondary display; this is an inference not supported by the provided text."
+      },
+      "judged_at": "2026-05-16T17:25:14+00:00"
+    },
+    "fc728f80d48391cf6ba9917228cb10bee8d8081662ca1b4c221e76b6bc78570c": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Xiaomi Product has internal identifier 50500 in Xiaomi's catalog."
+      },
+      "verdict": {
+        "supported": false,
+        "evidence": "",
+        "reason": "Neither source mentions any internal identifier or catalog number such as 50500 for any Xiaomi product."
+      },
+      "judged_at": "2026-05-16T17:25:16+00:00"
+    },
+    "d6cc38004e9c62c94309cafbed6d235df9a989f2fceb98b6c8d70960b4339a57": {
+      "judge": "haiku_claim_extract",
+      "payload": {
+        "block": "sales_arguments",
+        "text_excerpt": "- Compact 32-inch screen size suitable for various living spaces.\n- Part of the ",
+        "text_len": 354,
+        "text": "- Compact 32-inch screen size suitable for various living spaces.\n- Part of the reputable Xiaomi brand known for quality electronics.\n- Identified as a 'GL' (Global) version, suggesting broad market compatibility.\n- Features implied by 'A Pro' series, indicating a focus on enhanced user experience.\n- Designed as a core component for home entertainment."
+      },
+      "verdict": {
+        "claims": [
+          "Xiaomi Product has a 32-inch screen size.",
+          "Xiaomi Product is manufactured by Xiaomi brand.",
+          "Xiaomi Product is a Global (GL) version.",
+          "Xiaomi Product is part of the A Pro series.",
+          "Xiaomi Product is designed for home entertainment."
+        ]
+      },
+      "judged_at": "2026-05-16T17:25:17+00:00"
+    },
+    "595912e3a7164f2a013bb1b8766d69c5bd1d2353235aac3321c82e70cc3aeca1": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Xiaomi Product has a 32-inch screen size."
+      },
+      "verdict": {
+        "supported": false,
+        "evidence": "",
+        "reason": "Neither source mentions any Xiaomi product with a 32-inch screen size."
+      },
+      "judged_at": "2026-05-16T17:25:19+00:00"
+    },
+    "d2976aabec506c2d1f11b6c03b7abfb064f71077065a4b1d545c2744f16d9359": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Xiaomi Product is manufactured by Xiaomi brand."
+      },
+      "verdict": {
+        "supported": false,
+        "evidence": "",
+        "reason": "The sources only list Xiaomi products but do not contain any statement about who manufactures them."
+      },
+      "judged_at": "2026-05-16T17:25:21+00:00"
+    },
+    "23f031208a437be7c34d9ea739ecef30b3a5aaee344908cdd94793bfefa5633e": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Xiaomi Product is a Global (GL) version."
+      },
+      "verdict": {
+        "supported": false,
+        "evidence": "",
+        "reason": "Neither source mentions a 'Global (GL) version' designation for any Xiaomi product."
+      },
+      "judged_at": "2026-05-16T17:25:23+00:00"
+    },
+    "04e03488adc3467eabcd3f5261a663f15902c045660fd45a3645567f9f836090": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Xiaomi Product is part of the A Pro series."
+      },
+      "verdict": {
+        "supported": false,
+        "evidence": "",
+        "reason": "Neither source mentions an 'A Pro series' for any Xiaomi product."
+      },
+      "judged_at": "2026-05-16T17:25:25+00:00"
+    },
+    "fc17bfc6b256c6660860125f742a7946c83f4cda065e0ae3d729a6cd1bc1deed": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Xiaomi Product is designed for home entertainment."
+      },
+      "verdict": {
+        "supported": false,
+        "evidence": "",
+        "reason": "The sources only list product names without any descriptions, specifications, or claims about design intent or use cases such as home entertainment."
+      },
+      "judged_at": "2026-05-16T17:25:27+00:00"
+    },
+    "33e1dffac7c61ce53bf380fddf779a92a5aae9d4e07c8007dbaf0fe0d8a0b7de": {
+      "judge": "haiku_claim_extract",
+      "payload": {
+        "block": "seo_long_description",
+        "text_excerpt": "The Xiaomi TV A Pro 32\" GL represents a dedicated smart television experience, d",
+        "text_len": 819,
+        "text": "The Xiaomi TV A Pro 32\" GL represents a dedicated smart television experience, designed to bring entertainment directly to your living space. This 32-inch model, part of the A Pro series, is crafted to integrate seamlessly into modern home environments, providing a focal point for media consumption. Its 'GL' designation typically suggests a global version, catering to a broad international audience with localized features.\n\nWhile specific technical details beyond its size are not available in the provided documentation, the 'A Pro' nomenclature indicates a commitment to delivering enhanced performance and user experience within its class. This television aims to combine reliable hardware with smart capabilities, making it suitable for everyday viewing, streaming, and potentially light smart home integration."
+      },
+      "verdict": {
+        "claims": [
+          "Xiaomi TV A Pro 32\" GL is a 32-inch smart television.",
+          "Xiaomi TV A Pro 32\" GL has a 'GL' designation indicating a global version.",
+          "Xiaomi TV A Pro 32\" GL is part of the A Pro series.",
+          "Xiaomi TV A Pro 32\" GL includes smart capabilities for streaming.",
+          "Xiaomi TV A Pro 32\" GL supports light smart home integration."
+        ]
+      },
+      "judged_at": "2026-05-16T17:25:28+00:00"
+    },
+    "8fcd8f61f162cced8505233296c0c0221638bf75dbe265e57b0acca3bb88a5be": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Xiaomi TV A Pro 32\" GL is a 32-inch smart television."
+      },
+      "verdict": {
+        "supported": false,
+        "evidence": "",
+        "reason": "The Xiaomi TV A Pro 32\" GL is not mentioned in either source document."
+      },
+      "judged_at": "2026-05-16T17:25:30+00:00"
+    },
+    "a39fc016770a2bca5d90cb1fd25ac1d80807301079f856e9ba06bf9b93867def": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Xiaomi TV A Pro 32\" GL has a 'GL' designation indicating a global version."
+      },
+      "verdict": {
+        "supported": false,
+        "evidence": "",
+        "reason": "The Xiaomi TV A Pro 32\" GL is not mentioned in either source document, and no information about a 'GL' designation is provided."
+      },
+      "judged_at": "2026-05-16T17:25:32+00:00"
+    },
+    "5afcbb764a693d1f6ced56de1a0c83e891cb4f4cd5965e8213c736ae65867c63": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Xiaomi TV A Pro 32\" GL is part of the A Pro series."
+      },
+      "verdict": {
+        "supported": false,
+        "evidence": "",
+        "reason": "The Xiaomi TV A Pro 32\" GL is not mentioned in either source document."
+      },
+      "judged_at": "2026-05-16T17:25:33+00:00"
+    },
+    "e3bb559c199fdcfdbb822e35dbb522fb36cbc36a3938566a8e504bae6ba46d50": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Xiaomi TV A Pro 32\" GL includes smart capabilities for streaming."
+      },
+      "verdict": {
+        "supported": false,
+        "evidence": "",
+        "reason": "The Xiaomi TV A Pro 32\" GL is not mentioned in either source document."
+      },
+      "judged_at": "2026-05-16T17:25:35+00:00"
+    },
+    "2c8af9f4d87576af7439a93372527292f9d3a6d390321112d0aa9ae967df8e26": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Xiaomi TV A Pro 32\" GL supports light smart home integration."
+      },
+      "verdict": {
+        "supported": false,
+        "evidence": "",
+        "reason": "The Xiaomi TV A Pro 32\" GL is not mentioned in either source document, and no claims about smart home integration for this product can be found."
+      },
+      "judged_at": "2026-05-16T17:25:38+00:00"
+    },
+    "9933290d7c8403b85913027d285ec8b795727c213c4a3be5287460f91e51f1bd": {
+      "judge": "haiku_claim_extract",
+      "payload": {
+        "block": "meta_description",
+        "text_excerpt": "Discover the Xiaomi TV A Pro 32\" GL, a 32-inch television offering smart feature",
+        "text_len": 144,
+        "text": "Discover the Xiaomi TV A Pro 32\" GL, a 32-inch television offering smart features and an immersive viewing experience. Ideal for various spaces."
+      },
+      "verdict": {
+        "claims": [
+          "Xiaomi TV A Pro 32\" GL is a 32-inch television.",
+          "Xiaomi TV A Pro 32\" GL has smart features.",
+          "Xiaomi TV A Pro 32\" GL is suitable for various spaces."
+        ]
+      },
+      "judged_at": "2026-05-16T17:25:39+00:00"
+    },
+    "c23384ac2f8ac5ad139a1aa416e543b24100645dada53f8f5e99b40fe1082d74": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Xiaomi TV A Pro 32\" GL is a 32-inch television."
+      },
+      "verdict": {
+        "supported": false,
+        "evidence": "",
+        "reason": "The Xiaomi TV A Pro 32\" GL is not mentioned in either source document."
+      },
+      "judged_at": "2026-05-16T17:25:41+00:00"
+    },
+    "1f2442f2fa097789e86aab83e00b13d0eaa35aeeff6128f3150102dc9765a07d": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Xiaomi TV A Pro 32\" GL has smart features."
+      },
+      "verdict": {
+        "supported": false,
+        "evidence": "",
+        "reason": "The Xiaomi TV A Pro 32\" GL is not mentioned in either source document."
+      },
+      "judged_at": "2026-05-16T17:25:42+00:00"
+    },
+    "42941da3ab6b7b8dc203a44543ebb5df613bfd582adfa5c7fa3d9f3186cf9a31": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Xiaomi TV A Pro 32\" GL is suitable for various spaces."
+      },
+      "verdict": {
+        "supported": false,
+        "evidence": "",
+        "reason": "The Xiaomi TV A Pro 32\" GL is not mentioned in either source document."
+      },
+      "judged_at": "2026-05-16T17:25:44+00:00"
+    }
+  }
+}

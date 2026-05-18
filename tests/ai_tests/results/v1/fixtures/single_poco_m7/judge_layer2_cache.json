@@ -1,0 +1,96 @@
+{
+  "schema_version": 1,
+  "judgments": {
+    "baccb7d32f28fa6b3bfdf9e8dbf883472ced8bf399c560612762710e314d6f04": {
+      "judge": "haiku_field_rescue",
+      "payload": {
+        "field": "header_info.price_estimate",
+        "value": "Unavailable"
+      },
+      "verdict": {
+        "supported": false,
+        "source": "neither",
+        "evidence": "No price information found in proforma or web sources"
+      },
+      "judged_at": "2026-05-16T16:48:54+00:00"
+    },
+    "1728c27f3497968c94dda76950fb7b8be89585cd9863f11bcbc1f47e10bf20d5": {
+      "judge": "haiku_field_rescue",
+      "payload": {
+        "field": "warranty_service.period",
+        "value": "Unavailable"
+      },
+      "verdict": {
+        "supported": true,
+        "source": "neither",
+        "evidence": "No warranty period information found in proforma or web sources"
+      },
+      "judged_at": "2026-05-16T16:48:55+00:00"
+    },
+    "f15998ab25aab605c7b54aadbfa31c0da91447abf690f7ef27f9813e4651a7e9": {
+      "judge": "haiku_field_rescue",
+      "payload": {
+        "field": "warranty_service.coverage",
+        "value": "Unavailable"
+      },
+      "verdict": {
+        "supported": false,
+        "source": "neither",
+        "evidence": "No warranty coverage information found in proforma or web sources"
+      },
+      "judged_at": "2026-05-16T16:48:56+00:00"
+    },
+    "b221c1bd5e994eee37e2e0a6833298c8031e7e8edd97656a396fd12d08417f0f": {
+      "judge": "haiku_field_rescue",
+      "payload": {
+        "field": "spec:Display Features",
+        "value": "Reading mode, DC dimming, Wet touch technology 2.0"
+      },
+      "verdict": {
+        "supported": true,
+        "source": "web",
+        "evidence": "Reading mode, DC dimming, TÜV Rheinland Low Blue Light (Software Solution) Certified, TÜV Rheinland Flicker Free Certified, TÜV Rheinland Circadian Friendly Certified, Wet touch technology 2.0"
+      },
+      "judged_at": "2026-05-16T16:48:57+00:00"
+    },
+    "8ca237365c1a40420a6852e122dca8de707a9a58e4eac5504e566b047307ec55": {
+      "judge": "haiku_field_rescue",
+      "payload": {
+        "field": "spec:Rear Camera Modes",
+        "value": "Film Camera, HDR mode, Night mode, Portrait mode, Time-lapse"
+      },
+      "verdict": {
+        "supported": true,
+        "source": "proforma",
+        "evidence": "Film Camera | HDR mode | Night mode | Portrait mode | Time-lapse"
+      },
+      "judged_at": "2026-05-16T16:48:59+00:00"
+    },
+    "3cf392b0039889b9e1512525dbad6d1e2420568c5f02d8af6a988377b2df69b9": {
+      "judge": "haiku_field_rescue",
+      "payload": {
+        "field": "spec:Front Camera Modes",
+        "value": "Film Camera, HDR mode, Soft-light ring, Portrait mode, Time-lapse"
+      },
+      "verdict": {
+        "supported": true,
+        "source": "proforma",
+        "evidence": "Front camera: Film Camera | HDR mode | Soft-light ring | Portrait mode | Time-lapse"
+      },
+      "judged_at": "2026-05-16T16:49:00+00:00"
+    },
+    "8e5d1f22b9ff85f9d2ecac00273737bd319620596f0b53595099fb5bec236b14": {
+      "judge": "haiku_field_rescue",
+      "payload": {
+        "field": "spec:Sensors",
+        "value": "Virtual proximity sensor, Ambient light sensor, Accelerometer, Electronic compass, IR blaster"
+      },
+      "verdict": {
+        "supported": true,
+        "source": "proforma",
+        "evidence": "Virtual proximity sensor | Ambient light sensor | Accelerometer | Electron compass | IR blaster"
+      },
+      "judged_at": "2026-05-16T16:49:01+00:00"
+    }
+  }
+}

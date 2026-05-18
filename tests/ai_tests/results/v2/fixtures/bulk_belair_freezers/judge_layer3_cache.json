@@ -1,0 +1,314 @@
+{
+  "schema_version": 1,
+  "judgments": {
+    "de501398f0d3b5097b04d6965811c3c76f5969c9a5aeb470db7ddd1d2cbd5c9f": {
+      "judge": "haiku_claim_extract",
+      "payload": {
+        "block": "range_overview",
+        "text_excerpt": "The BelAir BACF210W Chest Freezer is a functional and efficient appliance design",
+        "text_len": 741,
+        "text": "The BelAir BACF210W Chest Freezer is a functional and efficient appliance designed for reliable food preservation. Identified by its customer model number BACF210W and factory model HC-210, this chest freezer features a clean white exterior. It is equipped with one internal storage basket, providing a practical solution for organizing frozen items and facilitating easy access.\n\nA notable attribute of the BACF210W is its A+ energy rating, indicating a commitment to energy efficiency. This rating suggests optimized power consumption, making it an economical choice for users seeking to manage their electricity usage effectively. The product is part of the BelAir brand offerings, which aims to deliver products that meet high standards."
+      },
+      "verdict": {
+        "claims": [
+          "BelAir BACF210W Chest Freezer has customer model number BACF210W.",
+          "BelAir BACF210W Chest Freezer has factory model number HC-210.",
+          "BelAir BACF210W Chest Freezer has a white exterior.",
+          "BelAir BACF210W Chest Freezer is equipped with one internal storage basket.",
+          "BelAir BACF210W Chest Freezer has an A+ energy rating."
+        ]
+      },
+      "judged_at": "2026-05-17T16:06:01+00:00"
+    },
+    "b122e122f32847e7797c9ffda96e322070c93408b9367c3924d5d4b1f7d3178c": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "BelAir BACF210W Chest Freezer has customer model number BACF210W.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "BELAIR BACF210W HC-210 Chest freezer, white, one basket, A+",
+        "reason": "The proforma invoice explicitly lists the customer model as BACF210W for the BELAIR chest freezer."
+      },
+      "judged_at": "2026-05-17T16:06:04+00:00"
+    },
+    "95fed50f4103e9027bba865a2c4f4965472236df36f4d04ae7abc41f192b938a": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "BelAir BACF210W Chest Freezer has factory model number HC-210.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "BELAIR BACF210W HC-210 Chest freezer, white, one basket, A+",
+        "reason": "The proforma invoice explicitly lists the BACF210W customer model with factory model HC-210."
+      },
+      "judged_at": "2026-05-17T16:06:07+00:00"
+    },
+    "7d214052911b04075f43c882d5acbe3c0b41248aac0d115bc54c120e99f40eca": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "BelAir BACF210W Chest Freezer has a white exterior.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "BELAIR BACF210W HC-210 Chest freezer, white, one basket, A+",
+        "reason": "The proforma invoice explicitly describes the BACF210W as a white chest freezer."
+      },
+      "judged_at": "2026-05-17T16:06:09+00:00"
+    },
+    "6f65dc363274df6559439a78c77b835074d6579495555859a9dead2fbfe2797c": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "BelAir BACF210W Chest Freezer is equipped with one internal storage basket.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "BELAIR BACF210W HC-210 Chest freezer, white, one basket, A+",
+        "reason": "The proforma invoice explicitly lists the BACF210W as having 'one basket'."
+      },
+      "judged_at": "2026-05-17T16:06:11+00:00"
+    },
+    "36eada8f58ef304afea9dc0334e90809e0478e62fdd236fd89f0187dc2d76a0b": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "BelAir BACF210W Chest Freezer has an A+ energy rating.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "BELAIR BACF210W HC-210 Chest freezer, white, one basket, A+",
+        "reason": "The proforma invoice explicitly lists the BACF210W with an A+ energy rating in the item description."
+      },
+      "judged_at": "2026-05-17T16:06:14+00:00"
+    },
+    "f3c2b2b31a15c5830ee5331ee68b6151b21f102d5f34a4af14ea436f47fb4de8": {
+      "judge": "haiku_claim_extract",
+      "payload": {
+        "block": "sales_arguments",
+        "text_excerpt": "- Efficient A+ energy rating for optimized power consumption.\n- Includes one int",
+        "text_len": 284,
+        "text": "- Efficient A+ energy rating for optimized power consumption.\n- Includes one internal storage basket for organized freezing.\n- Classic white finish suitable for various environments.\n- Reliable chest freezer from the BelAir brand.\n- Designed for effective long-term food preservation."
+      },
+      "verdict": {
+        "claims": [
+          "BelAir BACF210W Chest Freezer has an A+ energy rating.",
+          "BelAir BACF210W Chest Freezer includes one internal storage basket.",
+          "BelAir BACF210W Chest Freezer has a classic white finish.",
+          "BelAir BACF210W Chest Freezer is designed for long-term food preservation."
+        ]
+      },
+      "judged_at": "2026-05-17T16:06:15+00:00"
+    },
+    "627ce18ecee4db673c788c22d95b0f908810b132c0d26a8182876788d30bfe27": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "BelAir BACF210W Chest Freezer includes one internal storage basket.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "BELAIR BACF210W HC-210 Chest freezer, white, one basket, A+",
+        "reason": "The proforma invoice explicitly lists the BACF210W as a chest freezer with one basket."
+      },
+      "judged_at": "2026-05-17T16:06:18+00:00"
+    },
+    "5f18bd7f9b7c18f512f8b03997f5af999ef3e318a0ddd19862d3c4893a29a514": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "BelAir BACF210W Chest Freezer has a classic white finish.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "BELAIR BACF210W HC-210 Chest freezer, white, one basket, A+",
+        "reason": "The proforma invoice explicitly describes the BACF210W as 'white', which supports the claim of a white finish."
+      },
+      "judged_at": "2026-05-17T16:06:20+00:00"
+    },
+    "410c3d8e679ce4f962ce65ef2c65ea87606882e4e845a386ae4d96e7946e1845": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "BelAir BACF210W Chest Freezer is designed for long-term food preservation.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": false,
+        "evidence": "",
+        "reason": "No source mentions 'long-term food preservation' as a feature or specification of the BACF210W; the proforma only describes it as 'Chest freezer, white, one basket, A+'."
+      },
+      "judged_at": "2026-05-17T16:06:23+00:00"
+    },
+    "594708ee38b5e7c14209a8426c444d04ed989b71885f0d224531753b02e74f9f": {
+      "judge": "haiku_claim_extract",
+      "payload": {
+        "block": "seo_long_description",
+        "text_excerpt": "The BelAir BACF210W is a practical and energy-efficient chest freezer, identifie",
+        "text_len": 875,
+        "text": "The BelAir BACF210W is a practical and energy-efficient chest freezer, identified by its customer model number BACF210W and factory model HC-210. This appliance comes in a clean white finish, designed to integrate seamlessly into various settings. It features one internal storage basket, offering a convenient way to organize and access frozen goods. As a product under the BelAir brand, it is part of an offering that strives for quality and customer satisfaction.\n\nA key technical feature of the BACF210W is its A+ energy rating, highlighting its capability for efficient operation. This rating signifies that the freezer is designed to consume less energy, contributing to lower running costs. The focus on efficiency makes the BelAir BACF210W a suitable choice for those seeking a dependable freezer with an emphasis on economical performance for long-term food storage."
+      },
+      "verdict": {
+        "claims": [
+          "BelAir BACF210W has customer model number BACF210W.",
+          "BelAir BACF210W has factory model number HC-210.",
+          "BelAir BACF210W is a chest freezer.",
+          "BelAir BACF210W has a white finish.",
+          "BelAir BACF210W includes one internal storage basket.",
+          "BelAir BACF210W has an A+ energy rating.",
+          "BelAir BACF210W is designed to consume less energy than standard models."
+        ]
+      },
+      "judged_at": "2026-05-17T16:06:25+00:00"
+    },
+    "a5dd021136f4b32ed4a2259da6330b035e4f3e4ac8a451621a85fa7c6d884e18": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "BelAir BACF210W has customer model number BACF210W.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "BELAIR BACF210W HC-210 Chest freezer, white, one basket, A+",
+        "reason": "The proforma invoice explicitly lists BACF210W as the customer model for the BELAIR chest freezer entry."
+      },
+      "judged_at": "2026-05-17T16:06:27+00:00"
+    },
+    "fe8066bffcfa76ea2f476cd6ff4bf59bddc9130e2f9f81db5c1dfa82689de1e2": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "BelAir BACF210W has factory model number HC-210.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "BELAIR BACF210W HC-210 Chest freezer, white, one basket, A+",
+        "reason": "The proforma invoice explicitly lists BACF210W as the customer model and HC-210 as the factory model for the BELAIR brand."
+      },
+      "judged_at": "2026-05-17T16:06:31+00:00"
+    },
+    "1ef2af9e6176b4f683204066e5001f14c36bf5cf1c415aeccf414298e758ee75": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "BelAir BACF210W is a chest freezer.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "BELAIR BACF210W HC-210 Chest freezer, white, one basket, A+",
+        "reason": "The proforma invoice explicitly lists the BACF210W as a 'Chest freezer'."
+      },
+      "judged_at": "2026-05-17T16:06:33+00:00"
+    },
+    "d2c1de4e660f8a62e0c10d33ae619ffb35669ccbd7b6f49103e4f773d78a9dd3": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "BelAir BACF210W has a white finish.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "BELAIR BACF210W HC-210 Chest freezer, white, one basket, A+",
+        "reason": "The proforma explicitly describes the BACF210W as 'white' in its item description."
+      },
+      "judged_at": "2026-05-17T16:06:36+00:00"
+    },
+    "1b13c44a84480d23aa8c436f4b67c1ca1ddcfade52dfce7a748497605eb7feb1": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "BelAir BACF210W includes one internal storage basket.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "BELAIR BACF210W HC-210 Chest freezer, white, one basket, A+",
+        "reason": "The proforma explicitly lists the BACF210W as having 'one basket'."
+      },
+      "judged_at": "2026-05-17T16:06:39+00:00"
+    },
+    "6c788553209a50b265e430af2c0b57c773c5786c1ea0ae9a912a685a60b75d47": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "BelAir BACF210W has an A+ energy rating.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "BELAIR BACF210W HC-210 Chest freezer, white, one basket, A+",
+        "reason": "The proforma invoice explicitly lists the BACF210W with an A+ energy rating in the item description."
+      },
+      "judged_at": "2026-05-17T16:06:41+00:00"
+    },
+    "8b855d91a3d8c466b2e9bb5dfedcbc94b5ed5c80faf585ee45b9928b4d534f71": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "BelAir BACF210W is designed to consume less energy than standard models.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": false,
+        "evidence": "",
+        "reason": "The proforma only states the BACF210W has an A+ energy rating; no claim about consuming less energy than standard models appears in any source."
+      },
+      "judged_at": "2026-05-17T16:06:44+00:00"
+    },
+    "143189bb752a940c6a01641295ddd2f0044dfe90e4f7508e1cd9bbe1d7ff7a72": {
+      "judge": "haiku_claim_extract",
+      "payload": {
+        "block": "meta_description",
+        "text_excerpt": "Discover the BelAir BACF210W chest freezer, featuring a white finish, one storag",
+        "text_len": 137,
+        "text": "Discover the BelAir BACF210W chest freezer, featuring a white finish, one storage basket, and an A+ energy rating for efficient freezing."
+      },
+      "verdict": {
+        "claims": [
+          "BelAir BACF210W chest freezer has a white finish",
+          "BelAir BACF210W chest freezer includes one storage basket",
+          "BelAir BACF210W chest freezer has an A+ energy rating"
+        ]
+      },
+      "judged_at": "2026-05-17T16:06:45+00:00"
+    },
+    "c82ccf6d34cd6e3a80570cc087033aefeeed129acf3eefbcaeb29ac11e054412": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "BelAir BACF210W chest freezer has a white finish",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "BELAIR BACF210W HC-210 Chest freezer, white, one basket, A+",
+        "reason": "The proforma invoice explicitly states the BACF210W is a chest freezer in white."
+      },
+      "judged_at": "2026-05-17T16:06:48+00:00"
+    },
+    "ff1bff6a9b811eb85bec812752ea70f3ad52796568ecfc78bab052a5c2bccac2": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "BelAir BACF210W chest freezer includes one storage basket",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "BELAIR BACF210W HC-210 Chest freezer, white, one basket, A+",
+        "reason": "The proforma invoice explicitly lists the BACF210W as a chest freezer with one basket."
+      },
+      "judged_at": "2026-05-17T16:06:51+00:00"
+    },
+    "c35ed4a891130d8d7c4905e33f3767ea715e1a04e20b3c55cd8cac2aca689003": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "BelAir BACF210W chest freezer has an A+ energy rating",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "BELAIR BACF210W HC-210 Chest freezer, white, one basket, A+",
+        "reason": "The proforma invoice explicitly lists the BACF210W with an A+ energy rating in the item description."
+      },
+      "judged_at": "2026-05-17T16:06:53+00:00"
+    }
+  }
+}

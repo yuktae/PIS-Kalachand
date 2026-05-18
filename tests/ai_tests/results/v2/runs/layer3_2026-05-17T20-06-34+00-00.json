@@ -1,0 +1,415 @@
+{
+  "layer": 3,
+  "timestamp": "2026-05-17T20:06:34+00:00",
+  "threshold": 0.5,
+  "fixtures": [
+    {
+      "name": "bulk_ariete",
+      "total_claims": 41,
+      "supported": 37,
+      "faithfulness": 0.9024,
+      "blocks": [
+        {
+          "block": "range_overview",
+          "total_claims": 13,
+          "supported": 11,
+          "faithfulness": 0.8461538461538461
+        },
+        {
+          "block": "sales_arguments",
+          "total_claims": 10,
+          "supported": 10,
+          "faithfulness": 1.0
+        },
+        {
+          "block": "seo_long_description",
+          "total_claims": 14,
+          "supported": 12,
+          "faithfulness": 0.8571428571428571
+        },
+        {
+          "block": "meta_description",
+          "total_claims": 4,
+          "supported": 4,
+          "faithfulness": 1.0
+        }
+      ],
+      "unsupported_examples": [
+        {
+          "block": "range_overview",
+          "claim": "Ariete Steam Iron AR-6234 features an ergonomic soft-touch handle.",
+          "reason": "The sources list only 'Ergonomic handle' for the AR-6234; the 'soft-touch' qualifier is not confirmed in the spec table for this model."
+        },
+        {
+          "block": "range_overview",
+          "claim": "Ariete Steam Iron AR-6234 has vertical steam function for delicate garments.",
+          "reason": "While vertical steam is confirmed as a feature, the claim adds 'for delicate garments' which does not appear in any source."
+        },
+        {
+          "block": "seo_long_description",
+          "claim": "Ariete Steam Iron AR-6234 features an ergonomic soft-touch handle.",
+          "reason": "The sources list only 'Ergonomic handle' for the AR-6234; the 'soft-touch' qualifier is not confirmed in the spec table for this model."
+        },
+        {
+          "block": "seo_long_description",
+          "claim": "Ariete Steam Iron AR-6234 has vertical steam capability for hanging garments.",
+          "reason": "While vertical steam is confirmed in the sources, the specific detail 'for hanging garments' is not mentioned anywhere in the sources."
+        }
+      ]
+    },
+    {
+      "name": "bulk_belair_freezers",
+      "total_claims": 19,
+      "supported": 17,
+      "faithfulness": 0.8947,
+      "blocks": [
+        {
+          "block": "range_overview",
+          "total_claims": 5,
+          "supported": 5,
+          "faithfulness": 1.0
+        },
+        {
+          "block": "sales_arguments",
+          "total_claims": 4,
+          "supported": 3,
+          "faithfulness": 0.75
+        },
+        {
+          "block": "seo_long_description",
+          "total_claims": 7,
+          "supported": 6,
+          "faithfulness": 0.8571428571428571
+        },
+        {
+          "block": "meta_description",
+          "total_claims": 3,
+          "supported": 3,
+          "faithfulness": 1.0
+        }
+      ],
+      "unsupported_examples": [
+        {
+          "block": "sales_arguments",
+          "claim": "BelAir BACF210W Chest Freezer is designed for long-term food preservation.",
+          "reason": "No source mentions 'long-term food preservation' as a feature or specification of the BACF210W; the proforma only describes it as 'Chest freezer, white, one basket, A+'."
+        },
+        {
+          "block": "seo_long_description",
+          "claim": "BelAir BACF210W is designed to consume less energy than standard models.",
+          "reason": "The proforma only states the BACF210W has an A+ energy rating; no claim about consuming less energy than standard models appears in any source."
+        }
+      ]
+    },
+    {
+      "name": "bulk_sunon_wardrobes",
+      "total_claims": 30,
+      "supported": 29,
+      "faithfulness": 0.9667,
+      "blocks": [
+        {
+          "block": "range_overview",
+          "total_claims": 9,
+          "supported": 9,
+          "faithfulness": 1.0
+        },
+        {
+          "block": "sales_arguments",
+          "total_claims": 8,
+          "supported": 8,
+          "faithfulness": 1.0
+        },
+        {
+          "block": "seo_long_description",
+          "total_claims": 8,
+          "supported": 8,
+          "faithfulness": 1.0
+        },
+        {
+          "block": "meta_description",
+          "total_claims": 5,
+          "supported": 4,
+          "faithfulness": 0.8
+        }
+      ],
+      "unsupported_examples": [
+        {
+          "block": "meta_description",
+          "claim": "Sunon 2D Wardrobe XDY60.120060-OAK provides ample storage.",
+          "reason": "The claim 'ample storage' is generic marketing language not found in any source; the sources only list specific specs like dimensions, configuration, and materials."
+        }
+      ]
+    },
+    {
+      "name": "bulk_xiaomi_tv",
+      "total_claims": 51,
+      "supported": 51,
+      "faithfulness": 1.0,
+      "blocks": [
+        {
+          "block": "range_overview",
+          "total_claims": 16,
+          "supported": 16,
+          "faithfulness": 1.0
+        },
+        {
+          "block": "sales_arguments",
+          "total_claims": 12,
+          "supported": 12,
+          "faithfulness": 1.0
+        },
+        {
+          "block": "seo_long_description",
+          "total_claims": 17,
+          "supported": 17,
+          "faithfulness": 1.0
+        },
+        {
+          "block": "meta_description",
+          "total_claims": 6,
+          "supported": 6,
+          "faithfulness": 1.0
+        }
+      ],
+      "unsupported_examples": []
+    },
+    {
+      "name": "single_ariete_1",
+      "total_claims": 40,
+      "supported": 40,
+      "faithfulness": 1.0,
+      "blocks": [
+        {
+          "block": "range_overview",
+          "total_claims": 14,
+          "supported": 14,
+          "faithfulness": 1.0
+        },
+        {
+          "block": "sales_arguments",
+          "total_claims": 9,
+          "supported": 9,
+          "faithfulness": 1.0
+        },
+        {
+          "block": "seo_long_description",
+          "total_claims": 12,
+          "supported": 12,
+          "faithfulness": 1.0
+        },
+        {
+          "block": "meta_description",
+          "total_claims": 5,
+          "supported": 5,
+          "faithfulness": 1.0
+        }
+      ],
+      "unsupported_examples": []
+    },
+    {
+      "name": "single_belair_freezers",
+      "total_claims": 16,
+      "supported": 4,
+      "faithfulness": 0.25,
+      "blocks": [
+        {
+          "block": "range_overview",
+          "total_claims": 4,
+          "supported": 1,
+          "faithfulness": 0.25
+        },
+        {
+          "block": "sales_arguments",
+          "total_claims": 4,
+          "supported": 1,
+          "faithfulness": 0.25
+        },
+        {
+          "block": "seo_long_description",
+          "total_claims": 5,
+          "supported": 2,
+          "faithfulness": 0.4
+        },
+        {
+          "block": "meta_description",
+          "total_claims": 3,
+          "supported": 0,
+          "faithfulness": 0.0
+        }
+      ],
+      "unsupported_examples": [
+        {
+          "block": "range_overview",
+          "claim": "BelAir BACF210W Chest Freezer includes a lock and key system.",
+          "reason": "The BACF210W is described as 'Chest freezer, white, one basket, A+' with no mention of a lock and key system; that feature is listed only for the BA-CF300 and BACF-500 models."
+        },
+        {
+          "block": "range_overview",
+          "claim": "BelAir BACF210W Chest Freezer has an integrated LED light.",
+          "reason": "The BACF210W is described only as 'Chest freezer, white, one basket, A+' with no mention of LED light in any source."
+        },
+        {
+          "block": "range_overview",
+          "claim": "BelAir BACF210W Chest Freezer includes two storage baskets.",
+          "reason": "The proforma explicitly states the BACF210W has one basket, not two."
+        },
+        {
+          "block": "sales_arguments",
+          "claim": "BelAir BACF210W Chest Freezer has an integrated lock and key.",
+          "reason": "The BACF210W is described as 'Chest freezer, white, one basket, A+' with no mention of a lock and key; only the BA-CF300 and BACF-500 include 'lock and key' in their descriptions."
+        },
+        {
+          "block": "sales_arguments",
+          "claim": "BelAir BACF210W Chest Freezer has an energy-efficient LED light.",
+          "reason": "The BACF210W is described only as 'Chest freezer, white, one basket, A+' with no mention of LED light; LED light is listed only for the BA-CF300 and BACF-500 models."
+        },
+        {
+          "block": "sales_arguments",
+          "claim": "BelAir BACF210W Chest Freezer includes two storage baskets.",
+          "reason": "The proforma explicitly states the BACF210W has one basket, not two."
+        },
+        {
+          "block": "seo_long_description",
+          "claim": "BelAir BACF210W features a lock and key mechanism.",
+          "reason": "The BACF210W is described as 'Chest freezer, white, one basket, A+' with no mention of a lock and key mechanism; that feature is only listed for the BA-CF300 and BACF-500 models."
+        },
+        {
+          "block": "seo_long_description",
+          "claim": "BelAir BACF210W has an integrated LED light.",
+          "reason": "The BACF210W is described only as 'Chest freezer, white, one basket, A+' with no mention of LED light; LED light is listed only for the BA-CF300 and BACF-500 models."
+        },
+        {
+          "block": "seo_long_description",
+          "claim": "BelAir BACF210W includes two storage baskets.",
+          "reason": "The proforma explicitly states the BACF210W has one basket, not two."
+        },
+        {
+          "block": "meta_description",
+          "claim": "BelAir BACF210W Chest Freezer has a secure lock and key",
+          "reason": "The BACF210W is described as 'Chest freezer, white, one basket, A+' with no mention of a lock and key; only the BA-CF300 and BACF-500 include 'lock and key' in their descriptions."
+        },
+        {
+          "block": "meta_description",
+          "claim": "BelAir BACF210W Chest Freezer has energy-efficient LED lighting",
+          "reason": "The BACF210W is described only as 'Chest freezer, white, one basket, A+' with no mention of LED lighting in any source."
+        },
+        {
+          "block": "meta_description",
+          "claim": "BelAir BACF210W Chest Freezer includes two baskets for storage",
+          "reason": "The proforma clearly states the BACF210W has 'one basket', not two baskets."
+        }
+      ]
+    },
+    {
+      "name": "single_poco_m7",
+      "total_claims": 72,
+      "supported": 71,
+      "faithfulness": 0.9861,
+      "blocks": [
+        {
+          "block": "range_overview",
+          "total_claims": 32,
+          "supported": 32,
+          "faithfulness": 1.0
+        },
+        {
+          "block": "sales_arguments",
+          "total_claims": 13,
+          "supported": 12,
+          "faithfulness": 0.9230769230769231
+        },
+        {
+          "block": "seo_long_description",
+          "total_claims": 20,
+          "supported": 20,
+          "faithfulness": 1.0
+        },
+        {
+          "block": "meta_description",
+          "total_claims": 7,
+          "supported": 7,
+          "faithfulness": 1.0
+        }
+      ],
+      "unsupported_examples": [
+        {
+          "block": "sales_arguments",
+          "claim": "POCO M7 battery has robust low-temperature performance.",
+          "reason": "While the sources mention 'Low-temperature resistance' and '-20℃ battery performance', the specific claim of 'robust' low-temperature performance is generic marketing language not directly supported by a specific spec in the sources."
+        }
+      ]
+    },
+    {
+      "name": "single_poco_x7",
+      "skipped": "no narrative"
+    },
+    {
+      "name": "single_sunon_png",
+      "total_claims": 35,
+      "supported": 34,
+      "faithfulness": 0.9714,
+      "blocks": [
+        {
+          "block": "range_overview",
+          "total_claims": 11,
+          "supported": 10,
+          "faithfulness": 0.9090909090909091
+        },
+        {
+          "block": "sales_arguments",
+          "total_claims": 10,
+          "supported": 10,
+          "faithfulness": 1.0
+        },
+        {
+          "block": "seo_long_description",
+          "total_claims": 10,
+          "supported": 10,
+          "faithfulness": 1.0
+        },
+        {
+          "block": "meta_description",
+          "total_claims": 4,
+          "supported": 4,
+          "faithfulness": 1.0
+        }
+      ],
+      "unsupported_examples": [
+        {
+          "block": "range_overview",
+          "claim": "Sunon 2D Wardrobe has dedicated shelves inside main compartments.",
+          "reason": "The sources describe shelves and clothes rail inside, open shelves in middle and bottom, but do not specifically mention 'dedicated shelves inside main compartments' as a distinct feature."
+        }
+      ]
+    },
+    {
+      "name": "single_xiaomi_png",
+      "skipped": "no narrative"
+    }
+  ],
+  "totals": {
+    "total_claims": 304,
+    "supported": 283
+  },
+  "overall_faithfulness": 0.9309,
+  "anthropic_cost": {
+    "total_calls": 39,
+    "total_cost_usd": 0.1238,
+    "by_model": {
+      "claude-haiku-4-5": {
+        "calls": 4,
+        "input": 1183,
+        "output": 890,
+        "cache_read": 0,
+        "cache_write": 0
+      },
+      "claude-sonnet-4-6": {
+        "calls": 35,
+        "input": 23642,
+        "output": 3149,
+        "cache_read": 0,
+        "cache_write": 0
+      }
+    }
+  }
+}

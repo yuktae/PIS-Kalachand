@@ -1,0 +1,926 @@
+{
+  "schema_version": 1,
+  "judgments": {
+    "094d24bb005fdeb09da6713bc8b1fa832c32b15beec6fdd7d4efffdc4c69c709": {
+      "judge": "haiku_claim_extract",
+      "payload": {
+        "block": "range_overview",
+        "text_excerpt": "The POCO M7 stands out with its unprecedented 7000mAh (typ) battery, marking it ",
+        "text_len": 2081,
+        "text": "The POCO M7 stands out with its unprecedented 7000mAh (typ) battery, marking it as POCO's largest smartphone battery for global markets to date. This massive power source ensures ultra-long battery life, supporting up to 2.32 days of light daily use, 28 hours of video playback, or 46 hours of calling. Complementing this endurance are 33W turbo charging for rapid recharges and 18W reverse charging, transforming the device into a convenient portable power bank. The integrated BatteryExtender Chip ensures strong performance even in challenging low-temperature environments, while its robust design maintains over 80% original capacity after 1,600 charge cycles, promising lasting reliability.\n\nVisually, the POCO M7 delivers an immersive experience through its 6.9-inch FHD+ DotDisplay. This large screen features a 144Hz AdaptiveSync refresh rate, intelligently adjusting across 9 levels for smooth visuals and improved viewing comfort, alongside a responsive 288Hz touch sampling rate. Eye health is prioritized with multiple TÜV Rheinland certifications for Low Blue Light, Flicker Free, and Circadian Friendly display, enhanced by DC dimming. The innovative Wet Touch Technology 2.0 ensures accurate screen response even with wet or oily fingers.\n\nUnder the hood, the POCO M7 is driven by the powerful Snapdragon® 685 4G Mobile Platform, built on an efficient 6nm process. This octa-core chipset, featuring a Qualcomm® Kryo™ CPU up to 2.8GHz and Qualcomm® Adreno™ GPU, provides stable performance with improved efficiency and lower power consumption. Multitasking is seamless with support for up to 16GB of extended RAM and ample storage options, including up to 2TB of expandable storage via microSD. Photography is handled by a clear 50MP AI dual camera system and an 8MP front camera, offering various modes for creative capture. Additional features include IP64 water and dust resistance, NFC, Hi-Res Audio with Dolby Atmos®, a side fingerprint sensor, AI face unlock, and the intuitive Xiaomi HyperOS 2 operating system, all encased in a comfortable quad-curved design."
+      },
+      "verdict": {
+        "claims": [
+          "POCO M7 has a 7000mAh battery.",
+          "POCO M7's battery is POCO's largest smartphone battery for global markets to date.",
+          "POCO M7 battery supports up to 2.32 days of light daily use.",
+          "POCO M7 battery supports 28 hours of video playback.",
+          "POCO M7 battery supports 46 hours of calling.",
+          "POCO M7 has 33W turbo charging.",
+          "POCO M7 has 18W reverse charging.",
+          "POCO M7 has an integrated BatteryExtender Chip.",
+          "POCO M7 maintains over 80% battery capacity after 1,600 charge cycles.",
+          "POCO M7 has a 6.9-inch FHD+ DotDisplay.",
+          "POCO M7 display has 144Hz AdaptiveSync refresh rate.",
+          "POCO M7 display has 288Hz touch sampling rate.",
+          "POCO M7 display has TÜV Rheinland Low Blue Light certification.",
+          "POCO M7 display has TÜV Rheinland Flicker Free certification.",
+          "POCO M7 display has TÜV Rheinland Circadian Friendly certification.",
+          "POCO M7 display has DC dimming.",
+          "POCO M7 has Wet Touch Technology 2.0.",
+          "POCO M7 is powered by Snapdragon 685 4G Mobile Platform.",
+          "POCO M7's Snapdragon 685 is built on 6nm process.",
+          "POCO M7's Snapdragon 685 has octa-core Qualcomm Kryo CPU up to 2.8GHz.",
+          "POCO M7's Snapdragon 685 has Qualcomm Adreno GPU.",
+          "POCO M7 supports up to 16GB extended RAM.",
+          "POCO M7 supports up to 2TB expandable storage via microSD.",
+          "POCO M7 has a 50MP AI dual camera system.",
+          "POCO M7 has an 8MP front camera.",
+          "POCO M7 has IP64 water and dust resistance.",
+          "POCO M7 has NFC.",
+          "POCO M7 has Hi-Res Audio with Dolby Atmos.",
+          "POCO M7 has a side fingerprint sensor.",
+          "POCO M7 has AI face unlock.",
+          "POCO M7 runs Xiaomi HyperOS 2.",
+          "POCO M7 has a quad-curved design."
+        ]
+      },
+      "judged_at": "2026-05-17T16:14:30+00:00"
+    },
+    "a056d7981183b6ac4f30ba14bcf426cb34bf0480869038c77c3fdbb49b2c4b66": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO M7 has a 7000mAh battery.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "7000mAh (typ) battery",
+        "reason": "The specs page explicitly states the POCO M7 has a 7000mAh (typ) battery."
+      },
+      "judged_at": "2026-05-17T16:14:33+00:00"
+    },
+    "460f53aef6b40db928ccc4e0eade54db9e95566cecb6b51b8daf7039774a2d16": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO M7's battery is POCO's largest smartphone battery for global markets to date.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "POCO's largest smartphone battery ever for global markets to date*, delivering an ultra-long battery life experience like never before. *In relation to the range of POCO products as of 08/14/2025.",
+        "reason": "The supplier web pages explicitly state this claim, with the qualifying date of 08/14/2025."
+      },
+      "judged_at": "2026-05-17T16:14:36+00:00"
+    },
+    "e8f82cb6328c47249015b4c6b0269cce2f9dd4c2a44239ca58fa32b602df307c": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO M7 battery supports up to 2.32 days of light daily use.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "2.32 days* of use *Data obtained from the light daily use model of POCO Internal Labs. Actual results may vary.",
+        "reason": "The supplier web pages explicitly state 2.32 days of use based on the light daily use model from POCO Internal Labs."
+      },
+      "judged_at": "2026-05-17T16:14:39+00:00"
+    },
+    "e7228bb3290ed33bc849dabd18e276de8792787f6f5c7077b651481468f55eb3": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO M7 battery supports 28 hours of video playback.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Up to 28 hours* Video playback",
+        "reason": "The supplier web pages explicitly state 'Up to 28 hours* Video playback' for the POCO M7 battery."
+      },
+      "judged_at": "2026-05-17T16:14:43+00:00"
+    },
+    "76207b7cd0e62ecf7291c108be85add1e0ae51334ae83c4d09d3c3a429c31b28": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO M7 battery supports 46 hours of calling.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Up to 46 hours* Calling *Data tested by POCO Internal Labs. Actual results may vary.",
+        "reason": "The supplier web pages explicitly state 'Up to 46 hours* Calling' for the POCO M7 battery."
+      },
+      "judged_at": "2026-05-17T16:14:45+00:00"
+    },
+    "ffffe422190805e65807a1fe4d0f35d86067ea1aec1ed29681ea824d1b726203": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO M7 has 33W turbo charging.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "33W turbo charging* Supports 33W turbo charging for improved charging efficiency, allowing you to stay powered up anytime.",
+        "reason": "The supplier web pages explicitly state the POCO M7 supports 33W turbo charging."
+      },
+      "judged_at": "2026-05-17T16:14:48+00:00"
+    },
+    "38323123f78f8751ee305056ded4c053b33bb1dced2e1c7720c82b26415dfcce": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO M7 has 18W reverse charging.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "33W fast and 18W reverse charging... 18W reverse charging* Enough power for itself and others, POCO M7 can double as a portable power bank",
+        "reason": "The supplier web pages explicitly state the POCO M7 supports 18W reverse charging."
+      },
+      "judged_at": "2026-05-17T16:14:53+00:00"
+    },
+    "0aa36e45067bad232f9fb0603a8a12069510831bfe969ff2b9eb4221d5aab54b": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO M7 has an integrated BatteryExtender Chip.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Equipped with a BatteryExtender Chip, battery performance remains strong even in low temperatures.",
+        "reason": "The supplier web pages explicitly state the POCO M7 is equipped with a BatteryExtender Chip."
+      },
+      "judged_at": "2026-05-17T16:14:56+00:00"
+    },
+    "6fe86314a10d930fcae8f45da8c325a6d1ebd1990a665f6087d291ed9353d3c3": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO M7 maintains over 80% battery capacity after 1,600 charge cycles.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Even after 1,600 charge cycles, POCO M7's battery can maintain 80% or more of its original capacity.",
+        "reason": "The supplier web page explicitly states the battery maintains 80% or more of its original capacity after 1,600 charge cycles."
+      },
+      "judged_at": "2026-05-17T16:14:59+00:00"
+    },
+    "9f517ef437b9fa196db95a5beef1085c188e7ea9462cd5b2282e646e847db543": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO M7 has a 6.9-inch FHD+ DotDisplay.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "6.9\" FHD+ DotDisplay",
+        "reason": "The spec sheet explicitly lists the display as '6.9\" FHD+ DotDisplay'."
+      },
+      "judged_at": "2026-05-17T16:15:01+00:00"
+    },
+    "67ca49ee1fd093bfa237a72face1f77293db4b043a70257085772683839cdfc1": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO M7 display has 144Hz AdaptiveSync refresh rate.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "144Hz AdaptiveSync refresh rate",
+        "reason": "The supplier web pages explicitly state '144Hz AdaptiveSync refresh rate' for the POCO M7 display."
+      },
+      "judged_at": "2026-05-17T16:15:05+00:00"
+    },
+    "177a8ac0e0266d813fe2a69bb41d85af5131108822abf0d9571a195241297d4a": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO M7 display has 288Hz touch sampling rate.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Touch sampling rate: Up to 288Hz",
+        "reason": "The spec sheet explicitly states the touch sampling rate is up to 288Hz."
+      },
+      "judged_at": "2026-05-17T16:15:07+00:00"
+    },
+    "967c81a66de8b6fcbb8c01d8dbe283b11cf73c6b508eceabb196e0a70128e800": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO M7 display has TÜV Rheinland Low Blue Light certification.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "TÜV Rheinland Low Blue Light (Software Solution) Certified",
+        "reason": "The source explicitly lists TÜV Rheinland Low Blue Light (Software Solution) Certified under the Display specifications."
+      },
+      "judged_at": "2026-05-17T16:15:11+00:00"
+    },
+    "f6c5c54a4e0f50b353f5df1fef16d0d9d08be90e6d5aa816ae670f133f7f4f5d": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO M7 display has TÜV Rheinland Flicker Free certification.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "TÜV Rheinland Flicker Free Certified",
+        "reason": "The spec sheet explicitly lists TÜV Rheinland Flicker Free Certified under the Display section."
+      },
+      "judged_at": "2026-05-17T16:15:14+00:00"
+    },
+    "70d6319040bd1a737f590a3e9f90d13302b0e66f5a3e3974d47db13b7de3e74b": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO M7 display has TÜV Rheinland Circadian Friendly certification.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "TÜV Rheinland Circadian Friendly Certified",
+        "reason": "The claim is directly stated in the specs page under the Display section."
+      },
+      "judged_at": "2026-05-17T16:15:21+00:00"
+    },
+    "e97be7619b95e62daffb2c546b46aa72096d8f81e0d8d0a4dc6aa8718ac57354": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO M7 display has DC dimming.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "DC dimming TÜV Rheinland Low Blue Light (Software Solution) Certified TÜV Rheinland Flicker Free Certified TÜV Rheinland Circadian Friendly Certified",
+        "reason": "DC dimming is explicitly listed as a display feature on the supplier web pages."
+      },
+      "judged_at": "2026-05-17T16:15:24+00:00"
+    },
+    "5bc94611e3c26bad16b36d714d7b062a41ccc902e7c5a7448fbb574f76b12360": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO M7 has Wet Touch Technology 2.0.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Wet touch technology 2.0 Even when your fingers are wet or covered with oil or foam, POCO M7 responds accurately to every touch, ensuring a smooth operating experience.",
+        "reason": "The supplier web pages explicitly mention 'Wet touch technology 2.0' as a feature of the POCO M7."
+      },
+      "judged_at": "2026-05-17T16:15:27+00:00"
+    },
+    "ca4859963d56d4b6917c9b7a9983bdf3bf69438e393e7d6fede173d45723305f": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO M7 is powered by Snapdragon 685 4G Mobile Platform.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Snapdragon® 685 4G Mobile Platform",
+        "reason": "The specs page explicitly lists the Snapdragon® 685 4G Mobile Platform as the processor for the POCO M7."
+      },
+      "judged_at": "2026-05-17T16:15:30+00:00"
+    },
+    "ba4cb6bcda1fbe8f7ca7896bbbe243c59638ef566f0ee57962b37c7b24472c02": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO M7's Snapdragon 685 is built on 6nm process.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Snapdragon® 685 4G Mobile Platform\n6nm process, octa-core chipset",
+        "reason": "The source explicitly states the Snapdragon 685 uses a 6nm process."
+      },
+      "judged_at": "2026-05-17T16:15:33+00:00"
+    },
+    "73ad34b947876ff5e6e8c0c9f7ad61d5a94065194186e2cf1aa95bc207a5b097": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO M7's Snapdragon 685 has octa-core Qualcomm Kryo CPU up to 2.8GHz.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "CPU: Qualcomm® Kryo™, up to 2.8GHz",
+        "reason": "The spec sheet explicitly states the Snapdragon 685 features an octa-core chipset with Qualcomm Kryo CPU up to 2.8GHz."
+      },
+      "judged_at": "2026-05-17T16:15:36+00:00"
+    },
+    "e5a112bb246d71b4203f2038f2ee60da938f7bc5888ecc65cf24225c733fef70": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO M7's Snapdragon 685 has Qualcomm Adreno GPU.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "GPU: Qualcomm® Adreno™",
+        "reason": "The specs page explicitly lists 'GPU: Qualcomm® Adreno™' under the Snapdragon 685 processor section."
+      },
+      "judged_at": "2026-05-17T16:15:39+00:00"
+    },
+    "b931e40d1c693b550ffd33d558ff4b10d80ff19866565a61052b8f9f752e6d2a": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO M7 supports up to 16GB extended RAM.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Supports up to 16GB RAM with Memory extension",
+        "reason": "The spec sheet explicitly states the POCO M7 supports up to 16GB RAM with Memory extension."
+      },
+      "judged_at": "2026-05-17T16:15:41+00:00"
+    },
+    "f991800ccbfcfb11664bca6460170d026ed52f78a63ac8f6a635d3ade0f17572": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO M7 supports up to 2TB expandable storage via microSD.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Expandable storage up to 2TB\n*microSD card for expandable storage sold separately. Please refer to the actual use.",
+        "reason": "The source explicitly states expandable storage up to 2TB via microSD card."
+      },
+      "judged_at": "2026-05-17T16:15:44+00:00"
+    },
+    "10c6f85696082c862d1f5c4ee8a08ded7575adeee64f14b22c277deaca20de09": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO M7 has a 50MP AI dual camera system.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Clear 50MP AI dual camera",
+        "reason": "The supplier web pages explicitly describe the POCO M7 as having a '50MP AI dual camera'."
+      },
+      "judged_at": "2026-05-17T16:15:49+00:00"
+    },
+    "fb517e46a392072fd468758075452393dd19959991926854f55e1dcc1e10e589": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO M7 has an 8MP front camera.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "8MP front camera",
+        "reason": "The specs page explicitly states '8MP front camera' under the Front camera section."
+      },
+      "judged_at": "2026-05-17T16:15:51+00:00"
+    },
+    "242c0e325f333f10d7890739779b4156930277b08e389bcd22259d8d01839657": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO M7 has IP64 water and dust resistance.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Water & Dust Resistance: IP64",
+        "reason": "The spec sheet explicitly lists IP64 under the Water & Dust Resistance section."
+      },
+      "judged_at": "2026-05-17T16:15:53+00:00"
+    },
+    "02d8162aef9c2044087eaea0353f81d89ccf0f1fa481b75f970a5cb018898944": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO M7 has NFC.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "NFC\nYes",
+        "reason": "The specs page explicitly lists NFC as 'Yes' for the POCO M7."
+      },
+      "judged_at": "2026-05-17T16:15:56+00:00"
+    },
+    "a545409cdf093c01693d9ce078d74d9b7ad1b63dcbb35e123fae9ee70168d84a": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO M7 has Hi-Res Audio with Dolby Atmos.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Hi-Res Audio\nDolby Atmos®",
+        "reason": "Both Hi-Res Audio and Dolby Atmos are explicitly listed under the Audio section of the specs page."
+      },
+      "judged_at": "2026-05-17T16:15:59+00:00"
+    },
+    "980ea1ff576e3ff33d8949ac51acd2effd7f170e0df9d28f3c0f3a986f4b7bb3": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO M7 has a side fingerprint sensor.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Side fingerprint sensor",
+        "reason": "The specs page explicitly lists 'Side fingerprint sensor' under the Security section."
+      },
+      "judged_at": "2026-05-17T16:16:04+00:00"
+    },
+    "4b24ddee2310ab6a168ebe8b8fc57d691b286094a8483333624d028fbf68570e": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO M7 has AI face unlock.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "AI face unlock",
+        "reason": "The spec sheet explicitly lists 'AI face unlock' under the Security section."
+      },
+      "judged_at": "2026-05-17T16:16:06+00:00"
+    },
+    "22f50ffa08df3755f5fc94773c01fdee73ae924ab295a789d87b6c854852665f": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO M7 runs Xiaomi HyperOS 2.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Operating system: Xiaomi HyperOS 2",
+        "reason": "The specs page explicitly lists Xiaomi HyperOS 2 as the operating system for the POCO M7."
+      },
+      "judged_at": "2026-05-17T16:16:10+00:00"
+    },
+    "5b6fbe64ee76756fdb825ad436ed850b33d151fc6cfaa525aeabadbc5c7fd137": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO M7 has a quad-curved design.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Quad-curved design for in-hand comfort",
+        "reason": "The supplier web pages explicitly mention 'Quad-curved design for in-hand comfort' as a feature of the POCO M7."
+      },
+      "judged_at": "2026-05-17T16:16:12+00:00"
+    },
+    "83777e47b69c313e5a7cb8ad2de443b8dddee5f56dac24f8a09d3707538b90ce": {
+      "judge": "haiku_claim_extract",
+      "payload": {
+        "block": "sales_arguments",
+        "text_excerpt": "- Experience ultra-long usage with POCO's largest 7000mAh (typ) battery, offerin",
+        "text_len": 718,
+        "text": "- Experience ultra-long usage with POCO's largest 7000mAh (typ) battery, offering up to 2.32 days of use and robust low-temperature performance.\n- Recharge rapidly with 33W turbo charging and share power with 18W reverse charging, turning your POCO M7 into a portable power bank.\n- Immerse yourself in a cinematic 6.9-inch FHD+ DotDisplay featuring a 144Hz AdaptiveSync refresh rate and multiple eye-care certifications.\n- Enjoy smooth and efficient performance powered by the Snapdragon® 685 4G Mobile Platform, complemented by up to 16GB extended RAM and 2TB expandable storage.\n- Capture clear and vibrant moments with the 50MP AI dual camera and benefit from IP64 water and dust resistance for everyday durability."
+      },
+      "verdict": {
+        "claims": [
+          "POCO M7 has a 7000mAh battery.",
+          "POCO M7 battery offers up to 2.32 days of use.",
+          "POCO M7 battery has robust low-temperature performance.",
+          "POCO M7 supports 33W turbo charging.",
+          "POCO M7 supports 18W reverse charging.",
+          "POCO M7 has a 6.9-inch FHD+ DotDisplay.",
+          "POCO M7 display features 144Hz AdaptiveSync refresh rate.",
+          "POCO M7 display has multiple eye-care certifications.",
+          "POCO M7 is powered by Snapdragon 685 4G Mobile Platform.",
+          "POCO M7 supports up to 16GB extended RAM.",
+          "POCO M7 supports up to 2TB expandable storage.",
+          "POCO M7 has a 50MP AI dual camera.",
+          "POCO M7 has IP64 water and dust resistance."
+        ]
+      },
+      "judged_at": "2026-05-17T16:16:14+00:00"
+    },
+    "4c6a35b8d2fcdb78dcf12a456059b0da7724ab08507bf217bcf9d60ffb0814df": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO M7 battery offers up to 2.32 days of use.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "2.32 days* of use *Data obtained from the light daily use model of POCO Internal Labs. Actual results may vary.",
+        "reason": "The supplier web pages explicitly state '2.32 days* of use' for the POCO M7 battery."
+      },
+      "judged_at": "2026-05-17T16:16:17+00:00"
+    },
+    "9245b4e0db11c260aa6b14f040316041bbcf28e52cc4b14ca028359c4b39fc58": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO M7 battery has robust low-temperature performance.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": false,
+        "evidence": "",
+        "reason": "While the sources mention 'Low-temperature resistance' and '-20℃ battery performance', the specific claim of 'robust' low-temperature performance is generic marketing language not directly supported by a specific spec in the sources."
+      },
+      "judged_at": "2026-05-17T16:16:20+00:00"
+    },
+    "ca40e7920fd6bd9516e2fea5453fa97c817ae1b6b897c7b8c3897cfc63175c51": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO M7 supports 33W turbo charging.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "33W turbo charging* Supports 33W turbo charging for improved charging efficiency, allowing you to stay powered up anytime.",
+        "reason": "The supplier web pages explicitly state the POCO M7 supports 33W turbo charging."
+      },
+      "judged_at": "2026-05-17T16:16:23+00:00"
+    },
+    "78e9e98355e1aee895a311f5ed2107da408787f98465d9363bbca6c33e878a8e": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO M7 supports 18W reverse charging.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "33W fast and 18W reverse charging ... 18W reverse charging* Enough power for itself and others, POCO M7 can double as a portable power bank",
+        "reason": "The supplier web pages explicitly state the POCO M7 supports 18W reverse charging."
+      },
+      "judged_at": "2026-05-17T16:16:26+00:00"
+    },
+    "fbb29177537d93247db63fd878c3d86638bbb08488bc598cb73163c77f974cc8": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO M7 display features 144Hz AdaptiveSync refresh rate.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "144Hz AdaptiveSync refresh rate",
+        "reason": "The supplier web pages explicitly list '144Hz AdaptiveSync refresh rate' as a display feature of the POCO M7."
+      },
+      "judged_at": "2026-05-17T16:16:29+00:00"
+    },
+    "3e28f7b9ad38cf01c5b5a8c1422a2f8a4b9abb1cda5c466d387d7210484e3cc8": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO M7 display has multiple eye-care certifications.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "TÜV Rheinland Low Blue Light (Software Solution) Certified\nTÜV Rheinland Circadian Friendly Certified\nTÜV Rheinland Flicker Free Certified",
+        "reason": "The sources explicitly list three TÜV Rheinland eye-care certifications for the display, and the supplier web page also groups them under 'Multiple eye-care certifications'."
+      },
+      "judged_at": "2026-05-17T16:16:32+00:00"
+    },
+    "0cd9c477ea84b81ee1b1b9f2d5abcf343fb77cec1620185901c2d3edbc91947b": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO M7 supports up to 2TB expandable storage.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Expandable storage up to 2TB",
+        "reason": "The spec sheet explicitly states 'Expandable storage up to 2TB'."
+      },
+      "judged_at": "2026-05-17T16:16:35+00:00"
+    },
+    "a7ce9780d46b790eaf09cabab1f89eba080d53be4e7e4bece5e4f13c8c43432c": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO M7 has a 50MP AI dual camera.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Clear 50MP AI dual camera",
+        "reason": "The supplier web pages explicitly describe the POCO M7 as having a '50MP AI dual camera'."
+      },
+      "judged_at": "2026-05-17T16:16:39+00:00"
+    },
+    "b97d45d8e5b1e103553178252594c4712af2559efe0b8ffa6c31194d32170e1f": {
+      "judge": "haiku_claim_extract",
+      "payload": {
+        "block": "seo_long_description",
+        "text_excerpt": "The POCO M7 redefines smartphone endurance with its massive 7000mAh (typ) batter",
+        "text_len": 1195,
+        "text": "The POCO M7 redefines smartphone endurance with its massive 7000mAh (typ) battery, the largest ever for POCO's global markets. This powerhouse supports 33W turbo charging for quick power-ups and innovative 18W reverse charging, allowing it to double as a portable power bank. Engineered for longevity, its battery maintains over 80% original capacity even after 1,600 charge cycles and features a BatteryExtender Chip for robust performance in low temperatures, ensuring reliable use for extended video playback, calling, and reading.\n\nBeyond its exceptional battery life, the POCO M7 offers a superior user experience with its immersive 6.9-inch FHD+ DotDisplay, boasting a 144Hz AdaptiveSync refresh rate and 288Hz touch sampling for ultra-smooth visuals and responsiveness. Powered by the efficient 6nm Snapdragon® 685 4G Mobile Platform, it delivers stable performance for multitasking, supported by up to 16GB of extended RAM and up to 2TB of expandable storage. The device also features a clear 50MP AI dual camera, an 8MP front camera, IP64 water and dust resistance, NFC, and Hi-Res Audio with Dolby Atmos®, all housed within a comfortable quad-curved design running on Xiaomi HyperOS 2."
+      },
+      "verdict": {
+        "claims": [
+          "POCO M7 has a 7000mAh (typ) battery.",
+          "POCO M7's 7000mAh battery is the largest ever for POCO's global markets.",
+          "POCO M7 supports 33W turbo charging.",
+          "POCO M7 features 18W reverse charging capability.",
+          "POCO M7 can function as a portable power bank via reverse charging.",
+          "POCO M7's battery maintains over 80% capacity after 1,600 charge cycles.",
+          "POCO M7 includes a BatteryExtender Chip for low temperature performance.",
+          "POCO M7 has a 6.9-inch FHD+ DotDisplay.",
+          "POCO M7's display supports 144Hz AdaptiveSync refresh rate.",
+          "POCO M7's display has 288Hz touch sampling rate.",
+          "POCO M7 is powered by Snapdragon 685 4G Mobile Platform (6nm).",
+          "POCO M7 supports up to 16GB of extended RAM.",
+          "POCO M7 supports up to 2TB of expandable storage.",
+          "POCO M7 has a 50MP AI dual rear camera.",
+          "POCO M7 has an 8MP front camera.",
+          "POCO M7 has IP64 water and dust resistance rating.",
+          "POCO M7 features NFC connectivity.",
+          "POCO M7 supports Hi-Res Audio with Dolby Atmos.",
+          "POCO M7 has a quad-curved design.",
+          "POCO M7 runs Xiaomi HyperOS 2."
+        ]
+      },
+      "judged_at": "2026-05-17T16:16:42+00:00"
+    },
+    "61742742c485fcd24fc6b011f603b5df1cac3a39ed9e459556f287ec6255a715": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO M7 has a 7000mAh (typ) battery.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "7000mAh (typ) battery",
+        "reason": "The spec sheet explicitly states '7000mAh (typ) battery' under Battery & charging."
+      },
+      "judged_at": "2026-05-17T16:16:46+00:00"
+    },
+    "4fb9630f2cf4c9e5db1b00090acc7b7aeb6a04daaa64d4320d0d26abd9e964e9": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO M7's 7000mAh battery is the largest ever for POCO's global markets.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "POCO's largest smartphone battery ever for global markets to date*, delivering an ultra-long battery life experience like never before. *In relation to the range of POCO products as of 08/14/2025.",
+        "reason": "The supplier web page explicitly states the 7000mAh battery is POCO's largest smartphone battery ever for global markets to date."
+      },
+      "judged_at": "2026-05-17T16:16:50+00:00"
+    },
+    "a75365bf589b4ad69cb1dc6b3474e4896ed89c62e55e34af4d14b598ccd157af": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO M7 features 18W reverse charging capability.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "33W fast and 18W reverse charging... 18W reverse charging* Enough power for itself and others, POCO M7 can double as a portable power bank",
+        "reason": "The supplier web pages explicitly state the POCO M7 supports 18W reverse charging."
+      },
+      "judged_at": "2026-05-17T16:16:54+00:00"
+    },
+    "2a7a575f312bf9cc1ef53492edcdf61d57eac8e1630ca7dd28d2085011821337": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO M7 can function as a portable power bank via reverse charging.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "18W reverse charging* Enough power for itself and others, POCO M7 can double as a portable power bank, the perfect companion for long days.",
+        "reason": "The supplier web page explicitly states that POCO M7 can double as a portable power bank via 18W reverse charging."
+      },
+      "judged_at": "2026-05-17T16:16:56+00:00"
+    },
+    "14785da6eaa59edaec6f69d431f2b735b4bfa01adf55c0044985d13a8e914fda": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO M7's battery maintains over 80% capacity after 1,600 charge cycles.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Even after 1,600 charge cycles, POCO M7's battery can maintain 80% or more of its original capacity.",
+        "reason": "The supplier web page explicitly states the battery maintains 80% or more of its original capacity after 1,600 charge cycles."
+      },
+      "judged_at": "2026-05-17T16:16:59+00:00"
+    },
+    "30fcf667016a87ddbec393a189ec7c2560793a385b5fe16950747f60c77b1226": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO M7 includes a BatteryExtender Chip for low temperature performance.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Equipped with a BatteryExtender Chip, battery performance remains strong even in low temperatures.",
+        "reason": "The supplier web page explicitly states the POCO M7 is equipped with a BatteryExtender Chip for low-temperature performance."
+      },
+      "judged_at": "2026-05-17T16:17:02+00:00"
+    },
+    "aaa7c8e2a27d11e1aac5a90891df10834fb27ddbda7d8c5ef3a1e6dc43f3fdab": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO M7's display supports 144Hz AdaptiveSync refresh rate.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "144Hz AdaptiveSync refresh rate",
+        "reason": "The supplier web pages explicitly list '144Hz AdaptiveSync refresh rate' as a display feature of the POCO M7."
+      },
+      "judged_at": "2026-05-17T16:17:06+00:00"
+    },
+    "6de7bdfdec290df82c3a36e39bc3ff5d34b35185986210706f65e2a8a7cb58dc": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO M7's display has 288Hz touch sampling rate.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Touch sampling rate: Up to 288Hz",
+        "reason": "The spec sheet explicitly states the touch sampling rate is up to 288Hz."
+      },
+      "judged_at": "2026-05-17T16:17:08+00:00"
+    },
+    "99a156187c86b2b32e060ca0c2d5d26cfb2af3a38c5cd82559f0c7df80f9f105": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO M7 is powered by Snapdragon 685 4G Mobile Platform (6nm).",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Snapdragon® 685 4G Mobile Platform\n6nm process, octa-core chipset",
+        "reason": "The specs page explicitly states the processor is the Snapdragon® 685 4G Mobile Platform built on a 6nm process."
+      },
+      "judged_at": "2026-05-17T16:17:11+00:00"
+    },
+    "4fa53414bf901b3d91193a31f01501fe09cbe6b1a073fdbff5361a94594a21be": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO M7 supports up to 16GB of extended RAM.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Supports up to 16GB RAM with Memory extension",
+        "reason": "The spec sheet explicitly states the POCO M7 supports up to 16GB RAM with Memory extension."
+      },
+      "judged_at": "2026-05-17T16:17:14+00:00"
+    },
+    "333f385a73e663da4dc421bf30599e4f35f638f040148341555abafe286ec07e": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO M7 supports up to 2TB of expandable storage.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Expandable storage up to 2TB",
+        "reason": "The spec sheet explicitly states 'Expandable storage up to 2TB'."
+      },
+      "judged_at": "2026-05-17T16:17:17+00:00"
+    },
+    "83963116dbd470ecaa2c559cf8505c8e1910a3ea2043abfec3cae31d18fe1faf": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO M7 has a 50MP AI dual rear camera.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Clear 50MP AI dual camera",
+        "reason": "The supplier web page explicitly describes the rear camera as a '50MP AI dual camera'."
+      },
+      "judged_at": "2026-05-17T16:17:22+00:00"
+    },
+    "0aa7d8e7d5d2860bf3e8d08abe96d993ff3f331c9e3534895fbf946d099c8d99": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO M7 has IP64 water and dust resistance rating.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Water & Dust Resistance: IP64",
+        "reason": "The source explicitly lists IP64 as the water and dust resistance rating for the POCO M7."
+      },
+      "judged_at": "2026-05-17T16:17:24+00:00"
+    },
+    "1576898395ea33524d8a480aca1883090e513ff7967eae6e8254f0f494a6caec": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO M7 features NFC connectivity.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "NFC\nYes",
+        "reason": "The specs page explicitly lists NFC as 'Yes' for the POCO M7."
+      },
+      "judged_at": "2026-05-17T16:17:27+00:00"
+    },
+    "a8690858122fc874bff168a65c09eea930724fc9b3dab68e70dc9d65e171d0de": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO M7 supports Hi-Res Audio with Dolby Atmos.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Hi-Res Audio\nDolby Atmos®",
+        "reason": "Both Hi-Res Audio and Dolby Atmos are explicitly listed under the Audio section of the specs page."
+      },
+      "judged_at": "2026-05-17T16:17:30+00:00"
+    },
+    "64c43214005a3c88829a98f8be64335030587153007d2dbaafcf61c691502334": {
+      "judge": "haiku_claim_extract",
+      "payload": {
+        "block": "meta_description",
+        "text_excerpt": "Experience the POCO M7 with its massive 7000mAh battery, immersive 6.9\" FHD+ 144",
+        "text_len": 141,
+        "text": "Experience the POCO M7 with its massive 7000mAh battery, immersive 6.9\" FHD+ 144Hz display, powerful Snapdragon 685, and 50MP AI dual camera."
+      },
+      "verdict": {
+        "claims": [
+          "POCO M7 has a 7000mAh battery.",
+          "POCO M7 has a 6.9 inch display.",
+          "POCO M7 display has FHD+ resolution.",
+          "POCO M7 display has 144Hz refresh rate.",
+          "POCO M7 is powered by Snapdragon 685 processor.",
+          "POCO M7 has a 50MP dual camera.",
+          "POCO M7 dual camera has AI capabilities."
+        ]
+      },
+      "judged_at": "2026-05-17T16:17:32+00:00"
+    },
+    "46c88596c9877e02acf962efa91b532dd48920f836c12d12600fdb519a187566": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO M7 has a 6.9 inch display.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "6.9\" FHD+ DotDisplay",
+        "reason": "The specs page explicitly states the display is 6.9 inches."
+      },
+      "judged_at": "2026-05-17T16:17:35+00:00"
+    },
+    "ed2f190695cc22d7a78dc9137dcff2a81dae15e63124f841f1569b4c46c93171": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO M7 display has FHD+ resolution.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "6.9\" FHD+ DotDisplay\nResolution: 2340 × 1080",
+        "reason": "The specs page explicitly states the display is FHD+ with 2340×1080 resolution."
+      },
+      "judged_at": "2026-05-17T16:17:38+00:00"
+    },
+    "09f8d8c8500d06b6039e7c6282d885bb7cb116a05a7b9d6925c21ab7bee3dc91": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO M7 display has 144Hz refresh rate.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Refresh rate: Up to 144Hz*",
+        "reason": "The specs page explicitly states the display has a refresh rate of up to 144Hz."
+      },
+      "judged_at": "2026-05-17T16:17:41+00:00"
+    },
+    "650f30b34083ac5d73cf2db05962a842b225f720b2b65f31988a88c058947a1d": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO M7 is powered by Snapdragon 685 processor.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Snapdragon® 685 4G Mobile Platform",
+        "reason": "The specs page explicitly lists the Snapdragon® 685 4G Mobile Platform as the processor for the POCO M7."
+      },
+      "judged_at": "2026-05-17T16:17:44+00:00"
+    },
+    "380c2ef1a73d953bb90972685c04090642abfe063b99ff0b3b86d57023b29e2a": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO M7 has a 50MP dual camera.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Clear 50MP AI dual camera",
+        "reason": "The supplier web pages explicitly describe the POCO M7 as having a '50MP AI dual camera', directly matching the claim."
+      },
+      "judged_at": "2026-05-17T16:17:50+00:00"
+    },
+    "4b2f33c52750d0f0503ef641afc6c125487bb9b4f55f5815633b0775a6f2b23c": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO M7 dual camera has AI capabilities.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Clear 50MP AI dual camera",
+        "reason": "The supplier web pages explicitly describe the POCO M7's dual camera as an 'AI dual camera'."
+      },
+      "judged_at": "2026-05-17T16:17:53+00:00"
+    }
+  }
+}

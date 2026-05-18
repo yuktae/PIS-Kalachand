@@ -1,0 +1,81 @@
+{
+  "layer": 1,
+  "timestamp": "2026-05-17T20:04:44+00:00",
+  "fixtures": [
+    {
+      "name": "bulk_ariete",
+      "verified_fields": 3,
+      "verified_specs": 19,
+      "failures": 0,
+      "failed_items": []
+    },
+    {
+      "name": "bulk_belair_freezers",
+      "verified_fields": 3,
+      "verified_specs": 9,
+      "failures": 0,
+      "failed_items": []
+    },
+    {
+      "name": "bulk_sunon_wardrobes",
+      "verified_fields": 3,
+      "verified_specs": 5,
+      "failures": 0,
+      "failed_items": []
+    },
+    {
+      "name": "bulk_xiaomi_tv",
+      "verified_fields": 3,
+      "verified_specs": 2,
+      "failures": 0,
+      "failed_items": []
+    },
+    {
+      "name": "single_ariete_1",
+      "verified_fields": 5,
+      "verified_specs": 9,
+      "failures": 0,
+      "failed_items": []
+    },
+    {
+      "name": "single_belair_freezers",
+      "verified_fields": 2,
+      "verified_specs": 5,
+      "failures": 0,
+      "failed_items": []
+    },
+    {
+      "name": "single_poco_m7",
+      "verified_fields": 2,
+      "verified_specs": 40,
+      "failures": 0,
+      "failed_items": []
+    },
+    {
+      "name": "single_poco_x7",
+      "verified_fields": 0,
+      "verified_specs": 0,
+      "failures": 0,
+      "failed_items": []
+    },
+    {
+      "name": "single_sunon_png",
+      "verified_fields": 2,
+      "verified_specs": 3,
+      "failures": 0,
+      "failed_items": []
+    },
+    {
+      "name": "single_xiaomi_png",
+      "verified_fields": 3,
+      "verified_specs": 0,
+      "failures": 0,
+      "failed_items": []
+    }
+  ],
+  "totals": {
+    "verified_fields": 26,
+    "verified_specs": 92,
+    "failures": 0
+  }
+}

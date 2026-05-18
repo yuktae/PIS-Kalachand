@@ -1,0 +1,9 @@
+{
+  "fixture": "trap_sparse_proforma",
+  "kind": "single",
+  "product_name": "BelAir BACF300W Chest Freezer",
+  "brand": "BelAir",
+  "input_file": "proforma.pdf",
+  "trap_type": "sparse_proforma",
+  "notes": "Synthetic — real brand and plausible model but proforma carries only name + price (no specs). AI may pull specs from web (web_grounded is fine) but MUST NOT tag any web-sourced spec as 'verified' — only values literally in the proforma text qualify."
+}

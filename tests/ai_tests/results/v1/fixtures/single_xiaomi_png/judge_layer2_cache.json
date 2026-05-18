@@ -1,0 +1,122 @@
+{
+  "schema_version": 1,
+  "judgments": {
+    "f232ac51df37d0df72d3da384b74577461300f5e60b9c4b46849c42af8607fbc": {
+      "judge": "haiku_field_rescue",
+      "payload": {
+        "field": "header_info.product_name",
+        "value": "Xiaomi TV A Pro 32\" GL"
+      },
+      "verdict": {
+        "supported": false,
+        "source": "neither",
+        "evidence": "Product not found in either source document"
+      },
+      "judged_at": "2026-05-16T16:49:11+00:00"
+    },
+    "171b0f2c9d367fd03ea723248a94ffeb7e3cf55665caf8149c83e36034642934": {
+      "judge": "haiku_field_rescue",
+      "payload": {
+        "field": "header_info.model_number",
+        "value": "50500"
+      },
+      "verdict": {
+        "supported": false,
+        "source": "neither",
+        "evidence": "No model number '50500' found in proforma or web sources"
+      },
+      "judged_at": "2026-05-16T16:49:12+00:00"
+    },
+    "c533555771b523cd0e970b844f05d31fa187e70fbb201f0d1c4ee63abcba5529": {
+      "judge": "haiku_field_rescue",
+      "payload": {
+        "field": "header_info.price_estimate",
+        "value": "Unavailable"
+      },
+      "verdict": {
+        "supported": false,
+        "source": "neither",
+        "evidence": "No price information found in either proforma or web sources"
+      },
+      "judged_at": "2026-05-16T16:49:13+00:00"
+    },
+    "d36446ad9c732cacc80ff4a8c937987285032dfb2289e8e027db1b9fdc8e8b4e": {
+      "judge": "haiku_field_rescue",
+      "payload": {
+        "field": "warranty_service.period",
+        "value": "Unavailable"
+      },
+      "verdict": {
+        "supported": false,
+        "source": "neither",
+        "evidence": "No warranty service period information found in either source document"
+      },
+      "judged_at": "2026-05-16T16:49:14+00:00"
+    },
+    "4c9cb70c19598c2815f3fe460552e713758ffde5d69f463b5e542344f2803711": {
+      "judge": "haiku_field_rescue",
+      "payload": {
+        "field": "warranty_service.coverage",
+        "value": "Unavailable"
+      },
+      "verdict": {
+        "supported": false,
+        "source": "neither",
+        "evidence": "No warranty or coverage information found in either source document"
+      },
+      "judged_at": "2026-05-16T16:49:16+00:00"
+    },
+    "ee3de329e86d2f6e993087c25af47bcfc32b12d59583931eb18698566291df04": {
+      "judge": "haiku_field_rescue",
+      "payload": {
+        "field": "spec:Screen Size",
+        "value": "32 inches"
+      },
+      "verdict": {
+        "supported": false,
+        "source": "neither",
+        "evidence": "No product with 32-inch screen found in either source. Largest monitor listed is 34 inches (G34WQi)."
+      },
+      "judged_at": "2026-05-16T16:49:17+00:00"
+    },
+    "049deed037b12368527366ee8961c6b03bcb57360741b534aecbc67cc2a8d0bf": {
+      "judge": "haiku_field_rescue",
+      "payload": {
+        "field": "spec:Product ID",
+        "value": "50500"
+      },
+      "verdict": {
+        "supported": false,
+        "source": "neither",
+        "evidence": "No product ID '50500' found in proforma or web sources"
+      },
+      "judged_at": "2026-05-16T16:49:18+00:00"
+    },
+    "97ab5f9135ac6ada012592aa8f1cb93c0afbdff017687ff55144f7caaf5e9cfe": {
+      "judge": "haiku_field_rescue",
+      "payload": {
+        "field": "spec:Series",
+        "value": "A Pro"
+      },
+      "verdict": {
+        "supported": false,
+        "source": "neither",
+        "evidence": "No source document contains 'A Pro' as a series designation. Product lists show 'G Pro 27Qi', 'G Pro 27i', 'F8 Pro', 'Buds 4 Pro', 'Buds 5 Pro' but no standalone 'A Pro' series."
+      },
+      "judged_at": "2026-05-16T16:49:20+00:00"
+    },
+    "ea544bcf80048b37ed61b14ba50105bda7e67051517de6a950c4d16bb23bbefd": {
+      "judge": "haiku_field_rescue",
+      "payload": {
+        "field": "spec:Version",
+        "value": "GL (Global)"
+      },
+      "verdict": {
+        "supported": false,
+        "source": "neither",
+        "evidence": "No product specification or version information found in either source document"
+      },
+      "judged_at": "2026-05-16T16:49:21+00:00"
+    }
+  }
+}

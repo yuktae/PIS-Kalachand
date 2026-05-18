@@ -1,0 +1,54 @@
+{
+  "header_info": {
+    "product_name": "Xiaomi TV A Pro 32\" GL",
+    "model_number": "50500",
+    "brand": "Xiaomi",
+    "price_estimate": "Unavailable"
+  },
+  "found_image_url": null,
+  "seo_data": {
+    "generated_keywords": "Xiaomi TV, A Pro 32 GL, Smart TV 32 inch, Xiaomi A Pro Series, Global TV",
+    "meta_title": "Xiaomi TV A Pro 32\" GL - Smart Entertainment Experience",
+    "meta_description": "Discover the Xiaomi TV A Pro 32\" GL, a 32-inch television offering smart features and an immersive viewing experience. Ideal for various spaces.",
+    "seo_long_description": "The Xiaomi TV A Pro 32\" GL represents a dedicated smart television experience, designed to bring entertainment directly to your living space. This 32-inch model, part of the A Pro series, is crafted to integrate seamlessly into modern home environments, providing a focal point for media consumption. Its 'GL' designation typically suggests a global version, catering to a broad international audience with localized features.\n\nWhile specific technical details beyond its size are not available in the provided documentation, the 'A Pro' nomenclature indicates a commitment to delivering enhanced performance and user experience within its class. This television aims to combine reliable hardware with smart capabilities, making it suitable for everyday viewing, streaming, and potentially light smart home integration."
+  },
+  "range_overview": "The Xiaomi TV A Pro 32\" GL is identified as a 32-inch television offering from the Xiaomi brand. The 'A Pro' series designation suggests it is positioned within a specific range of Xiaomi televisions, likely indicating a focus on a balanced combination of features and performance for its segment. The 'GL' suffix typically denotes a global version of the product, implying it is designed for international markets with broad compatibility and potentially multi-language support. This model is engineered to provide a visual and interactive entertainment hub in a compact form factor.\n\nFurther specific technical features or performance metrics such as resolution, smart platform details, connectivity options, or display technology are not detailed in the available documentation. However, as a modern television, it is expected to offer fundamental capabilities for media consumption. Its 32-inch screen size makes it suitable for smaller rooms, bedrooms, or as a secondary display where space is a consideration. The product's ID, 50500, serves as an internal identifier within Xiaomi's product catalog. Without additional information, detailed insights into its unique selling points beyond its brand and size cannot be provided.",
+  "sales_arguments": [
+    "Compact 32-inch screen size suitable for various living spaces.",
+    "Part of the reputable Xiaomi brand known for quality electronics.",
+    "Identified as a 'GL' (Global) version, suggesting broad market compatibility.",
+    "Features implied by 'A Pro' series, indicating a focus on enhanced user experience.",
+    "Designed as a core component for home entertainment."
+  ],
+  "technical_specifications": {
+    "Screen Size": "32 inches",
+    "Product ID": "50500",
+    "Series": "A Pro",
+    "Version": "GL (Global)"
+  },
+  "warranty_service": {
+    "period": "Unavailable",
+    "coverage": "Unavailable"
+  },
+  "_web_context": "--- SOURCE: https://www.mi.com/global/product-list/ ---\nProduct List | Xiaomi Global Login / Sign up All Products Mobile Wearables Smart Home Lifestyle Xiaomi Rainbow Batteries (10 Count) AA/AAA Learn more Xiaomi Monitor A27i 2026 Learn more Mijia Rotary Tool Kit Learn more Xiaomi Mini LED Gaming Monitor G Pro 27Qi 2026 Learn more Xiaomi Monitor A24i 2026 Learn more POCO F8 Ultra Learn more POCO F8 Pro Learn more POCO Smart Pen Learn more POCO Pad X1 Cover Learn more POCO Focus Pen Learn more POCO Pad X1 Floating Keyboard Learn more POCO Pad X1 Keyboard Learn more POCO Pad M1 Keyboard Learn more POCO Pad M1 Cover Learn more POCO Pad X1 Learn more POCO Pad M1 Learn more Xiaomi 3A Braided USB-C to USB-C Cable (10cm) Learn more Xiaomi 2K Monitor A27Qi 2026 Learn more Xiaomi Curved Gaming Monitor G34WQi 2026 Learn more Xiaomi 2K Gaming Monitor G27Qi 2026 Learn more\n\n--- SOURCE: https://www.mi.com/us/product-list/ ---\nXiaomi United States Sign in / Sign up All Products Wearables Smart Home Lifestyle Xiaomi Mini LED Gaming Monitor G Pro 27i Learn More Xiaomi Gaming Monitor G24i Learn More Xiaomi 2K Gaming Monitor G27Qi Learn More Xiaomi Smart Air Purifier 4 Compact Filter Learn More Mi TV Stick Learn More Mi Air Purifier Hepa Filter Learn More Redmi Buds 4 Pro Learn More Xiaomi TV Box S (2nd Gen) Learn More Xiaomi Portable Electric Air Compressor 2 Learn More Mi Vacuum Cleaner Mini Learn More Redmi Buds 5 Pro Learn More Xiaomi Rechargeable Mini Fan Learn More Xiaomi Instant Photo Printer 1S Set Learn More Redmi Buds 5 Learn More Xiaomi Smart Air Purifier 4 Learn More Xiaomi Smart Air Purifier 4 Lite Learn More Redmi Buds 4 Active Learn More Xiaomi Sound Pocket Learn More Xiaomi Sound Outdoor Learn More Xiaomi Gaming Monitor G27i Learn More",
+  "_field_origins": {
+    "header_info.product_name": "hallucinated",
+    "header_info.model_number": "hallucinated",
+    "header_info.brand": "web_grounded",
+    "header_info.price_estimate": "hallucinated",
+    "warranty_service.period": "hallucinated",
+    "warranty_service.coverage": "hallucinated",
+    "range_overview": "ai",
+    "sales_arguments": "ai",
+    "seo_data.generated_keywords": "ai",
+    "seo_data.meta_title": "ai",
+    "seo_data.meta_description": "ai",
+    "seo_data.seo_long_description": "ai"
+  },
+  "_spec_origins": {
+    "Screen Size": "hallucinated",
+    "Product ID": "hallucinated",
+    "Series": "hallucinated",
+    "Version": "hallucinated"
+  }
+}

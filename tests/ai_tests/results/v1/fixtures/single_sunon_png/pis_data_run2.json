@@ -1,0 +1,56 @@
+{
+  "header_info": {
+    "product_name": "2D Wardrobe - Felix Walnut",
+    "model_number": "XDY60.120060-FWAL",
+    "brand": "Sunon",
+    "price_estimate": "20,385"
+  },
+  "found_image_url": null,
+  "seo_data": {
+    "generated_keywords": "Sunon 2D Wardrobe, Felix Walnut wardrobe, E0 grade particle board, melamine finish, PVC edge banding, soft close hinges, key lock wardrobe, clothes rail, open shelves, walnut furniture, bedroom storage, modern wardrobe",
+    "meta_title": "Sunon 2D Wardrobe Felix Walnut with Soft Close & Lock",
+    "meta_description": "Discover the Sunon 2D Wardrobe Felix Walnut. Features E0 grade particle board, soft close hinges, key lock, and ample storage with shelves and clothes rail. Dimensions: 1200x600x2000mm.",
+    "seo_long_description": "The Sunon 2D Wardrobe Felix Walnut is constructed with a focus on durability and environmental responsibility. Utilizing E0 Grade Particle Board, which signifies very low formaldehyde emissions, the wardrobe offers a healthier indoor environment. Both the 25mm and 18mm board components are finished with high-quality melamine, providing a resilient, easy-to-clean surface that resists scratches and wear. Further enhancing its robustness, all exposed edges are meticulously protected with PVC edge banding, ensuring long-lasting integrity and a refined aesthetic.\n\nDesigned for practical and comprehensive storage, the Felix Walnut wardrobe features a well-thought-out internal configuration. It includes two hinged doors that conceal internal shelving and a dedicated clothes rail, perfect for hanging garments. Complementing this, the middle and bottom sections incorporate open shelving, ideal for displaying items or easily accessing folded clothes and accessories. The user experience is further elevated by the inclusion of soft-close hinges, providing a smooth and silent operation, while a key lock offers added security for personal belongings. With dimensions of 1200mm wide, 600mm deep, and 2000mm high, this wardrobe offers substantial storage capacity in a stylish walnut finish."
+  },
+  "range_overview": "The Sunon 2D Wardrobe Felix Walnut combines robust construction with intelligent design, offering a sophisticated storage solution for any bedroom or dressing area. Built from high-quality 25/18mm E0 Grade Particle Board, this wardrobe prioritizes both durability and environmental considerations, featuring a low-emission material base. The entire structure is finished with premium melamine, known for its resistance to daily wear, scratches, and moisture, while PVC edge banding adds an extra layer of protection and a polished look, ensuring the wardrobe maintains its pristine condition over time.\n\nFunctionality is at the core of the Felix Walnut design. Its thoughtful configuration includes two main doors that open to reveal versatile storage, complete with internal shelves and a robust clothes rail, providing ample space for both folded and hanging garments. Beyond the primary closed storage, the wardrobe intelligently integrates open shelves in the middle and bottom sections, offering convenient access and display opportunities for everyday essentials or decorative items. Enhanced by practical hardware such as soft-close hinges for quiet operation and a secure key lock for privacy, this wardrobe is designed to meet diverse storage needs. Presented in an elegant walnut finish, with generous dimensions of 1200mm wide, 600mm deep, and 2000mm high, the Sunon 2D Wardrobe Felix Walnut stands as a testament to practical luxury and enduring style.",
+  "sales_arguments": [
+    "Constructed with durable 25/18mm E0 Grade Particle Board for longevity and healthier interiors.",
+    "Features a resilient melamine finish and protective PVC edge banding to resist wear and tear.",
+    "Optimized storage configuration includes 2 doors, internal shelves, a clothes rail, and convenient open shelves in the middle and bottom.",
+    "Equipped with soft-close hinges for smooth, silent door operation.",
+    "Includes a key lock, providing enhanced security for personal belongings."
+  ],
+  "technical_specifications": {
+    "Material": "25/18mm E0 Grade Particle Board with Melamine + PVC Edge Banding",
+    "Configuration": "2 doors wardrobe with shelves and clothes rail inside, open shelves in middle and bottom",
+    "Hardware": "Soft close hinges + Key lock",
+    "Dimensions (WxDxH)": "1200x600x2000 mm",
+    "Color": "Walnut frame & doors"
+  },
+  "warranty_service": {
+    "period": "Unavailable from provided document",
+    "coverage": "Unavailable from provided document"
+  },
+  "_web_context": "",
+  "_field_origins": {
+    "header_info.product_name": "ai",
+    "header_info.model_number": "ai",
+    "header_info.brand": "ai",
+    "header_info.price_estimate": "ai",
+    "warranty_service.period": "ai",
+    "warranty_service.coverage": "ai",
+    "range_overview": "ai",
+    "sales_arguments": "ai",
+    "seo_data.generated_keywords": "ai",
+    "seo_data.meta_title": "ai",
+    "seo_data.meta_description": "ai",
+    "seo_data.seo_long_description": "ai"
+  },
+  "_spec_origins": {
+    "Material": "inferred",
+    "Configuration": "inferred",
+    "Hardware": "inferred",
+    "Dimensions (WxDxH)": "inferred",
+    "Color": "inferred"
+  }
+}

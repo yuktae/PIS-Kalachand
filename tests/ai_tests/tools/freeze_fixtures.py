@@ -1,11 +1,11 @@
-"""Freeze Brave web_context for every fixture under fixtures/.
+"""Freeze Brave web_context for every fixture under data/fixtures/.
 
 Run once after adding new fixtures (or when you want to refresh the
 captured web text for an existing one):
 
-    python tests/ai_tests/freeze_fixtures.py
-    python tests/ai_tests/freeze_fixtures.py --only single_poco_x7
-    python tests/ai_tests/freeze_fixtures.py --refresh    # re-fetch even if cached
+    python tests/ai_tests/tools/freeze_fixtures.py
+    python tests/ai_tests/tools/freeze_fixtures.py --only single_poco_x7
+    python tests/ai_tests/tools/freeze_fixtures.py --refresh    # re-fetch even if cached
 
 This is a one-time setup cost — after freezing, every pytest run uses the
 saved web_context.txt and never hits Brave (deterministic + free).
@@ -17,13 +17,18 @@ import argparse
 import sys
 from pathlib import Path
 
+# After the 2026-05-18 refactor this script lives under tools/, two levels
+# deep from the project root. Resolve both the project root (for utils
+# imports) and the ai_tests root (so `from conftest import …` works).
 _HERE = Path(__file__).resolve().parent
-_ROOT = _HERE.parent.parent
-if str(_ROOT) not in sys.path:
-    sys.path.insert(0, str(_ROOT))
+_AI_TESTS_ROOT = _HERE.parent
+_PROJECT_ROOT = _AI_TESTS_ROOT.parent.parent
+for p in (_PROJECT_ROOT, _AI_TESTS_ROOT):
+    if str(p) not in sys.path:
+        sys.path.insert(0, str(p))
 
 from dotenv import load_dotenv
-load_dotenv(_ROOT / ".env")
+load_dotenv(_PROJECT_ROOT / ".env")
 
 from conftest import _discover_fixtures, _freeze_web_context, FIXTURES_DIR
 

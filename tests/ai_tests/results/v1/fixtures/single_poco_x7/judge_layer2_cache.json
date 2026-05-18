@@ -1,0 +1,83 @@
+{
+  "schema_version": 1,
+  "judgments": {
+    "adcc615ff1fd0308056bd3f829cd763a47164bdb075aa637a2c7af2bfbb6c22b": {
+      "judge": "haiku_field_rescue",
+      "payload": {
+        "field": "header_info.price_estimate",
+        "value": "Starting around $378.29 (256GB/8GB RAM variant)"
+      },
+      "verdict": {
+        "supported": true,
+        "source": "web",
+        "evidence": "256GB 8GB RAM $ 378.29"
+      },
+      "judged_at": "2026-05-16T16:49:03+00:00"
+    },
+    "424d1a83309c47ed7e5dd58218be24bc77f46d9e46fa51f0b91c65f8b8f86632": {
+      "judge": "haiku_field_rescue",
+      "payload": {
+        "field": "warranty_service.period",
+        "value": "Not specified in provided documents"
+      },
+      "verdict": {
+        "supported": false,
+        "source": "neither",
+        "evidence": "No warranty period information found in proforma or web sources"
+      },
+      "judged_at": "2026-05-16T16:49:04+00:00"
+    },
+    "74836e8bbdd227a62f3f500a23728497f4165583b4ef92a7496ac01680e0d183": {
+      "judge": "haiku_field_rescue",
+      "payload": {
+        "field": "warranty_service.coverage",
+        "value": "Warranty Card included in package (details vary by region)"
+      },
+      "verdict": {
+        "supported": true,
+        "source": "proforma",
+        "evidence": "Package Contents: Mobile Phone / Adapter / USB Type-C Cable / SIM Eject Tool / Protective... Warranty Card *Contents in the package may differ across different regions."
+      },
+      "judged_at": "2026-05-16T16:49:06+00:00"
+    },
+    "afd3157d81ffea27ca6864ec37f84411e37895f93c8f70e28c5a2d2d21b1fa57": {
+      "judge": "haiku_field_rescue",
+      "payload": {
+        "field": "spec:Internal Storage",
+        "value": "256GB UFS 4.0, 512GB UFS 4.0 (No card slot)"
+      },
+      "verdict": {
+        "supported": true,
+        "source": "proforma",
+        "evidence": "Storage & RAM: 8GB+256GB, 12GB+256GB, 12GB+512GB | LPDDR5X + UFS 4.0"
+      },
+      "judged_at": "2026-05-16T16:49:07+00:00"
+    },
+    "3893a6861c6c4cd253f06e65556891b2d94d12784e2d4336a1c591396bbebf22": {
+      "judge": "haiku_field_rescue",
+      "payload": {
+        "field": "spec:Display Resolution",
+        "value": "2712 x 1220 pixels (1.5K Resolution), 20:9 ratio (~446 ppi density)"
+      },
+      "verdict": {
+        "supported": true,
+        "source": "both",
+        "evidence": "Proforma: '2712 x 1220 (1.5K resolution)'; Web: '1220 x 2712 pixels, 20:9 ratio (~446 ppi density)'"
+      },
+      "judged_at": "2026-05-16T16:49:09+00:00"
+    },
+    "0b7d0713e85754cc544c75bc5932d350a02d0599cd753c3f01c4927af1886761": {
+      "judge": "haiku_field_rescue",
+      "payload": {
+        "field": "spec:Durability",
+        "value": "IP68 dust and water resistant"
+      },
+      "verdict": {
+        "supported": true,
+        "source": "proforma",
+        "evidence": "IP68* dust and water resistance"
+      },
+      "judged_at": "2026-05-16T16:49:10+00:00"
+    }
+  }
+}

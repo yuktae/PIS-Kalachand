@@ -3,23 +3,29 @@
 # whenever they're missing — committing them would create churn and bloat.
 #
 # Keep checked in:
-#   - source files (test_*.py, conftest.py, judge.py, judge_cache.py, ...)
+#   - source files (tests/test_*.py, conftest.py, lib/judge*.py, tools/*.py)
 #   - fixture inputs (proforma.pdf, metadata.json)
-#   - documentation (TEST_PLAN.md, README.md, results.md)
+#   - documentation (README.md, docs/*.md, results/*.md)
 #
 # Ignore the derived caches and reports:
 
-# Per-fixture caches
-fixtures/*/web_context.txt
-fixtures/*/pis_data*.json
-fixtures/*/judge_*_cache.json
+# Per-fixture caches (now under data/)
+data/fixtures/*/web_context.txt
+data/fixtures/*/pis_data*.json
+data/fixtures/*/judge_*_cache.json
 
-adversarial/*/web_context.txt
-adversarial/*/pis_data*.json
-adversarial/*/judge_*_cache.json
+data/adversarial/*/web_context.txt
+data/adversarial/*/pis_data*.json
+data/adversarial/*/judge_*_cache.json
+data/adversarial/*/layer5_verdict.json
 
-# Timestamped run reports
-runs/*.json
+# Timestamped run reports (now under results/runs/)
+results/runs/*.json
+
+# Working pytest logs from refresh runs — the curated copies under
+# results/v*/pytest_full_output.log stay committed.
+v*_pytest_output.log
+v*_refresh_output.log
 
 # Python bytecode
 __pycache__/

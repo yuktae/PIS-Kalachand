@@ -33,11 +33,13 @@ Design notes:
 
 from __future__ import annotations
 
+import base64
 import json
 import os
 import re
 import time
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any
 
 # Lazy-imported at first use so non-judge tests don't pay the import cost.
@@ -161,12 +163,38 @@ def _parse_json(text: str) -> dict:
 
 # ── Generic call with retry + caching ────────────────────────────────────────
 
+_PDF_CACHE: dict[str, str] = {}
+
+
+def _read_pdf_b64(pdf_path: str | None) -> str | None:
+    """Return the base64-encoded contents of `pdf_path`, cached per-process so
+    repeat judge calls for the same fixture don't re-read the file.
+
+    Returns None if the path is empty, missing, or not a PDF (only PDFs are
+    accepted via the Anthropic document block — image-only proformas fall
+    back to the text-only judge call)."""
+    if not pdf_path:
+        return None
+    if pdf_path in _PDF_CACHE:
+        return _PDF_CACHE[pdf_path]
+    p = Path(pdf_path)
+    if not p.exists() or p.suffix.lower() != ".pdf":
+        return None
+    try:
+        encoded = base64.standard_b64encode(p.read_bytes()).decode("ascii")
+    except OSError:
+        return None
+    _PDF_CACHE[pdf_path] = encoded
+    return encoded
+
+
 def _call(
     *,
     model: str,
     system: str,
     cached_block: str,   # the per-fixture sources — cached (empty = skip caching)
     user_block: str,     # the per-call payload — NOT cached
+    proforma_pdf_path: str | None = None,
     max_tokens: int = 400,
     retries: int = 3,
 ) -> dict:
@@ -176,23 +204,37 @@ def _call(
     (Anthropic rejects cache_control on empty text blocks). When it has content,
     both blocks are sent and the cached one is marked ephemeral for reuse.
 
+    `proforma_pdf_path` — Phase 4 Fix #4. When supplied AND the file is a real
+    PDF on disk, the document is attached as a cached document content block so
+    Sonnet can read the actual table layout (merged cells, multi-row spec
+    tables) instead of relying on plain text extraction that strips structure.
+
     Returns the parsed JSON dict, or {} if the model returned junk after
     all retries. Failed responses are NOT cached by `judged_or_run` because
     {} fails the "has verdict" check downstream.
     """
     client = _get_client()
-    user_content: list[Any]
-    if cached_block:
-        user_content = [
-            {
-                "type": "text",
-                "text": cached_block,
-                "cache_control": {"type": "ephemeral"},
+    user_content: list[Any] = []
+    pdf_b64 = _read_pdf_b64(proforma_pdf_path)
+    if pdf_b64:
+        user_content.append({
+            "type": "document",
+            "source": {
+                "type": "base64",
+                "media_type": "application/pdf",
+                "data": pdf_b64,
             },
-            {"type": "text", "text": user_block},
-        ]
+            "cache_control": {"type": "ephemeral"},
+        })
+    if cached_block:
+        user_content.append({
+            "type": "text",
+            "text": cached_block,
+            "cache_control": {"type": "ephemeral"},
+        })
+        user_content.append({"type": "text", "text": user_block})
     else:
-        user_content = [{"type": "text", "text": user_block}]
+        user_content.append({"type": "text", "text": user_block})
     last_err: Exception | None = None
     for attempt in range(retries):
         try:
@@ -327,20 +369,31 @@ _SONNET_CLAIM_JUDGE_SYSTEM = """\
 You judge whether a factual claim about a product is supported by the provided
 source documents. You must be strict.
 
+You will receive sources in up to THREE forms:
+  1. The PROFORMA PDF itself (attached as a document) — read tables, merged
+     cells, and column headers visually. This is the most reliable source.
+  2. A plain-text dump of the proforma — convenient for keyword search but
+     LOSES table structure, so trust the PDF over the dump when they disagree.
+  3. SUPPLIER WEB PAGES — text scraped from the manufacturer's product page.
+
+A claim is supported if it appears in ANY of these sources.
+
 DEFINITION OF "SUPPORTED":
 - The claim can be directly read or trivially paraphrased from the sources.
 - Unit conversions, synonyms, and standard abbreviations are fine.
+- A spec printed inside a TABLE on the PDF counts as supported even if the
+  plain-text dump didn't preserve the table layout.
 - The claim does NOT add new facts beyond what the sources say.
 
 DEFINITION OF "NOT SUPPORTED":
-- The claim adds a fact, number, feature, or detail not in either source.
+- The claim adds a fact, number, feature, or detail not in any source.
 - The claim is generic marketing language ("high quality", "innovative",
   "energy efficient") without a specific spec in the sources backing it.
 - The claim is a reasonable-sounding inference that goes beyond the literal sources.
-- You cannot find an exact phrase in either source that matches the claim.
+- You cannot find an exact phrase or table entry in any source matching the claim.
 
 PROCEDURE:
-1. Find the strongest supporting phrase in either source (if any).
+1. Find the strongest supporting phrase in any source (check the PDF first).
 2. Compare it to the claim word-by-word.
 3. If anything in the claim is NOT covered by that phrase, mark unsupported.
 
@@ -352,11 +405,19 @@ Reply ONLY with valid JSON:
 }"""
 
 
-def judge_claim(claim: str, proforma_text: str, web_context: str) -> dict:
+def judge_claim(claim: str, proforma_text: str, web_context: str,
+                proforma_pdf_path: str | None = None) -> dict:
     """Layer 3 Pass B — does this atomic claim survive a strict source check?
+
+    `proforma_pdf_path` (Phase 4 Fix #4): when the proforma is a real PDF on
+    disk, pass its path so Sonnet sees the original document (with table
+    structure intact) in addition to the plain-text dump. Resolves false
+    "unverified" flags on spec tables the text extractor couldn't read.
+
     Returns: {supported: bool, evidence: str, reason: str}"""
     cached = (
-        f"=== PROFORMA TEXT ===\n{proforma_text}\n\n"
+        f"=== PROFORMA TEXT (plain-text dump — tables may be flattened) ===\n"
+        f"{proforma_text}\n\n"
         f"=== SUPPLIER WEB PAGES ===\n{web_context}"
     )
     out = _call(
@@ -364,6 +425,7 @@ def judge_claim(claim: str, proforma_text: str, web_context: str) -> dict:
         system=_SONNET_CLAIM_JUDGE_SYSTEM,
         cached_block=cached,
         user_block=f"CLAIM:\n{claim}",
+        proforma_pdf_path=proforma_pdf_path,
         max_tokens=400,
     )
     return {

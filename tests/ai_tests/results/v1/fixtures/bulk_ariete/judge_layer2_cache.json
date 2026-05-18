@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "judgments": {
+    "642a5898cc73ae54452208abf05352451c5f253eb4ee154a2e0e7feb97432ca2": {
+      "judge": "haiku_field_rescue",
+      "payload": {
+        "field": "spec:Functions",
+        "value": "Dry/steam, Vertical steam, Steam adjustment, Steam shot, Auto-clean, Spray function, Anti-drip"
+      },
+      "verdict": {
+        "supported": false,
+        "source": "neither",
+        "evidence": "Proforma lists all features; web sources confirm most (Dry/steam, Vertical steam, Steam adjustment, Steam shot, Auto-clean) but do not mention Spray function or Anti-drip for model 6234"
+      },
+      "judged_at": "2026-05-16T16:48:22+00:00"
+    },
+    "09d07ae1076b0d1985bb2b1f6275cf5027d6c00e8d086858bbefa16663da1f66": {
+      "judge": "haiku_field_rescue",
+      "payload": {
+        "field": "spec:Handle Type",
+        "value": "Ergonomic, Soft-touch"
+      },
+      "verdict": {
+        "supported": true,
+        "source": "web",
+        "evidence": "ergonomic handle and horizontal filling... soft touch handle"
+      },
+      "judged_at": "2026-05-16T16:48:23+00:00"
+    }
+  }
+}

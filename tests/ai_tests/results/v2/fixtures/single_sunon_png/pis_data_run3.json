@@ -1,0 +1,56 @@
+{
+  "header_info": {
+    "product_name": "Sunon 2D Wardrobe Felix Walnut",
+    "model_number": "XDY60.120060-FWAL",
+    "brand": "Sunon",
+    "price_estimate": "20,385"
+  },
+  "found_image_url": null,
+  "seo_data": {
+    "generated_keywords": "Sunon 2D wardrobe, Felix Walnut, E0 grade particle board, melamine, PVC edge banding, soft close hinges, key lock, clothes rail, open shelves, walnut wardrobe, modern wardrobe, bedroom storage",
+    "meta_title": "Sunon 2D Wardrobe Felix Walnut - E0 Grade Particle Board",
+    "meta_description": "Discover the Sunon 2D Wardrobe Felix Walnut, featuring E0 grade particle board with melamine and PVC edge banding. Includes soft close hinges, key lock, clothes rail, and open shelves.",
+    "seo_long_description": "The Sunon 2D Wardrobe Felix Walnut offers a sophisticated storage solution, crafted from high-quality 25/18mm E0 Grade Particle Board. This robust construction is enhanced with a durable melamine finish and PVC edge banding, ensuring longevity and resistance to daily wear. Designed for modern living, this wardrobe combines aesthetic appeal with practical functionality, making it an ideal addition to any bedroom or dressing area.\n\nFunctionality is key with the Felix Walnut wardrobe, featuring a thoughtful configuration that includes two doors with internal shelves and a clothes rail for organized hanging space. Complementing this are open shelves in the middle and bottom sections, perfect for displaying items or providing easy access to frequently used belongings. The hardware includes soft close hinges for quiet operation and a key lock for added security, ensuring your valuables are safely stored."
+  },
+  "range_overview": "The Sunon 2D Wardrobe Felix Walnut is a meticulously designed storage unit, engineered for both durability and aesthetic appeal. Constructed from premium 25/18mm E0 Grade Particle Board, it ensures a sturdy and environmentally conscious foundation. The surfaces are finished with high-quality melamine, providing a smooth, resilient, and easy-to-maintain exterior, while PVC edge banding reinforces the edges against impacts and moisture, contributing to the wardrobe's extended lifespan. This combination of materials speaks to a commitment to build quality, offering a reliable piece of furniture for contemporary interiors.\n\nThe internal configuration of the Felix Walnut wardrobe is thoughtfully laid out to maximize storage efficiency. It features a two-door section that conceals ample shelving and a dedicated clothes rail, ideal for organizing garments and accessories. Additionally, the design incorporates convenient open shelves in both the middle and bottom sections, providing versatile spaces for folded items, decorative pieces, or quick-access essentials. The integration of soft close hinges ensures a quiet and gentle closing action for the doors, enhancing user experience, while a key lock offers an essential layer of security for personal belongings. With its generous dimensions of 1200x600x2000 mm and a classic walnut frame and doors, this wardrobe is a comprehensive solution for organized and stylish living spaces.",
+  "sales_arguments": [
+    "Constructed from durable 25/18mm E0 Grade Particle Board with melamine and PVC edge banding for longevity.",
+    "Features a versatile configuration with two doors, internal shelves, a clothes rail, and convenient open shelves.",
+    "Equipped with soft close hinges for quiet and smooth door operation.",
+    "Includes a key lock, providing enhanced security for your stored items.",
+    "Stylish Felix Walnut finish with a walnut frame and doors, complementing various interior designs."
+  ],
+  "technical_specifications": {
+    "Material": "25/18mm E0 Grade Particle Board with Melamine + PVC Edge Banding",
+    "Configuration": "2 doors wardrobe with shelves and clothes rail inside, open shelves in middle and bottom",
+    "Hardware": "Soft close hinges + Key lock",
+    "Dimension (WxDxH)": "1200*600*2000 mm",
+    "Color": "Walnut frame & doors"
+  },
+  "warranty_service": {
+    "period": "",
+    "coverage": ""
+  },
+  "_web_context": "",
+  "_field_origins": {
+    "header_info.product_name": "ai",
+    "header_info.model_number": "verified",
+    "header_info.brand": "ai",
+    "header_info.price_estimate": "verified",
+    "warranty_service.period": "ai",
+    "warranty_service.coverage": "ai",
+    "range_overview": "ai",
+    "sales_arguments": "ai",
+    "seo_data.generated_keywords": "ai",
+    "seo_data.meta_title": "ai",
+    "seo_data.meta_description": "ai",
+    "seo_data.seo_long_description": "ai"
+  },
+  "_spec_origins": {
+    "Material": "verified",
+    "Configuration": "verified",
+    "Hardware": "verified",
+    "Dimension (WxDxH)": "inferred",
+    "Color": "inferred"
+  }
+}

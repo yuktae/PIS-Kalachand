@@ -1,0 +1,347 @@
+{
+  "layer": 3,
+  "timestamp": "2026-05-16T17:04:20+00:00",
+  "threshold": 0.5,
+  "fixtures": [
+    {
+      "name": "bulk_ariete",
+      "total_claims": 0,
+      "supported": 0,
+      "faithfulness": 1.0,
+      "blocks": [
+        {
+          "block": "range_overview",
+          "total_claims": 0,
+          "supported": 0,
+          "faithfulness": 1.0
+        },
+        {
+          "block": "sales_arguments",
+          "total_claims": 0,
+          "supported": 0,
+          "faithfulness": 1.0
+        },
+        {
+          "block": "seo_long_description",
+          "total_claims": 0,
+          "supported": 0,
+          "faithfulness": 1.0
+        },
+        {
+          "block": "meta_description",
+          "total_claims": 0,
+          "supported": 0,
+          "faithfulness": 1.0
+        }
+      ],
+      "unsupported_examples": []
+    },
+    {
+      "name": "bulk_belair_freezers",
+      "total_claims": 0,
+      "supported": 0,
+      "faithfulness": 1.0,
+      "blocks": [
+        {
+          "block": "range_overview",
+          "total_claims": 0,
+          "supported": 0,
+          "faithfulness": 1.0
+        },
+        {
+          "block": "sales_arguments",
+          "total_claims": 0,
+          "supported": 0,
+          "faithfulness": 1.0
+        },
+        {
+          "block": "seo_long_description",
+          "total_claims": 0,
+          "supported": 0,
+          "faithfulness": 1.0
+        },
+        {
+          "block": "meta_description",
+          "total_claims": 0,
+          "supported": 0,
+          "faithfulness": 1.0
+        }
+      ],
+      "unsupported_examples": []
+    },
+    {
+      "name": "bulk_sunon_wardrobes",
+      "total_claims": 0,
+      "supported": 0,
+      "faithfulness": 1.0,
+      "blocks": [
+        {
+          "block": "range_overview",
+          "total_claims": 0,
+          "supported": 0,
+          "faithfulness": 1.0
+        },
+        {
+          "block": "sales_arguments",
+          "total_claims": 0,
+          "supported": 0,
+          "faithfulness": 1.0
+        },
+        {
+          "block": "seo_long_description",
+          "total_claims": 0,
+          "supported": 0,
+          "faithfulness": 1.0
+        },
+        {
+          "block": "meta_description",
+          "total_claims": 0,
+          "supported": 0,
+          "faithfulness": 1.0
+        }
+      ],
+      "unsupported_examples": []
+    },
+    {
+      "name": "bulk_xiaomi_tv",
+      "total_claims": 0,
+      "supported": 0,
+      "faithfulness": 1.0,
+      "blocks": [
+        {
+          "block": "range_overview",
+          "total_claims": 0,
+          "supported": 0,
+          "faithfulness": 1.0
+        },
+        {
+          "block": "sales_arguments",
+          "total_claims": 0,
+          "supported": 0,
+          "faithfulness": 1.0
+        },
+        {
+          "block": "seo_long_description",
+          "total_claims": 0,
+          "supported": 0,
+          "faithfulness": 1.0
+        },
+        {
+          "block": "meta_description",
+          "total_claims": 0,
+          "supported": 0,
+          "faithfulness": 1.0
+        }
+      ],
+      "unsupported_examples": []
+    },
+    {
+      "name": "single_ariete_1",
+      "total_claims": 0,
+      "supported": 0,
+      "faithfulness": 1.0,
+      "blocks": [
+        {
+          "block": "range_overview",
+          "total_claims": 0,
+          "supported": 0,
+          "faithfulness": 1.0
+        },
+        {
+          "block": "sales_arguments",
+          "total_claims": 0,
+          "supported": 0,
+          "faithfulness": 1.0
+        },
+        {
+          "block": "seo_long_description",
+          "total_claims": 0,
+          "supported": 0,
+          "faithfulness": 1.0
+        },
+        {
+          "block": "meta_description",
+          "total_claims": 0,
+          "supported": 0,
+          "faithfulness": 1.0
+        }
+      ],
+      "unsupported_examples": []
+    },
+    {
+      "name": "single_belair_freezers",
+      "total_claims": 0,
+      "supported": 0,
+      "faithfulness": 1.0,
+      "blocks": [
+        {
+          "block": "range_overview",
+          "total_claims": 0,
+          "supported": 0,
+          "faithfulness": 1.0
+        },
+        {
+          "block": "sales_arguments",
+          "total_claims": 0,
+          "supported": 0,
+          "faithfulness": 1.0
+        },
+        {
+          "block": "seo_long_description",
+          "total_claims": 0,
+          "supported": 0,
+          "faithfulness": 1.0
+        },
+        {
+          "block": "meta_description",
+          "total_claims": 0,
+          "supported": 0,
+          "faithfulness": 1.0
+        }
+      ],
+      "unsupported_examples": []
+    },
+    {
+      "name": "single_poco_m7",
+      "total_claims": 0,
+      "supported": 0,
+      "faithfulness": 1.0,
+      "blocks": [
+        {
+          "block": "range_overview",
+          "total_claims": 0,
+          "supported": 0,
+          "faithfulness": 1.0
+        },
+        {
+          "block": "sales_arguments",
+          "total_claims": 0,
+          "supported": 0,
+          "faithfulness": 1.0
+        },
+        {
+          "block": "seo_long_description",
+          "total_claims": 0,
+          "supported": 0,
+          "faithfulness": 1.0
+        },
+        {
+          "block": "meta_description",
+          "total_claims": 0,
+          "supported": 0,
+          "faithfulness": 1.0
+        }
+      ],
+      "unsupported_examples": []
+    },
+    {
+      "name": "single_poco_x7",
+      "total_claims": 0,
+      "supported": 0,
+      "faithfulness": 1.0,
+      "blocks": [
+        {
+          "block": "range_overview",
+          "total_claims": 0,
+          "supported": 0,
+          "faithfulness": 1.0
+        },
+        {
+          "block": "sales_arguments",
+          "total_claims": 0,
+          "supported": 0,
+          "faithfulness": 1.0
+        },
+        {
+          "block": "seo_long_description",
+          "total_claims": 0,
+          "supported": 0,
+          "faithfulness": 1.0
+        },
+        {
+          "block": "meta_description",
+          "total_claims": 0,
+          "supported": 0,
+          "faithfulness": 1.0
+        }
+      ],
+      "unsupported_examples": []
+    },
+    {
+      "name": "single_sunon_png",
+      "total_claims": 0,
+      "supported": 0,
+      "faithfulness": 1.0,
+      "blocks": [
+        {
+          "block": "range_overview",
+          "total_claims": 0,
+          "supported": 0,
+          "faithfulness": 1.0
+        },
+        {
+          "block": "sales_arguments",
+          "total_claims": 0,
+          "supported": 0,
+          "faithfulness": 1.0
+        },
+        {
+          "block": "seo_long_description",
+          "total_claims": 0,
+          "supported": 0,
+          "faithfulness": 1.0
+        },
+        {
+          "block": "meta_description",
+          "total_claims": 0,
+          "supported": 0,
+          "faithfulness": 1.0
+        }
+      ],
+      "unsupported_examples": []
+    },
+    {
+      "name": "single_xiaomi_png",
+      "total_claims": 0,
+      "supported": 0,
+      "faithfulness": 1.0,
+      "blocks": [
+        {
+          "block": "range_overview",
+          "total_claims": 0,
+          "supported": 0,
+          "faithfulness": 1.0
+        },
+        {
+          "block": "sales_arguments",
+          "total_claims": 0,
+          "supported": 0,
+          "faithfulness": 1.0
+        },
+        {
+          "block": "seo_long_description",
+          "total_claims": 0,
+          "supported": 0,
+          "faithfulness": 1.0
+        },
+        {
+          "block": "meta_description",
+          "total_claims": 0,
+          "supported": 0,
+          "faithfulness": 1.0
+        }
+      ],
+      "unsupported_examples": []
+    }
+  ],
+  "totals": {
+    "total_claims": 0,
+    "supported": 0
+  },
+  "overall_faithfulness": 1.0,
+  "anthropic_cost": {
+    "total_calls": 0,
+    "total_cost_usd": 0.0,
+    "by_model": {}
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "fixture": "single_sunon_png",
+  "kind": "single",
+  "product_name": "Sunon 2D Wardrobe",
+  "brand": "Sunon",
+  "input_file": "proforma.png",
+  "notes": "PNG only — stresses image OCR path"
+}

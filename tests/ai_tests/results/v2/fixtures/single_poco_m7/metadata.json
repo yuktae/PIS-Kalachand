@@ -1,0 +1,8 @@
+{
+  "fixture": "single_poco_m7",
+  "kind": "single",
+  "product_name": "POCO M7",
+  "brand": "POCO",
+  "input_file": "proforma.pdf",
+  "notes": "Dense official spec sheet — 4 pages; paired with X7 for cross-product consistency check"
+}

@@ -1,0 +1,56 @@
+{
+  "header_info": {
+    "product_name": "Sunon 2D Wardrobe Felix Walnut",
+    "model_number": "XDY60.120060-FWAL",
+    "brand": "Sunon",
+    "price_estimate": "20,385"
+  },
+  "found_image_url": "https://oaidalleapiprodscus.blob.core.windows.net/private/org-2x000000000000000000000000000000/prj-00000000000000000000000000000000/run-00000000000000000000000000000000/img-00000000-0000-0000-0000-000000000000.png",
+  "seo_data": {
+    "generated_keywords": "Sunon wardrobe, 2D wardrobe, Felix Walnut, particle board furniture, melamine finish, PVC edge banding, soft close hinges, key lock wardrobe, clothes rail, open shelves, bedroom storage, modern wardrobe, durable furniture",
+    "meta_title": "Sunon 2D Wardrobe Felix Walnut - Soft Close & Key Lock",
+    "meta_description": "Discover the Sunon 2D Wardrobe Felix Walnut, featuring durable E0 grade particle board, melamine finish, soft close hinges, and a key lock for secure storage.",
+    "seo_long_description": "The Sunon 2D Wardrobe Felix Walnut, model XDY60.120060-FWAL, is engineered for both style and functionality, making it an ideal addition to contemporary living spaces. Its construction utilizes premium 25/18mm E0 Grade Particle Board, known for its environmental friendliness and structural integrity, ensuring a long-lasting piece of furniture. The exterior is meticulously finished with Melamine, offering a sleek look and easy maintenance, complemented by robust PVC Edge Banding that protects against daily wear and enhances the wardrobe's lifespan.\n\nThis wardrobe provides comprehensive storage solutions with its intelligent internal layout. It features two main doors that conceal ample shelving and a dedicated clothes rail, perfect for organizing a diverse wardrobe. The design is further enhanced by accessible open shelves positioned in the middle and bottom sections, offering convenient spots for displaying items or storing essentials within easy reach. Equipped with soft close hinges, the doors operate smoothly and silently, while an integrated key lock provides an essential layer of security for your valuables, blending practical features with sophisticated design."
+  },
+  "range_overview": "The Sunon 2D Wardrobe Felix Walnut, model XDY60.120060-FWAL, offers a robust and stylish storage solution for any bedroom. Constructed from high-quality 25/18mm E0 Grade Particle Board, this wardrobe ensures durability and stability. The surfaces are finished with Melamine, providing a smooth, easy-to-clean surface, while PVC Edge Banding enhances the longevity and resistance to wear and tear, contributing to the overall structural integrity and aesthetic appeal of the unit.\n\nDesigned for optimal organization, this 2-door wardrobe features a thoughtful internal configuration. It includes dedicated shelves and a clothes rail inside the main compartments, perfect for hanging garments and neatly folding clothes. Additionally, the design incorporates convenient open shelves in both the middle and bottom sections, offering accessible storage for frequently used items, decorative pieces, or additional folded apparel. The hardware package includes soft close hinges for quiet and gentle door operation, alongside a key lock mechanism to secure personal belongings, adding a layer of privacy and peace of mind.",
+  "sales_arguments": [
+    "Durable construction with 25/18mm E0 Grade Particle Board and Melamine finish.",
+    "Enhanced longevity and resistance to wear with PVC Edge Banding.",
+    "Organized storage featuring 2 doors, internal shelves, and a clothes rail.",
+    "Convenient access to items with integrated open shelves in the middle and bottom.",
+    "Secure and quiet operation with soft close hinges and a reliable key lock."
+  ],
+  "technical_specifications": {
+    "Material": "25/18mm E0 Grade Particle Board with Melamine + PVC Edge Banding",
+    "Configuration": "2 doors wardrobe with shelves and clothes rail inside, open shelves in middle and bottom",
+    "Hardware": "Soft close hinges + Key lock",
+    "Dimension (WxDxH)": "1200*600*2000 mm",
+    "Color": "Walnut frame & doors"
+  },
+  "warranty_service": {
+    "period": "",
+    "coverage": ""
+  },
+  "_web_context": "",
+  "_field_origins": {
+    "header_info.product_name": "ai",
+    "header_info.model_number": "verified",
+    "header_info.brand": "ai",
+    "header_info.price_estimate": "verified",
+    "warranty_service.period": "ai",
+    "warranty_service.coverage": "ai",
+    "range_overview": "ai",
+    "sales_arguments": "ai",
+    "seo_data.generated_keywords": "ai",
+    "seo_data.meta_title": "ai",
+    "seo_data.meta_description": "ai",
+    "seo_data.seo_long_description": "ai"
+  },
+  "_spec_origins": {
+    "Material": "verified",
+    "Configuration": "verified",
+    "Hardware": "verified",
+    "Dimension (WxDxH)": "inferred",
+    "Color": "inferred"
+  }
+}

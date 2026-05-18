@@ -1,21 +1,25 @@
-# Python
+# Python build artifacts. The directory names below are anchored with a
+# leading `/` so they only match at the repo root — without the anchor,
+# `lib/` and `data/` would also hide `tests/ai_tests/lib/` (judge.py +
+# judge_cache.py) and `tests/ai_tests/data/` (fixture metadata + proforma
+# files), which are real source we want committed.
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
 .Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
+/build/
+/develop-eggs/
+/dist/
+/downloads/
+/eggs/
+/.eggs/
+/lib/
+/lib64/
+/parts/
+/sdist/
+/var/
+/wheels/
 *.egg-info/
 .installed.cfg
 *.egg
@@ -32,17 +36,19 @@ ENV/
 .env.prod
 .env.dev
 
-# Database and Uploads (handled by volumes in Easypanel)
-instance/
-static/uploads/*
-!static/uploads/.gitkeep
-data/pis_jobs.json
+# Database and Uploads (handled by volumes in Easypanel). Anchored to the
+# repo root so the AI-eval suite's `tests/ai_tests/data/` directory and
+# anyone else's `instance/` subfolder are left alone.
+/instance/
+/static/uploads/*
+!/static/uploads/.gitkeep
+/data/pis_jobs.json
 
 # Internal planning docs
 YUK/
 
 # Sample business PDFs (real documents, not for version control)
-samples/
+/samples/
 
 # IDEs
 .vscode/
@@ -50,6 +56,20 @@ samples/
 *.swp
 *.swo
 
+# Claude Code session state (scheduled-task locks, etc.). Local to each
+# developer's machine — never want to commit.
+.claude/
+
 # OS
 .DS_Store
 Thumbs.db
+
+# Word / Excel lock files — Office writes these next to an open document
+# (`~$report.docx`). They're junk, never want them committed.
+~$*
+
+# Generated working logs from manual pytest runs in tests/ai_tests/. The
+# curated copies under `tests/ai_tests/results/v*/pytest_full_output.log`
+# stay tracked.
+tests/ai_tests/v*_pytest_output.log
+tests/ai_tests/v*_refresh_output.log

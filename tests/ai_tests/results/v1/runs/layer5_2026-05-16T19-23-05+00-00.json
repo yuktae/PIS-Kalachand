@@ -1,0 +1,22 @@
+{
+  "layer": 5,
+  "timestamp": "2026-05-16T19:23:05+00:00",
+  "traps": [
+    {
+      "name": "trap_fake_product",
+      "trap_type": "fake_product",
+      "populated_non_narrative_fields": 6,
+      "classified_fields": 6,
+      "hallucinated_fields": 2,
+      "hallucination_rate": 0.3333
+    },
+    {
+      "name": "trap_sparse_proforma",
+      "trap_type": "sparse_proforma",
+      "populated_non_narrative_fields": 11,
+      "classified_fields": 11,
+      "hallucinated_fields": 2,
+      "hallucination_rate": 0.1818
+    }
+  ]
+}

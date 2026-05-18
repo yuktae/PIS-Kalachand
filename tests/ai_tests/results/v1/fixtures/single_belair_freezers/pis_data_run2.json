@@ -1,0 +1,60 @@
+{
+  "header_info": {
+    "product_name": "Chest Freezer",
+    "model_number": "BACF-500",
+    "brand": "BELAIR",
+    "price_estimate": "Unavailable (Unit Price and Total Amount listed as $0.00 in document)"
+  },
+  "found_image_url": null,
+  "seo_data": {
+    "generated_keywords": "BelAir chest freezer, BACF-500, white freezer, lock and key freezer, LED light freezer, two basket freezer, deep freezer storage",
+    "meta_title": "BelAir BACF-500 Chest Freezer | White, Lock, LED Light, Baskets",
+    "meta_description": "Discover the BelAir BACF-500 chest freezer, featuring a spacious white design, integrated lock and key, energy-efficient LED lighting, and two convenient storage baskets.",
+    "seo_long_description": "The BelAir BACF-500 chest freezer is engineered for effective and secure frozen food storage. This model, identified by its customer model BACF-500 and factory model BD-500, is designed with practicality and user convenience in mind. Its distinct white finish ensures a clean and adaptable aesthetic that can complement various home or commercial settings.\n\nKey features include an integrated lock and key system, offering enhanced security for its contents. Internally, the freezer is illuminated by an energy-efficient LED light, providing clear visibility of stored items. For improved organization and accessibility, the BACF-500 also comes equipped with two dedicated storage baskets, allowing users to neatly separate and retrieve frequently accessed items."
+  },
+  "range_overview": "The BelAir BACF-500 chest freezer stands out as a practical and secure solution for long-term frozen storage. This specific model, designated BACF-500 (with factory model BD-500), offers a clean, white exterior, designed to seamlessly integrate into diverse environments, from home kitchens and utility rooms to small commercial settings requiring additional freezing capacity. Its robust construction is focused on providing reliable performance for preserving a wide range of frozen goods.\n\nEquipped with essential features that enhance both functionality and security, the BACF-500 includes a vital lock and key mechanism, ensuring that contents are kept safe and secure from unauthorized access. Inside, the freezer is illuminated by an energy-efficient LED light, which not only aids in finding items quickly but also contributes to lower energy consumption. Furthermore, the inclusion of two convenient storage baskets helps users organize their frozen inventory efficiently, allowing for easy access to frequently used items while maintaining order within the main storage compartment. This blend of security, visibility, and organization makes the BelAir BACF-500 a comprehensive choice for effective frozen storage.",
+  "sales_arguments": [
+    "White exterior finish for a clean and adaptable aesthetic.",
+    "Integrated lock and key system for secure storage of contents.",
+    "Energy-efficient LED internal lighting ensures clear visibility.",
+    "Includes two convenient storage baskets for organized access.",
+    "Reliable freezing solution ideal for bulk food preservation."
+  ],
+  "technical_specifications": {
+    "Product Type": "Chest Freezer",
+    "Model (Customer)": "BACF-500",
+    "Model (Factory)": "BD-500",
+    "Color": "White",
+    "Security Feature": "Lock and key",
+    "Internal Lighting": "LED light",
+    "Storage Accessories": "Two baskets"
+  },
+  "warranty_service": {
+    "period": "Unavailable in provided documents",
+    "coverage": "1% spare parts provided free of charge; full product warranty details unavailable in provided documents."
+  },
+  "_web_context": "--- SOURCE: https://belair.mu/ ---\nBelAir Mauritius HOMEPAGE admin 2019-01-11T14:16:56+00:00 A HISTORY OF EXCELLENCE WELCOME OUR PHILOSOPHY Our goal is to create quality through through diligence, attention, and respect. We put every effort to ensure all our products meet the highest standards; a product purchased from us comes with an assurance of satisfaction. READ MORE THE ESTATE Bel Air Estate is a private estate situated in the south of Mauritius. MORE THE COMPANY Bel Air has some of the most fertile agricultural land in Mauritius. MORE AGRICULTURE We specialise in sugarcane, horticulture, and arboriculture. MORE CONTACT US Give us a call or leave us a message. We would love to hear from you. MORE HISTORY THE BEL AIR ESTATE READ MORE AGRICULTURE PERFECT QUALITY Bel Air Agricultural produces a variety of crops, avocados, bananas, onions, potatoes, and many more all have a home on the estate. We have specialised in producing the very best quality crop since our very beginnings… READ MORE\n\n--- SOURCE: https://belair.mu/contact/ ---\nLOCATION & CONTACT – BelAir Mauritius LOCATION & CONTACT admin 2018-06-18T07:41:14+00:00 LOCATION & CONTACT FIND US OR GET IN TOUCH ASK US A QUESTION OR WRITE US A MESSAGE",
+  "_field_origins": {
+    "header_info.product_name": "verified",
+    "header_info.model_number": "verified",
+    "header_info.brand": "verified",
+    "header_info.price_estimate": "verified",
+    "warranty_service.period": "hallucinated",
+    "warranty_service.coverage": "hallucinated",
+    "range_overview": "ai",
+    "sales_arguments": "ai",
+    "seo_data.generated_keywords": "ai",
+    "seo_data.meta_title": "ai",
+    "seo_data.meta_description": "ai",
+    "seo_data.seo_long_description": "ai"
+  },
+  "_spec_origins": {
+    "Product Type": "verified",
+    "Model (Customer)": "verified",
+    "Model (Factory)": "verified",
+    "Color": "verified",
+    "Security Feature": "verified",
+    "Internal Lighting": "verified",
+    "Storage Accessories": "hallucinated"
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "judgments": {
+    "a3642dfd38536493db821c89a9709d15b9b8e0c6302634422ee3b82b32817f5d": {
+      "judge": "haiku_field_rescue",
+      "payload": {
+        "field": "warranty_service.coverage",
+        "value": "1% spare parts supplied Free of Charge"
+      },
+      "verdict": {
+        "supported": true,
+        "source": "proforma",
+        "evidence": "1% spare parts will be supplied Free of Charge"
+      },
+      "judged_at": "2026-05-17T16:03:04+00:00"
+    }
+  }
+}

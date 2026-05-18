@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "judgments": {
+    "4fa56d6ce0d018ba2cb512da6cff9ddfe5789208c525334f4156895e2f9e560f": {
+      "judge": "haiku_field_rescue",
+      "payload": {
+        "field": "spec:Audio Output",
+        "value": "2 × 10W (20W total)"
+      },
+      "verdict": {
+        "supported": true,
+        "source": "web",
+        "evidence": "2 × 10W high-power stereo speakers fill the room with rich high and bass tones"
+      },
+      "judged_at": "2026-05-17T16:03:06+00:00"
+    },
+    "db901eaa8c03a5983e6f782416288712d08e41eba6ab35020f0d12d4fd715d1e": {
+      "judge": "haiku_field_rescue",
+      "payload": {
+        "field": "spec:Audio Technology",
+        "value": "Dolby Audio™, DTS-X, DTS Virtual:X"
+      },
+      "verdict": {
+        "supported": true,
+        "source": "web",
+        "evidence": "Powerful 20W speakers with Dolby Audio™ , DTS-X, DTS Virtual:X"
+      },
+      "judged_at": "2026-05-17T16:03:07+00:00"
+    },
+    "8fac0d6397efe5a920fd6363e21cf94c3af4b562abbb3d35d54d380f319eb6d4": {
+      "judge": "haiku_field_rescue",
+      "payload": {
+        "field": "spec:Smart Features",
+        "value": "Google Assistant, Chromecast built-in™, Miracast"
+      },
+      "verdict": {
+        "supported": true,
+        "source": "web",
+        "evidence": "Google Assistant button on the remote to get started. Chromecast built-in™ and Miracast allow you to continue watching"
+      },
+      "judged_at": "2026-05-17T16:03:08+00:00"
+    }
+  }
+}

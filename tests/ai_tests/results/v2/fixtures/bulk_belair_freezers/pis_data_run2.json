@@ -1,0 +1,54 @@
+{
+  "header_info": {
+    "product_name": "BelAir Chest Freezer",
+    "model_number": "BACF210W",
+    "brand": "BELAIR",
+    "price_estimate": ""
+  },
+  "found_image_url": null,
+  "seo_data": {
+    "generated_keywords": "BelAir, BACF210W, chest freezer, white freezer, A+ energy rating, single basket freezer",
+    "meta_title": "BelAir BACF210W Chest Freezer - White, A+ Energy Rating",
+    "meta_description": "Discover the BelAir BACF210W chest freezer, featuring a clean white finish, A+ energy rating, and a convenient single basket for organized storage.",
+    "seo_long_description": "The BelAir BACF210W chest freezer is designed for efficient and reliable frozen storage. Its classic white exterior ensures it blends seamlessly into various home or commercial environments, providing a practical solution for preserving food items. This model is engineered to offer dependable performance while maintaining an accessible design.\n\nEquipped with an A+ energy rating, the BACF210W emphasizes energy efficiency, helping to reduce operational costs. The inclusion of one internal basket facilitates better organization of contents, allowing users to easily access frequently used items without extensive searching. This chest freezer is a straightforward and effective appliance for anyone needing additional freezing capacity."
+  },
+  "range_overview": "The BelAir BACF210W chest freezer offers a practical and efficient solution for extended frozen storage. Designed with a clean white finish, this appliance is suitable for a variety of settings, from home kitchens and utility rooms to small businesses requiring extra freezing capacity. Its robust construction ensures durability, providing a reliable unit for preserving a wide range of food products over time.\n\nKey to its design is an A+ energy rating, highlighting its commitment to energy efficiency. This feature helps minimize electricity consumption, making it an economical choice for long-term use. Internally, the freezer is equipped with one basket, which aids in organizing contents and allows for easy retrieval of smaller or more frequently accessed items, enhancing user convenience and optimizing storage space.",
+  "sales_arguments": [
+    "Efficient A+ energy rating for reduced running costs.",
+    "Classic white finish to complement any decor.",
+    "Includes one internal basket for organized storage.",
+    "Reliable chest freezer design for long-term food preservation.",
+    "Practical and straightforward solution for additional freezing capacity."
+  ],
+  "technical_specifications": {
+    "Product Type": "Chest freezer",
+    "Color": "white",
+    "Internal Baskets": "one basket",
+    "Energy Rating": "A+"
+  },
+  "warranty_service": {
+    "period": "",
+    "coverage": ""
+  },
+  "_web_context": "--- SOURCE: https://belair.mu/ ---\nBelAir Mauritius HOMEPAGE admin 2019-01-11T14:16:56+00:00 A HISTORY OF EXCELLENCE WELCOME OUR PHILOSOPHY Our goal is to create quality through through diligence, attention, and respect. We put every effort to ensure all our products meet the highest standards; a product purchased from us comes with an assurance of satisfaction. READ MORE THE ESTATE Bel Air Estate is a private estate situated in the south of Mauritius. MORE THE COMPANY Bel Air has some of the most fertile agricultural land in Mauritius. MORE AGRICULTURE We specialise in sugarcane, horticulture, and arboriculture. MORE CONTACT US Give us a call or leave us a message. We would love to hear from you. MORE HISTORY THE BEL AIR ESTATE READ MORE AGRICULTURE PERFECT QUALITY Bel Air Agricultural produces a variety of crops, avocados, bananas, onions, potatoes, and many more all have a home on the estate. We have specialised in producing the very best quality crop since our very beginnings… READ MORE\n\n--- SOURCE: https://belair.mu/contact/ ---\nLOCATION & CONTACT – BelAir Mauritius LOCATION & CONTACT admin 2018-06-18T07:41:14+00:00 LOCATION & CONTACT FIND US OR GET IN TOUCH ASK US A QUESTION OR WRITE US A MESSAGE",
+  "_field_origins": {
+    "header_info.product_name": "hallucinated",
+    "header_info.model_number": "verified",
+    "header_info.brand": "verified",
+    "header_info.price_estimate": "ai",
+    "warranty_service.period": "ai",
+    "warranty_service.coverage": "ai",
+    "range_overview": "ai",
+    "sales_arguments": "ai",
+    "seo_data.generated_keywords": "ai",
+    "seo_data.meta_title": "ai",
+    "seo_data.meta_description": "ai",
+    "seo_data.seo_long_description": "ai"
+  },
+  "_spec_origins": {
+    "Product Type": "verified",
+    "Color": "verified",
+    "Internal Baskets": "verified",
+    "Energy Rating": "verified"
+  }
+}

@@ -1,0 +1,109 @@
+{
+  "schema_version": 1,
+  "judgments": {
+    "ea7672f9d0be33bb502160be438d74c5c55fa51913a7e2d7f4fc58e2535c8715": {
+      "judge": "haiku_field_rescue",
+      "payload": {
+        "field": "header_info.model_number",
+        "value": "A Pro 32 (ID: 50500)"
+      },
+      "verdict": {
+        "supported": true,
+        "source": "proforma",
+        "evidence": "NO. 1, ID 50500, Description: Xiaomi TV A Pro 32\" GL"
+      },
+      "judged_at": "2026-05-16T16:48:29+00:00"
+    },
+    "1e23e6d6fd31b947e286b5c2b88aff8d45d3c619dc5262d00b8c550c7f8ea925": {
+      "judge": "haiku_field_rescue",
+      "payload": {
+        "field": "header_info.price_estimate",
+        "value": "Unavailable"
+      },
+      "verdict": {
+        "supported": false,
+        "source": "neither",
+        "evidence": "The proforma invoice lists unit prices for each TV model (e.g., $91.1, $139.4, $158.3, etc.), so price information is available, not unavailable."
+      },
+      "judged_at": "2026-05-16T16:48:30+00:00"
+    },
+    "c03f52a0bf6abd9c3dd5e22ce9cbecbb4071ab87692bbf15415d2c0dfd7c6dfa": {
+      "judge": "haiku_field_rescue",
+      "payload": {
+        "field": "warranty_service.period",
+        "value": "Unavailable"
+      },
+      "verdict": {
+        "supported": true,
+        "source": "neither",
+        "evidence": "No warranty period information found in proforma or web sources"
+      },
+      "judged_at": "2026-05-16T16:48:31+00:00"
+    },
+    "1a009678ec73a6b05a9c9bdcd04243b85aec58fbd1777eae4284757db98a7b58": {
+      "judge": "haiku_field_rescue",
+      "payload": {
+        "field": "warranty_service.coverage",
+        "value": "Unavailable"
+      },
+      "verdict": {
+        "supported": false,
+        "source": "neither",
+        "evidence": "No warranty or coverage information found in proforma or web sources"
+      },
+      "judged_at": "2026-05-16T16:48:33+00:00"
+    },
+    "52a7bc4c35a34c3a82a2b9772913215ee655a7cd591b0989942b042b6e668641": {
+      "judge": "haiku_field_rescue",
+      "payload": {
+        "field": "spec:Display Size",
+        "value": "32 inches"
+      },
+      "verdict": {
+        "supported": true,
+        "source": "web",
+        "evidence": "Xiaomi TV A Pro 32 | 32\" HD smart LED TV"
+      },
+      "judged_at": "2026-05-16T16:48:34+00:00"
+    },
+    "f3f1d03460960954facc81cc784918dbaf33822d73a04b5388cd93a55a922c3e": {
+      "judge": "haiku_field_rescue",
+      "payload": {
+        "field": "spec:Speaker Output",
+        "value": "2 x 10W (Total 20W)"
+      },
+      "verdict": {
+        "supported": true,
+        "source": "web",
+        "evidence": "2 × 10W high-power stereo speakers fill the room with rich high and bass tones"
+      },
+      "judged_at": "2026-05-16T16:48:35+00:00"
+    },
+    "db901eaa8c03a5983e6f782416288712d08e41eba6ab35020f0d12d4fd715d1e": {
+      "judge": "haiku_field_rescue",
+      "payload": {
+        "field": "spec:Audio Technology",
+        "value": "Dolby Audio™, DTS-X, DTS Virtual:X"
+      },
+      "verdict": {
+        "supported": true,
+        "source": "web",
+        "evidence": "Powerful 20W speakers with Dolby Audio™ , DTS-X, DTS Virtual:X"
+      },
+      "judged_at": "2026-05-16T16:48:37+00:00"
+    },
+    "8fac0d6397efe5a920fd6363e21cf94c3af4b562abbb3d35d54d380f319eb6d4": {
+      "judge": "haiku_field_rescue",
+      "payload": {
+        "field": "spec:Smart Features",
+        "value": "Google Assistant, Chromecast built-in™, Miracast"
+      },
+      "verdict": {
+        "supported": true,
+        "source": "web",
+        "evidence": "Google Assistant button on the remote to get started. Chromecast built-in™ and Miracast allow you to continue watching"
+      },
+      "judged_at": "2026-05-16T16:48:38+00:00"
+    }
+  }
+}

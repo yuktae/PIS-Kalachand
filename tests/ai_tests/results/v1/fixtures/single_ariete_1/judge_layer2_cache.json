@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "judgments": {
+    "44fff5c584dd13bddefde4d5f5820867edbf3e150470d47b7e89dfbc5ecc3444": {
+      "judge": "haiku_field_rescue",
+      "payload": {
+        "field": "warranty_service.coverage",
+        "value": "Manufacturer's Warranty"
+      },
+      "verdict": {
+        "supported": true,
+        "source": "proforma",
+        "evidence": "Guarantee 12 months"
+      },
+      "judged_at": "2026-05-16T16:48:39+00:00"
+    }
+  }
+}

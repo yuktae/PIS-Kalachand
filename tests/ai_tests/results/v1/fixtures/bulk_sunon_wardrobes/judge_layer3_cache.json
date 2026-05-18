@@ -1,0 +1,454 @@
+{
+  "schema_version": 1,
+  "judgments": {
+    "e35fc38b35845b71777718a2a8e8f11384adef35905d20f458b051d0e522248e": {
+      "judge": "haiku_claim_extract",
+      "payload": {
+        "block": "range_overview",
+        "text_excerpt": "The Sunon 2D Wardrobe, specifically the XDY60.120060-OAK-W model, is an expertly",
+        "text_len": 1446,
+        "text": "The Sunon 2D Wardrobe, specifically the XDY60.120060-OAK-W model, is an expertly crafted storage unit designed for both aesthetic appeal and practical functionality. It features a robust construction utilizing 25/18mm E0 Grade Particle Board, a material known for its durability and compliance with strict emission standards, ensuring a healthier indoor environment. The exterior is meticulously finished with high-quality melamine and reinforced with PVC edge banding, which not only enhances its visual appeal with an elegant Oak frame and Warm White doors but also provides superior resistance against scratches, moisture, and impact, ensuring long-term resilience.\n\nThis wardrobe measures 1200mm in width, 600mm in depth, and 2000mm in height, providing ample storage capacity without overwhelming the room. Its intelligent internal configuration includes two doors that open to reveal both internal shelves and a dedicated clothes rail, allowing for flexible organization of various garments. Further enhancing its utility, open shelves are conveniently integrated into the middle and bottom sections, offering additional space for accessories, folded items, or decorative pieces. The inclusion of soft-close hinges ensures a smooth, quiet, and gentle closing action for the doors, preventing wear and tear and adding a touch of premium comfort. For added security, the wardrobe is also equipped with a key lock, safeguarding personal items."
+      },
+      "verdict": {
+        "claims": [
+          "Sunon 2D Wardrobe XDY60.120060-OAK is constructed with 25/18mm E0 Grade Particle Board.",
+          "E0 Grade Particle Board complies with strict emission standards.",
+          "Exterior is finished with high-quality melamine and PVC edge banding.",
+          "Oak frame and Warm White doors are featured.",
+          "Wardrobe measures 1200mm width, 600mm depth, and 2000mm height.",
+          "PVC edge banding provides resistance against scratches, moisture, and impact.",
+          "Wardrobe includes two doors opening to internal shelves and a clothes rail.",
+          "Open shelves are integrated into middle and bottom sections.",
+          "Soft-close hinges ensure smooth and quiet door closing.",
+          "Wardrobe is equipped with a key lock for security."
+        ]
+      },
+      "judged_at": "2026-05-16T17:11:42+00:00"
+    },
+    "6ec0c8dcb180f29ba1145dd420d22bc46f0be10f988893c1b4bf10127c344b2f": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Sunon 2D Wardrobe XDY60.120060-OAK is constructed with 25/18mm E0 Grade Particle Board."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Material: 25/18mm E0 Grade Particle Board with Melamin + PVC Edge Banding",
+        "reason": "The source explicitly lists 25/18mm E0 Grade Particle Board as the material for the 2D wardrobe category that includes the XDY60.120060-OAK-W model."
+      },
+      "judged_at": "2026-05-16T17:11:47+00:00"
+    },
+    "a91f30f806739892a3142ceb139d7e5dce286deb5cd516f56ec8061be91c6eaa": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "E0 Grade Particle Board complies with strict emission standards."
+      },
+      "verdict": {
+        "supported": false,
+        "evidence": "",
+        "reason": "The sources mention 'E0 Grade Particle Board' but do not state anything about emission standards or compliance; that detail is an inference not found in the sources."
+      },
+      "judged_at": "2026-05-16T17:11:49+00:00"
+    },
+    "e89bd2cc3979fea903f8618d130bdbc0b272cae045a1228ec05ffb378a6b4fd5": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Exterior is finished with high-quality melamine and PVC edge banding."
+      },
+      "verdict": {
+        "supported": false,
+        "evidence": "25/18mm E0 Grade Particle Board with Melamine + PVC Edge Banding",
+        "reason": "The sources confirm melamine and PVC edge banding are used, but do not describe them as 'high-quality', which is unsupported marketing language."
+      },
+      "judged_at": "2026-05-16T17:11:52+00:00"
+    },
+    "b7c309eacf75d921cbd6d534c7d5cf82af344a1c7acb2ec69fe84290ca365ab0": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Oak frame and Warm White doors are featured."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Oak frame + White doors / OAK/WARM WHITE (items 1, 4, 5 descriptions and color columns)",
+        "reason": "The source explicitly states 'Oak frame + White doors' and labels the product 'OAK/WARM WHITE', directly supporting the claim."
+      },
+      "judged_at": "2026-05-16T17:11:59+00:00"
+    },
+    "a59d12f95099c5cc7c7d6cbf3a9d25fc8f4d94a44d644e8fe7c6890633692637": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Wardrobe measures 1200mm width, 600mm depth, and 2000mm height."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "1200*600*2000",
+        "reason": "The proforma explicitly lists dimensions of 1200x600x2000mm (WxDxH) for the 2-door wardrobe models."
+      },
+      "judged_at": "2026-05-16T17:12:02+00:00"
+    },
+    "1a91084c9472c50bb25c895999e251a25ead067d87a962d61c252fec01779dd4": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "PVC edge banding provides resistance against scratches, moisture, and impact."
+      },
+      "verdict": {
+        "supported": false,
+        "evidence": "25/18mm E0 Grade Particle Board with Melamine + PVC Edge Banding",
+        "reason": "The sources only mention PVC Edge Banding as a material component but do not describe any properties or benefits such as scratch, moisture, or impact resistance."
+      },
+      "judged_at": "2026-05-16T17:12:05+00:00"
+    },
+    "d2b5ed2892bbfedae8fde6a498800c11d5d0651a577d99582ef6979d72e7c1b8": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Wardrobe includes two doors opening to internal shelves and a clothes rail."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Configuration: 2 doors wardrobe with shelves and clothes rail inside",
+        "reason": "The source explicitly describes a 2-door wardrobe with internal shelves and a clothes rail, directly matching the claim."
+      },
+      "judged_at": "2026-05-16T17:12:09+00:00"
+    },
+    "1607327b0bc7d8f4df36ede576d2df0fcf9074da855f93493b68cde75125f241": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Open shelves are integrated into middle and bottom sections."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Configuration: 2 doors wardrobe with shelves and clothes rail inside, open shelves in middle and bottom",
+        "reason": "The source explicitly states open shelves are in the middle and bottom for the 2-door wardrobe configuration."
+      },
+      "judged_at": "2026-05-16T17:12:14+00:00"
+    },
+    "e4b96e3cf9713172b1daf50208f38af1578283f6a554aff11fed830350e05fdc": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Soft-close hinges ensure smooth and quiet door closing."
+      },
+      "verdict": {
+        "supported": false,
+        "evidence": "Hardware: Soft close hinges + Key lock",
+        "reason": "The sources confirm soft close hinges exist but do not describe them as ensuring 'smooth and quiet' door closing — that is an added marketing inference not stated in the sources."
+      },
+      "judged_at": "2026-05-16T17:12:16+00:00"
+    },
+    "08df840c7ecabe57024eeb58730c6035a5555496085e9f029196419855190747": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Wardrobe is equipped with a key lock for security."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Hardware: Soft close hinges + Key lock",
+        "reason": "The source explicitly lists 'Key lock' as part of the hardware for the wardrobes."
+      },
+      "judged_at": "2026-05-16T17:12:18+00:00"
+    },
+    "a6115590c6a54728709e74c7d0c6c1520b9ba2f914bd26db951d9553857885c7": {
+      "judge": "haiku_claim_extract",
+      "payload": {
+        "block": "sales_arguments",
+        "text_excerpt": "- Constructed with durable 25/18mm E0 Grade Particle Board for longevity and env",
+        "text_len": 527,
+        "text": "- Constructed with durable 25/18mm E0 Grade Particle Board for longevity and environmental safety.\n- Features a sophisticated Oak frame with Warm White doors, complemented by Melamine and PVC Edge Banding for enhanced aesthetics and resilience.\n- Optimized 2-door configuration with internal shelves, a clothes rail, and open shelves for comprehensive storage.\n- Equipped with soft-close hinges for quiet operation and extended product life.\n- Includes a key lock mechanism, providing enhanced security for personal belongings."
+      },
+      "verdict": {
+        "claims": [
+          "Sunon 2D Wardrobe XDY60.120060-OAK is constructed with 25/18mm E0 Grade Particle Board.",
+          "Sunon 2D Wardrobe XDY60.120060-OAK features an Oak frame with Warm White doors.",
+          "Sunon 2D Wardrobe XDY60.120060-OAK has Melamine and PVC Edge Banding.",
+          "Sunon 2D Wardrobe XDY60.120060-OAK has a 2-door configuration.",
+          "Sunon 2D Wardrobe XDY60.120060-OAK includes internal shelves.",
+          "Sunon 2D Wardrobe XDY60.120060-OAK includes a clothes rail.",
+          "Sunon 2D Wardrobe XDY60.120060-OAK includes open shelves.",
+          "Sunon 2D Wardrobe XDY60.120060-OAK is equipped with soft-close hinges.",
+          "Sunon 2D Wardrobe XDY60.120060-OAK includes a key lock mechanism."
+        ]
+      },
+      "judged_at": "2026-05-16T17:12:21+00:00"
+    },
+    "ecedb300c0bb7a91fb8063d0653e5e37cc8159105a8701f987ba6082ebb92bf4": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Sunon 2D Wardrobe XDY60.120060-OAK features an Oak frame with Warm White doors."
+      },
+      "verdict": {
+        "supported": false,
+        "evidence": "Oak frame + White doors",
+        "reason": "The specifications list the doors as 'White doors,' not 'Warm White doors' as claimed; 'Warm White' appears only in the product name, not the door color specification."
+      },
+      "judged_at": "2026-05-16T17:12:27+00:00"
+    },
+    "7ece5da1beb4e8e6c0a416a9fe0ab4d1dc6ad2749ec64081fff3bef332606854": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Sunon 2D Wardrobe XDY60.120060-OAK has Melamine and PVC Edge Banding."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "25/18mm E0 Grade Particle Board with Melamin + PVC Edge Banding",
+        "reason": "The source explicitly lists Melamine (spelled 'Melamin') and PVC Edge Banding as materials for the 2D wardrobe, matching the claim."
+      },
+      "judged_at": "2026-05-16T17:12:35+00:00"
+    },
+    "a054ffac9b2d60cdaf045a95152be84d75d6a20034fafd9d488e9dfefd0ea07c": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Sunon 2D Wardrobe XDY60.120060-OAK has a 2-door configuration."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Configuration: 2 doors wardrobe with shelves and clothes rail inside, open shelves in bottom",
+        "reason": "The source explicitly states the XDY60.120060-OAK-W is a 2-door wardrobe configuration."
+      },
+      "judged_at": "2026-05-16T17:12:38+00:00"
+    },
+    "8ec768b42505e433b08b0a738527f9fb12feab86a9b72464982e175ffa62bb17": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Sunon 2D Wardrobe XDY60.120060-OAK includes internal shelves."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "2 doors wardrobe with shelves and clothes rail inside, open shelves in bottom",
+        "reason": "The source explicitly states the 2D wardrobe includes shelves and a clothes rail inside, confirming internal shelves are present."
+      },
+      "judged_at": "2026-05-16T17:12:41+00:00"
+    },
+    "cb185270519c0692dcbed8e39ae9d90d7c3ca2a594a616fda7be271a89d1dc77": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Sunon 2D Wardrobe XDY60.120060-OAK includes a clothes rail."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Configuration: 2 doors wardrobe with shelves and clothes rail inside, open shelves in bottom",
+        "reason": "The source explicitly states the 2D wardrobe configuration includes a clothes rail inside."
+      },
+      "judged_at": "2026-05-16T17:12:45+00:00"
+    },
+    "fbe1d46ec85d3a44caf2c9d771805ae5dd36ff02b7a28699215d99337b0e62f9": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Sunon 2D Wardrobe XDY60.120060-OAK includes open shelves."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Configuration: 2 doors wardrobe with shelves and clothes rail inside, open shelves in bottom",
+        "reason": "The source explicitly states the 2D wardrobe configuration includes open shelves in the bottom, directly supporting the claim."
+      },
+      "judged_at": "2026-05-16T17:12:50+00:00"
+    },
+    "3dbee5a1eafd7dd8a3dfa5ae51a5f7f3cbc16f7294fb3b976704e115541aa12a": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Sunon 2D Wardrobe XDY60.120060-OAK is equipped with soft-close hinges."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Hardware: Soft close hinges + Key lock",
+        "reason": "The source explicitly lists soft close hinges as hardware for the 2D wardrobe models including XDY60.120060-OAK-W."
+      },
+      "judged_at": "2026-05-16T17:12:52+00:00"
+    },
+    "9682f397bc419ebcc51072cff5afa927f18473c03422d5268832c85eaa893d3d": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Sunon 2D Wardrobe XDY60.120060-OAK includes a key lock mechanism."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Hardware: Soft close hinges + Key lock",
+        "reason": "The source explicitly lists 'Key lock' as part of the hardware for the 2D wardrobe configuration."
+      },
+      "judged_at": "2026-05-16T17:12:54+00:00"
+    },
+    "04d5f375c779b9dd298ce02b62a77205ff74657f9dcc32efd8f678c9f05c85ef": {
+      "judge": "haiku_claim_extract",
+      "payload": {
+        "block": "seo_long_description",
+        "text_excerpt": "The Sunon 2D Wardrobe, model XDY60.120060-OAK-W, offers a robust and elegant sto",
+        "text_len": 1161,
+        "text": "The Sunon 2D Wardrobe, model XDY60.120060-OAK-W, offers a robust and elegant storage solution for any modern bedroom. Constructed from 25/18mm E0 Grade Particle Board, it ensures durability and environmental responsibility. The surfaces are finished with high-quality melamine and reinforced with PVC edge banding, providing enhanced resistance to daily wear and tear while maintaining a sleek aesthetic. This wardrobe's design is thoughtfully crafted to blend seamlessly into various interior styles, offering both functionality and sophisticated appeal.\n\nDesigned for optimal organization, this 2-door wardrobe features a versatile interior configuration. It includes both internal shelves and a dedicated clothes rail, catering to a mix of folded garments and hanging items. Additionally, open shelves are strategically placed in the middle and bottom sections, ideal for displaying personal effects or storing frequently accessed items. The integration of soft-close hinges ensures quiet and smooth door operation, while a key lock mechanism adds an extra layer of security for your belongings, making it a practical and secure choice for essential storage."
+      },
+      "verdict": {
+        "claims": [
+          "Sunon 2D Wardrobe model XDY60.120060-OAK-W is constructed from 25/18mm E0 Grade Particle Board.",
+          "Sunon 2D Wardrobe XDY60.120060-OAK has melamine surfaces with PVC edge banding.",
+          "Sunon 2D Wardrobe XDY60.120060-OAK features 2 doors.",
+          "Sunon 2D Wardrobe XDY60.120060-OAK includes internal shelves and a dedicated clothes rail.",
+          "Sunon 2D Wardrobe XDY60.120060-OAK has open shelves in the middle and bottom sections.",
+          "Sunon 2D Wardrobe XDY60.120060-OAK is equipped with soft-close hinges.",
+          "Sunon 2D Wardrobe XDY60.120060-OAK includes a key lock mechanism."
+        ]
+      },
+      "judged_at": "2026-05-16T17:12:59+00:00"
+    },
+    "65ef4080da09795edd4c17d34e64c671e0bb12d6dbe201c5de71d7fbd32a9801": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Sunon 2D Wardrobe model XDY60.120060-OAK-W is constructed from 25/18mm E0 Grade Particle Board."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Material: 25/18mm E0 Grade Particle Board with Melamin + PVC Edge Banding",
+        "reason": "The source explicitly states the 2D wardrobe is made from 25/18mm E0 Grade Particle Board, directly supporting the claim."
+      },
+      "judged_at": "2026-05-16T17:13:01+00:00"
+    },
+    "85a8d701d25d9f94c088373eac5487071c64f96f550ce27058cb71a87bc5893d": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Sunon 2D Wardrobe XDY60.120060-OAK has melamine surfaces with PVC edge banding."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "25/18mm E0 Grade Particle Board with Melamin + PVC Edge Banding",
+        "reason": "The source explicitly states the 2D wardrobe uses melamine and PVC edge banding, directly supporting the claim."
+      },
+      "judged_at": "2026-05-16T17:13:06+00:00"
+    },
+    "5cb6e6ab807ac5a802714ea55965fd59b2169f14557a09135ee96ed2f70055de": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Sunon 2D Wardrobe XDY60.120060-OAK features 2 doors."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Configuration: 2 doors wardrobe with shelves and clothes rail inside, open shelves in bottom",
+        "reason": "The source explicitly states the XDY60.120060-OAK-W is a 2-door wardrobe in both the description and configuration specifications."
+      },
+      "judged_at": "2026-05-16T17:13:10+00:00"
+    },
+    "35edf7ff968f104f83ce39456304f5dbc0525c0ada8c34c3e7bbd79c7de7f09a": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Sunon 2D Wardrobe XDY60.120060-OAK includes internal shelves and a dedicated clothes rail."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "2 doors wardrobe with shelves and clothes rail inside, open shelves in bottom",
+        "reason": "The source explicitly states the 2D wardrobe includes shelves and a clothes rail inside."
+      },
+      "judged_at": "2026-05-16T17:13:13+00:00"
+    },
+    "3fab6f1d560d6124fd122b6987e74e3b183b5bec603893140c0e62f9db654785": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Sunon 2D Wardrobe XDY60.120060-OAK has open shelves in the middle and bottom sections."
+      },
+      "verdict": {
+        "supported": false,
+        "evidence": "Configuration: 2 doors wardrobe with shelves and clothes rail inside, open shelves in bottom",
+        "reason": "The source specifies open shelves only in the bottom for the 2D wardrobe, not in the middle and bottom as claimed."
+      },
+      "judged_at": "2026-05-16T17:13:17+00:00"
+    },
+    "3714b93f9e4b857c4732edc0d57f3e872a54eac4338061d156f9646e3317a7bb": {
+      "judge": "haiku_claim_extract",
+      "payload": {
+        "block": "meta_description",
+        "text_excerpt": "Discover the Sunon 2D Wardrobe in Oak/Warm White. Features 2 doors, shelves, clo",
+        "text_len": 142,
+        "text": "Discover the Sunon 2D Wardrobe in Oak/Warm White. Features 2 doors, shelves, clothes rail, soft-close hinges, and key lock for secure storage."
+      },
+      "verdict": {
+        "claims": [
+          "Sunon 2D Wardrobe has 2 doors",
+          "Sunon 2D Wardrobe includes shelves",
+          "Sunon 2D Wardrobe includes a clothes rail",
+          "Sunon 2D Wardrobe has soft-close hinges",
+          "Sunon 2D Wardrobe has a key lock",
+          "Sunon 2D Wardrobe is available in Oak/Warm White finish",
+          "Sunon 2D Wardrobe model number is XDY60.120060-OAK"
+        ]
+      },
+      "judged_at": "2026-05-16T17:13:19+00:00"
+    },
+    "901b806283c64c7ca5b964ff11d5fc9e6a756c1e875691787990bf6f7b12e917": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Sunon 2D Wardrobe has 2 doors"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Configuration: 2 doors wardrobe with shelves and clothes rail inside, open shelves in bottom",
+        "reason": "The source explicitly describes the 2D Wardrobe configuration as a '2 doors wardrobe'."
+      },
+      "judged_at": "2026-05-16T17:13:23+00:00"
+    },
+    "adac52713c558e4e07d934dbefcae2b1f63456274d7ec4f80c2a68a3d121c5e5": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Sunon 2D Wardrobe includes shelves"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Configuration: 2 doors wardrobe with shelves and clothes rail inside, open shelves in bottom",
+        "reason": "The source explicitly states the 2D wardrobe includes shelves as part of its configuration."
+      },
+      "judged_at": "2026-05-16T17:13:26+00:00"
+    },
+    "1d284df842196f7150c2a66987138a32057c3a61483f9559b8d3f64722712cfa": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Sunon 2D Wardrobe includes a clothes rail"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Configuration: 2 doors wardrobe with shelves and clothes rail inside, open shelves in bottom",
+        "reason": "The source explicitly states the 2D wardrobe includes a clothes rail inside."
+      },
+      "judged_at": "2026-05-16T17:13:30+00:00"
+    },
+    "4032cb33ff106a298a1ac4e25bbe5da75bbecdf46775f6b386ae6ca96eacd0e9": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Sunon 2D Wardrobe has soft-close hinges"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Hardware: Soft close hinges + Key lock",
+        "reason": "The source explicitly lists soft close hinges as hardware for the 2D wardrobe."
+      },
+      "judged_at": "2026-05-16T17:13:32+00:00"
+    },
+    "fdbab093cfbc7006c624a64008a7fc2ad48afd75c5eba5f6bf010d971de3abf2": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Sunon 2D Wardrobe has a key lock"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Hardware: Soft close hinges + Key lock",
+        "reason": "The source explicitly states that the 2D wardrobe hardware includes a key lock."
+      },
+      "judged_at": "2026-05-16T17:13:35+00:00"
+    },
+    "12bd486e4c463de383ffa7312e08ae5a4a622c564258a6f94ffa55d65743a6d5": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Sunon 2D Wardrobe is available in Oak/Warm White finish"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "XDY60.120060-OAK-W 2D WARDROBE- OAK/WARM WHITE 1200*600*2000 Oak frame + White doors",
+        "reason": "The proforma explicitly lists a 2D Wardrobe model in Oak/Warm White finish."
+      },
+      "judged_at": "2026-05-16T17:13:39+00:00"
+    },
+    "def2f45e60cfaeb3163872c210eef56caa4a0bb0dd4c5ee5919694a7bb129b4e": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Sunon 2D Wardrobe model number is XDY60.120060-OAK"
+      },
+      "verdict": {
+        "supported": false,
+        "evidence": "XDY60.120060-OAK-W",
+        "reason": "The source lists the model number as XDY60.120060-OAK-W, but the claim omits the '-W' suffix, making it an incomplete and inaccurate model number."
+      },
+      "judged_at": "2026-05-16T17:13:44+00:00"
+    }
+  }
+}

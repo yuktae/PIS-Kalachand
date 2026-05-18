@@ -1,0 +1,700 @@
+{
+  "layer": 3,
+  "timestamp": "2026-05-16T17:25:44+00:00",
+  "threshold": 0.5,
+  "fixtures": [
+    {
+      "name": "bulk_ariete",
+      "total_claims": 47,
+      "supported": 35,
+      "faithfulness": 0.7447,
+      "blocks": [
+        {
+          "block": "range_overview",
+          "total_claims": 16,
+          "supported": 12,
+          "faithfulness": 0.75
+        },
+        {
+          "block": "sales_arguments",
+          "total_claims": 11,
+          "supported": 8,
+          "faithfulness": 0.7272727272727273
+        },
+        {
+          "block": "seo_long_description",
+          "total_claims": 16,
+          "supported": 12,
+          "faithfulness": 0.75
+        },
+        {
+          "block": "meta_description",
+          "total_claims": 4,
+          "supported": 3,
+          "faithfulness": 0.75
+        }
+      ],
+      "unsupported_examples": [
+        {
+          "block": "range_overview",
+          "claim": "Ariete Steam Iron AR-6234 has ergonomic soft-touch handle.",
+          "reason": "The sources mention 'ergonomic handle' and 'soft touch handle' separately for the 6234, but never combine them as 'ergonomic soft-touch handle'; that exact combined phrase is used only for the 6243 model."
+        },
+        {
+          "block": "range_overview",
+          "claim": "Ariete Steam Iron AR-6234 has precise steam adjustment.",
+          "reason": "The sources confirm steam adjustment as a feature, but neither source uses the word 'precise' to describe it."
+        },
+        {
+          "block": "range_overview",
+          "claim": "Ariete Steam Iron AR-6234 has spray function for dampening fabrics.",
+          "reason": "Neither supplier source mentions a spray function for the AR-6234; the feature is absent from both the ariete.net and youneselectric.com product listings for this model."
+        },
+        {
+          "block": "sales_arguments",
+          "claim": "Ariete Steam Iron AR-6234 has an ergonomic soft-touch handle.",
+          "reason": "The sources mention 'ergonomic handle' and 'soft touch handle' separately for the 6234, but the combined phrase 'ergonomic soft-touch handle' is only explicitly used for the 6243 model."
+        },
+        {
+          "block": "sales_arguments",
+          "claim": "Ariete Steam Iron AR-6234 has a spray function.",
+          "reason": "Neither source lists a spray function among the AR-6234's features; the official product sheet omits it entirely."
+        },
+        {
+          "block": "sales_arguments",
+          "claim": "Ariete Steam Iron AR-6234 has an anti-drip system.",
+          "reason": "Neither the manufacturer's website nor the retailer page for AR-6234 mentions an anti-drip feature; anti-drip is only referenced for the AR-6235 model."
+        },
+        {
+          "block": "seo_long_description",
+          "claim": "Ariete AR-6234 features ergonomic soft-touch handle.",
+          "reason": "The sources describe the AR-6234 handle as 'soft touch' and separately as 'ergonomic,' but the combined term 'ergonomic soft-touch handle' is not explicitly used for the AR-6234 in any source."
+        },
+        {
+          "block": "seo_long_description",
+          "claim": "Ariete AR-6234 has vertical steam function for hanging garments.",
+          "reason": "Sources confirm vertical steam as a feature but do not specify it is for hanging garments; that detail is an inference not found in the sources."
+        },
+        {
+          "block": "seo_long_description",
+          "claim": "Ariete AR-6234 has anti-drip system.",
+          "reason": "Neither source page for the AR-6234 mentions an anti-drip feature; anti-drip appears to be associated with the AR-6235 model instead."
+        },
+        {
+          "block": "meta_description",
+          "claim": "Ariete AR-6234 has an ergonomic design.",
+          "reason": "Sources only mention an ergonomic handle, not an ergonomic design overall."
+        }
+      ]
+    },
+    {
+      "name": "bulk_belair_freezers",
+      "total_claims": 19,
+      "supported": 13,
+      "faithfulness": 0.6842,
+      "blocks": [
+        {
+          "block": "range_overview",
+          "total_claims": 5,
+          "supported": 3,
+          "faithfulness": 0.6
+        },
+        {
+          "block": "sales_arguments",
+          "total_claims": 4,
+          "supported": 3,
+          "faithfulness": 0.75
+        },
+        {
+          "block": "seo_long_description",
+          "total_claims": 7,
+          "supported": 5,
+          "faithfulness": 0.7142857142857143
+        },
+        {
+          "block": "meta_description",
+          "total_claims": 3,
+          "supported": 2,
+          "faithfulness": 0.6666666666666666
+        }
+      ],
+      "unsupported_examples": [
+        {
+          "block": "range_overview",
+          "claim": "BelAir BACF210W has customer model BACF210W and factory model HC-210.",
+          "reason": "The source documents (BelAir Mauritius website pages) contain no information about any BelAir products, models, or specifications; the proforma invoice is not a qualifying source document."
+        },
+        {
+          "block": "range_overview",
+          "claim": "BelAir BACF210W is shipped from Lianyungang.",
+          "reason": "The supplier web pages contain no information about the BACF210W product or its shipping origin; the proforma invoice is not a source document provided for verification."
+        },
+        {
+          "block": "sales_arguments",
+          "claim": "BelAir BACF210W Chest Freezer is manufactured by BELAIR.",
+          "reason": "The source documents are about BelAir Estate in Mauritius (an agricultural company) and contain no information about the BACF210W chest freezer or any appliance manufacturing by BELAIR."
+        },
+        {
+          "block": "seo_long_description",
+          "claim": "BelAir BACF210W comes in white finish.",
+          "reason": "The source documents are about BelAir Mauritius agricultural estate and contain no product specifications for the BACF210W chest freezer."
+        },
+        {
+          "block": "seo_long_description",
+          "claim": "BelAir BACF210W is designed for food storage.",
+          "reason": "Neither source mentions the BelAir BACF210W product or any food storage design specification."
+        },
+        {
+          "block": "meta_description",
+          "claim": "BelAir BACF210W chest freezer has an A+ energy rating.",
+          "reason": "Neither supplier web page source mentions the BACF210W model or its energy rating; the A+ detail appears only in the proforma text, not in the designated source documents."
+        }
+      ]
+    },
+    {
+      "name": "bulk_sunon_wardrobes",
+      "total_claims": 33,
+      "supported": 26,
+      "faithfulness": 0.7879,
+      "blocks": [
+        {
+          "block": "range_overview",
+          "total_claims": 10,
+          "supported": 6,
+          "faithfulness": 0.6
+        },
+        {
+          "block": "sales_arguments",
+          "total_claims": 9,
+          "supported": 8,
+          "faithfulness": 0.8888888888888888
+        },
+        {
+          "block": "seo_long_description",
+          "total_claims": 7,
+          "supported": 6,
+          "faithfulness": 0.8571428571428571
+        },
+        {
+          "block": "meta_description",
+          "total_claims": 7,
+          "supported": 6,
+          "faithfulness": 0.8571428571428571
+        }
+      ],
+      "unsupported_examples": [
+        {
+          "block": "range_overview",
+          "claim": "E0 Grade Particle Board complies with strict emission standards.",
+          "reason": "The sources mention 'E0 Grade Particle Board' but do not state anything about emission standards or compliance; that detail is an inference not found in the sources."
+        },
+        {
+          "block": "range_overview",
+          "claim": "Exterior is finished with high-quality melamine and PVC edge banding.",
+          "reason": "The sources confirm melamine and PVC edge banding are used, but do not describe them as 'high-quality', which is unsupported marketing language."
+        },
+        {
+          "block": "range_overview",
+          "claim": "PVC edge banding provides resistance against scratches, moisture, and impact.",
+          "reason": "The sources only mention PVC Edge Banding as a material component but do not describe any properties or benefits such as scratch, moisture, or impact resistance."
+        },
+        {
+          "block": "sales_arguments",
+          "claim": "Sunon 2D Wardrobe XDY60.120060-OAK features an Oak frame with Warm White doors.",
+          "reason": "The specifications list the doors as 'White doors,' not 'Warm White doors' as claimed; 'Warm White' appears only in the product name, not the door color specification."
+        },
+        {
+          "block": "seo_long_description",
+          "claim": "Sunon 2D Wardrobe XDY60.120060-OAK has open shelves in the middle and bottom sections.",
+          "reason": "The source specifies open shelves only in the bottom for the 2D wardrobe, not in the middle and bottom as claimed."
+        },
+        {
+          "block": "meta_description",
+          "claim": "Sunon 2D Wardrobe model number is XDY60.120060-OAK",
+          "reason": "The source lists the model number as XDY60.120060-OAK-W, but the claim omits the '-W' suffix, making it an incomplete and inaccurate model number."
+        }
+      ]
+    },
+    {
+      "name": "bulk_xiaomi_tv",
+      "total_claims": 55,
+      "supported": 54,
+      "faithfulness": 0.9818,
+      "blocks": [
+        {
+          "block": "range_overview",
+          "total_claims": 17,
+          "supported": 16,
+          "faithfulness": 0.9411764705882353
+        },
+        {
+          "block": "sales_arguments",
+          "total_claims": 18,
+          "supported": 18,
+          "faithfulness": 1.0
+        },
+        {
+          "block": "seo_long_description",
+          "total_claims": 15,
+          "supported": 15,
+          "faithfulness": 1.0
+        },
+        {
+          "block": "meta_description",
+          "total_claims": 5,
+          "supported": 5,
+          "faithfulness": 1.0
+        }
+      ],
+      "unsupported_examples": [
+        {
+          "block": "range_overview",
+          "claim": "Xiaomi TV A Pro 32\" supports DTS-X and DTS Virtual:X dual decoding.",
+          "reason": "The source identifies Dolby Audio™ + DTS-X as the dual decoding pair, not DTS-X and DTS Virtual:X as the claim states."
+        }
+      ]
+    },
+    {
+      "name": "single_ariete_1",
+      "total_claims": 37,
+      "supported": 27,
+      "faithfulness": 0.7297,
+      "blocks": [
+        {
+          "block": "range_overview",
+          "total_claims": 14,
+          "supported": 10,
+          "faithfulness": 0.7142857142857143
+        },
+        {
+          "block": "sales_arguments",
+          "total_claims": 6,
+          "supported": 5,
+          "faithfulness": 0.8333333333333334
+        },
+        {
+          "block": "seo_long_description",
+          "total_claims": 13,
+          "supported": 8,
+          "faithfulness": 0.6153846153846154
+        },
+        {
+          "block": "meta_description",
+          "total_claims": 4,
+          "supported": 4,
+          "faithfulness": 1.0
+        }
+      ],
+      "unsupported_examples": [
+        {
+          "block": "range_overview",
+          "claim": "Ariete Steam Iron AR-6257 features a durable aluminium soleplate.",
+          "reason": "The aluminium soleplate is confirmed, but the claim adds 'durable,' which is unsupported marketing language not found in either source."
+        },
+        {
+          "block": "range_overview",
+          "claim": "Ariete Steam Iron AR-6257 has a continuous steam function.",
+          "reason": "Neither source document mentions a continuous steam function for the AR-6257 model."
+        },
+        {
+          "block": "range_overview",
+          "claim": "Ariete Steam Iron AR-6257 has a 3-bar boiler pressure.",
+          "reason": "Neither supplier web page mentions boiler pressure or 3 bar for the AR-6257; this detail appears only in the proforma text, not in the source documents."
+        },
+        {
+          "block": "sales_arguments",
+          "claim": "Ariete Steam Iron AR-6257 has a durable aluminium soleplate.",
+          "reason": "While the aluminium soleplate coating is confirmed, the descriptor 'durable' is not found in either source and constitutes unsupported marketing language."
+        },
+        {
+          "block": "seo_long_description",
+          "claim": "Ariete Steam Iron AR-6257 has continuous steam function.",
+          "reason": "Neither source document mentions a continuous steam function for the AR-6257 model."
+        },
+        {
+          "block": "seo_long_description",
+          "claim": "Ariete Steam Iron AR-6257 has thermostat control light indicator.",
+          "reason": "Neither source document mentions a thermostat control light for the AR-6257 model."
+        },
+        {
+          "block": "seo_long_description",
+          "claim": "Ariete Steam Iron AR-6257 has end of water warning light.",
+          "reason": "Neither source mentions an 'end of water warning light' for the AR-6257 model."
+        }
+      ]
+    },
+    {
+      "name": "single_belair_freezers",
+      "total_claims": 18,
+      "supported": 3,
+      "faithfulness": 0.1667,
+      "blocks": [
+        {
+          "block": "range_overview",
+          "total_claims": 5,
+          "supported": 1,
+          "faithfulness": 0.2
+        },
+        {
+          "block": "sales_arguments",
+          "total_claims": 4,
+          "supported": 0,
+          "faithfulness": 0.0
+        },
+        {
+          "block": "seo_long_description",
+          "total_claims": 5,
+          "supported": 1,
+          "faithfulness": 0.2
+        },
+        {
+          "block": "meta_description",
+          "total_claims": 4,
+          "supported": 1,
+          "faithfulness": 0.25
+        }
+      ],
+      "unsupported_examples": [
+        {
+          "block": "range_overview",
+          "claim": "BelAir BACF210W is a chest freezer for frozen food storage.",
+          "reason": "The sources contain no information about the BelAir BACF210W or any chest freezer products; the web pages only describe an agricultural estate in Mauritius."
+        },
+        {
+          "block": "range_overview",
+          "claim": "BelAir BACF210W includes a lock and key mechanism.",
+          "reason": "The proforma invoice describes the BACF210W as 'Chest freezer, white, one basket, A+' with no mention of a lock and key mechanism; that feature is listed only for the BA-CF300 and BACF-500 models."
+        },
+        {
+          "block": "range_overview",
+          "claim": "BelAir BACF210W has an internal LED light.",
+          "reason": "The proforma invoice describes the BACF210W as 'Chest freezer, white, one basket, A+' with no mention of LED light; LED light is only listed for the BA-CF300 and BACF-500 models."
+        },
+        {
+          "block": "sales_arguments",
+          "claim": "BelAir BACF210W Chest Freezer has an integrated lock and key mechanism.",
+          "reason": "The proforma invoice describes the BACF210W as having 'one basket, A+' with no mention of a lock and key mechanism; that feature is only listed for the BA-CF300 and BACF-500 models."
+        },
+        {
+          "block": "sales_arguments",
+          "claim": "BelAir BACF210W Chest Freezer has LED lighting for interior visibility.",
+          "reason": "The sources contain no product specifications for the BACF210W; the proforma invoice describes it as 'one basket, A+' with no mention of LED lighting."
+        },
+        {
+          "block": "sales_arguments",
+          "claim": "BelAir BACF210W Chest Freezer includes two storage baskets.",
+          "reason": "The proforma invoice describes the BACF210W as having 'one basket', directly contradicting the claim of two baskets, and neither source document supports the claim."
+        },
+        {
+          "block": "seo_long_description",
+          "claim": "BelAir BACF210W has a lock and key mechanism.",
+          "reason": "The proforma invoice describes the BACF210W as 'one basket, A+' with no mention of a lock and key mechanism; that feature is listed only for the BA-CF300 and BACF-500 models."
+        },
+        {
+          "block": "seo_long_description",
+          "claim": "BelAir BACF210W includes internal LED light.",
+          "reason": "The proforma invoice describes the BACF210W as 'Chest freezer, white, one basket, A+' with no mention of LED light; LED light is only listed for the BA-CF300 and BACF-500 models."
+        },
+        {
+          "block": "seo_long_description",
+          "claim": "BelAir BACF210W comes with two storage baskets.",
+          "reason": "The proforma invoice explicitly states the BACF210W has one basket, not two."
+        },
+        {
+          "block": "meta_description",
+          "claim": "BelAir BACF210W Chest Freezer has a secure lock and key.",
+          "reason": "The proforma invoice describes the BACF210W as having 'one basket, A+' with no mention of a lock and key; that feature is only listed for the BA-CF300 and BACF-500 models."
+        },
+        {
+          "block": "meta_description",
+          "claim": "BelAir BACF210W Chest Freezer has internal LED lighting.",
+          "reason": "The proforma invoice describes the BACF210W as having 'one basket, A+' with no mention of LED lighting; LED lighting is only listed for the BA-CF300 and BACF-500 models."
+        },
+        {
+          "block": "meta_description",
+          "claim": "BelAir BACF210W Chest Freezer includes two storage baskets.",
+          "reason": "The proforma invoice describes the BACF210W as having 'one basket', directly contradicting the claim of two baskets, and neither source document supports the claim."
+        }
+      ]
+    },
+    {
+      "name": "single_poco_m7",
+      "total_claims": 34,
+      "supported": 34,
+      "faithfulness": 1.0,
+      "blocks": [
+        {
+          "block": "range_overview",
+          "total_claims": 0,
+          "supported": 0,
+          "faithfulness": 1.0
+        },
+        {
+          "block": "sales_arguments",
+          "total_claims": 12,
+          "supported": 12,
+          "faithfulness": 1.0
+        },
+        {
+          "block": "seo_long_description",
+          "total_claims": 17,
+          "supported": 17,
+          "faithfulness": 1.0
+        },
+        {
+          "block": "meta_description",
+          "total_claims": 5,
+          "supported": 5,
+          "faithfulness": 1.0
+        }
+      ],
+      "unsupported_examples": []
+    },
+    {
+      "name": "single_poco_x7",
+      "total_claims": 32,
+      "supported": 32,
+      "faithfulness": 1.0,
+      "blocks": [
+        {
+          "block": "range_overview",
+          "total_claims": 0,
+          "supported": 0,
+          "faithfulness": 1.0
+        },
+        {
+          "block": "sales_arguments",
+          "total_claims": 10,
+          "supported": 10,
+          "faithfulness": 1.0
+        },
+        {
+          "block": "seo_long_description",
+          "total_claims": 17,
+          "supported": 17,
+          "faithfulness": 1.0
+        },
+        {
+          "block": "meta_description",
+          "total_claims": 5,
+          "supported": 5,
+          "faithfulness": 1.0
+        }
+      ],
+      "unsupported_examples": []
+    },
+    {
+      "name": "single_sunon_png",
+      "total_claims": 42,
+      "supported": 0,
+      "faithfulness": 0.0,
+      "blocks": [
+        {
+          "block": "range_overview",
+          "total_claims": 15,
+          "supported": 0,
+          "faithfulness": 0.0
+        },
+        {
+          "block": "sales_arguments",
+          "total_claims": 10,
+          "supported": 0,
+          "faithfulness": 0.0
+        },
+        {
+          "block": "seo_long_description",
+          "total_claims": 12,
+          "supported": 0,
+          "faithfulness": 0.0
+        },
+        {
+          "block": "meta_description",
+          "total_claims": 5,
+          "supported": 0,
+          "faithfulness": 0.0
+        }
+      ],
+      "unsupported_examples": [
+        {
+          "block": "range_overview",
+          "claim": "Sunon 2D Wardrobe is constructed from 25/18mm E0 Grade Particle Board.",
+          "reason": "Neither the proforma text nor the supplier web pages contain any information about the Sunon 2D Wardrobe or its construction materials."
+        },
+        {
+          "block": "range_overview",
+          "claim": "Sunon 2D Wardrobe particle board has minimal formaldehyde emissions.",
+          "reason": "Neither the proforma text nor the supplier web pages contain any information about Sunon 2D Wardrobe particle board or its formaldehyde emissions."
+        },
+        {
+          "block": "range_overview",
+          "claim": "Sunon 2D Wardrobe surface is finished with melamine.",
+          "reason": "Neither the proforma text nor the supplier web pages contain any information about the Sunon 2D Wardrobe or its surface finish."
+        },
+        {
+          "block": "sales_arguments",
+          "claim": "Sunon 2D Wardrobe is made with 25/18mm E0 Grade Particle Board.",
+          "reason": "Neither the proforma text nor the supplier web pages contain any information about the Sunon 2D Wardrobe or its materials."
+        },
+        {
+          "block": "sales_arguments",
+          "claim": "Sunon 2D Wardrobe has a melamine finish.",
+          "reason": "Neither the proforma text nor the supplier web pages contain any information about a Sunon 2D Wardrobe or its finish."
+        },
+        {
+          "block": "sales_arguments",
+          "claim": "Sunon 2D Wardrobe features 2 doors.",
+          "reason": "Neither the proforma text nor the supplier web pages contain any information about a 'Sunon 2D Wardrobe' or its door count."
+        },
+        {
+          "block": "seo_long_description",
+          "claim": "Sunon 2D Wardrobe is constructed with 25/18mm E0 Grade Particle Board.",
+          "reason": "Neither the proforma text nor the supplier web pages contain any information about the Sunon 2D Wardrobe or its construction materials."
+        },
+        {
+          "block": "seo_long_description",
+          "claim": "Sunon 2D Wardrobe has a melamine surface finish.",
+          "reason": "Neither the proforma text nor the supplier web pages contain any information about a Sunon 2D Wardrobe or its surface finish."
+        },
+        {
+          "block": "seo_long_description",
+          "claim": "Sunon 2D Wardrobe has PVC edge banding.",
+          "reason": "Neither the proforma text nor the supplier web pages contain any information about a Sunon 2D Wardrobe or PVC edge banding."
+        },
+        {
+          "block": "meta_description",
+          "claim": "Sunon 2D Wardrobe is made with E0 grade particle board.",
+          "reason": "Neither the proforma text nor the supplier web pages contain any information about the Sunon 2D Wardrobe or its materials."
+        },
+        {
+          "block": "meta_description",
+          "claim": "Sunon 2D Wardrobe has a melamine finish.",
+          "reason": "Neither the proforma text nor the supplier web pages contain any information about a Sunon 2D Wardrobe or its finish."
+        },
+        {
+          "block": "meta_description",
+          "claim": "Sunon 2D Wardrobe features soft-close hinges.",
+          "reason": "Neither the proforma text nor the supplier web pages contain any information about the Sunon 2D Wardrobe or soft-close hinges."
+        }
+      ]
+    },
+    {
+      "name": "single_xiaomi_png",
+      "total_claims": 21,
+      "supported": 0,
+      "faithfulness": 0.0,
+      "blocks": [
+        {
+          "block": "range_overview",
+          "total_claims": 8,
+          "supported": 0,
+          "faithfulness": 0.0
+        },
+        {
+          "block": "sales_arguments",
+          "total_claims": 5,
+          "supported": 0,
+          "faithfulness": 0.0
+        },
+        {
+          "block": "seo_long_description",
+          "total_claims": 5,
+          "supported": 0,
+          "faithfulness": 0.0
+        },
+        {
+          "block": "meta_description",
+          "total_claims": 3,
+          "supported": 0,
+          "faithfulness": 0.0
+        }
+      ],
+      "unsupported_examples": [
+        {
+          "block": "range_overview",
+          "claim": "Xiaomi Product is a 32-inch television.",
+          "reason": "Neither source mentions a 32-inch television; the sources list monitors, wearables, air purifiers, and other products but no such TV."
+        },
+        {
+          "block": "range_overview",
+          "claim": "Xiaomi Product belongs to the 'A Pro' series.",
+          "reason": "Neither source mentions an 'A Pro' series for any Xiaomi product."
+        },
+        {
+          "block": "range_overview",
+          "claim": "Xiaomi Product has a 'GL' suffix indicating a global version.",
+          "reason": "Neither source mentions any 'GL' suffix or global version designation for any Xiaomi product."
+        },
+        {
+          "block": "sales_arguments",
+          "claim": "Xiaomi Product has a 32-inch screen size.",
+          "reason": "Neither source mentions any Xiaomi product with a 32-inch screen size."
+        },
+        {
+          "block": "sales_arguments",
+          "claim": "Xiaomi Product is manufactured by Xiaomi brand.",
+          "reason": "The sources only list Xiaomi products but do not contain any statement about who manufactures them."
+        },
+        {
+          "block": "sales_arguments",
+          "claim": "Xiaomi Product is a Global (GL) version.",
+          "reason": "Neither source mentions a 'Global (GL) version' designation for any Xiaomi product."
+        },
+        {
+          "block": "seo_long_description",
+          "claim": "Xiaomi TV A Pro 32\" GL is a 32-inch smart television.",
+          "reason": "The Xiaomi TV A Pro 32\" GL is not mentioned in either source document."
+        },
+        {
+          "block": "seo_long_description",
+          "claim": "Xiaomi TV A Pro 32\" GL has a 'GL' designation indicating a global version.",
+          "reason": "The Xiaomi TV A Pro 32\" GL is not mentioned in either source document, and no information about a 'GL' designation is provided."
+        },
+        {
+          "block": "seo_long_description",
+          "claim": "Xiaomi TV A Pro 32\" GL is part of the A Pro series.",
+          "reason": "The Xiaomi TV A Pro 32\" GL is not mentioned in either source document."
+        },
+        {
+          "block": "meta_description",
+          "claim": "Xiaomi TV A Pro 32\" GL is a 32-inch television.",
+          "reason": "The Xiaomi TV A Pro 32\" GL is not mentioned in either source document."
+        },
+        {
+          "block": "meta_description",
+          "claim": "Xiaomi TV A Pro 32\" GL has smart features.",
+          "reason": "The Xiaomi TV A Pro 32\" GL is not mentioned in either source document."
+        },
+        {
+          "block": "meta_description",
+          "claim": "Xiaomi TV A Pro 32\" GL is suitable for various spaces.",
+          "reason": "The Xiaomi TV A Pro 32\" GL is not mentioned in either source document."
+        }
+      ]
+    }
+  ],
+  "totals": {
+    "total_claims": 338,
+    "supported": 224
+  },
+  "overall_faithfulness": 0.6627,
+  "anthropic_cost": {
+    "total_calls": 350,
+    "total_cost_usd": 1.0543,
+    "by_model": {
+      "claude-haiku-4-5": {
+        "calls": 44,
+        "input": 16885,
+        "output": 12625,
+        "cache_read": 0,
+        "cache_write": 0
+      },
+      "claude-sonnet-4-6": {
+        "calls": 306,
+        "input": 66087,
+        "output": 35734,
+        "cache_read": 574461,
+        "cache_write": 18046
+      }
+    }
+  }
+}

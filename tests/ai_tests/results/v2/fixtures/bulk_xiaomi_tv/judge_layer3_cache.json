@@ -1,0 +1,723 @@
+{
+  "schema_version": 1,
+  "judgments": {
+    "633aa6f323273fc56d776b279f6d4caf309c40c8eed95999bf406dd193430ab5": {
+      "judge": "haiku_claim_extract",
+      "payload": {
+        "block": "range_overview",
+        "text_excerpt": "The Xiaomi TV A Pro 32 is designed to deliver a smart and immersive entertainmen",
+        "text_len": 1583,
+        "text": "The Xiaomi TV A Pro 32 is designed to deliver a smart and immersive entertainment experience within a sleek, modern aesthetic. It features a premium metallic frame with a unibody, bezel-less design, offering a high screen-to-body ratio that maximizes the viewing area. The 32-inch HD smart LED display presents high-resolution images in vibrant colors, creating an engaging visual environment for all content.\n\nAudio performance is a key highlight, with two 10W high-power stereo speakers providing a total of 20W output. These speakers are enhanced by Dolby Audio™, DTS-X, and DTS Virtual:X dual decoding technologies, which produce vivid sound effects and a three-dimensional sound experience with an overhead dimension, aiming to recreate a cinema-like atmosphere. The TV runs on Google TV™, bringing together content from various apps and subscriptions, organized for personalized recommendations. Users can control the TV, find content, stream apps, and manage smart home devices using voice commands via Google Assistant, accessible through the 360° Bluetooth remote control.\n\nUnderpinning its smart features is a powerful quad-core A55 CPU, paired with 1.5GB RAM and 8GB ROM, ensuring smoother operation and ample space for favorite applications. Connectivity is robust, featuring 2.4GHz/5GHz Wi-Fi and Bluetooth 5.0, alongside various commonly used ports for easy integration with different devices. Chromecast built-in™ and Miracast capabilities allow for seamless streaming of content from smart mobile devices to the larger screen, elevating the overall visual experience."
+      },
+      "verdict": {
+        "claims": [
+          "Xiaomi TV A Pro 32 has a 32-inch HD smart LED display.",
+          "Xiaomi TV A Pro 32 features a premium metallic frame with unibody, bezel-less design.",
+          "Xiaomi TV A Pro 32 has a high screen-to-body ratio.",
+          "Xiaomi TV A Pro 32 has two 10W high-power stereo speakers with 20W total output.",
+          "Xiaomi TV A Pro 32 supports Dolby Audio™ technology.",
+          "Xiaomi TV A Pro 32 supports DTS-X and DTS Virtual:X dual decoding technologies.",
+          "Xiaomi TV A Pro 32 runs on Google TV™.",
+          "Xiaomi TV A Pro 32 includes Google Assistant voice control.",
+          "Xiaomi TV A Pro 32 comes with a 360° Bluetooth remote control.",
+          "Xiaomi TV A Pro 32 has a quad-core A55 CPU.",
+          "Xiaomi TV A Pro 32 has 1.5GB RAM.",
+          "Xiaomi TV A Pro 32 has 8GB ROM.",
+          "Xiaomi TV A Pro 32 supports 2.4GHz/5GHz Wi-Fi.",
+          "Xiaomi TV A Pro 32 supports Bluetooth 5.0.",
+          "Xiaomi TV A Pro 32 has Chromecast built-in™.",
+          "Xiaomi TV A Pro 32 supports Miracast capability."
+        ]
+      },
+      "judged_at": "2026-05-17T16:09:00+00:00"
+    },
+    "d0e76ef276fe69b2f849aea9305bcea0333cccbe02548a640015dc5d03ca5816": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Xiaomi TV A Pro 32 has a 32-inch HD smart LED display.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "32\" HD smart LED TV",
+        "reason": "The supplier web page explicitly describes the Xiaomi TV A Pro 32 as a '32\" HD smart LED TV'."
+      },
+      "judged_at": "2026-05-17T16:09:04+00:00"
+    },
+    "9d44199dc1d0c4d84f4576dd9dc0c5f735bda189d75a55a19aeee94431c85550": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Xiaomi TV A Pro 32 features a premium metallic frame with unibody, bezel-less design.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Featuring an exquisite metallic frame with a unibody design, Xiaomi A Pro Series makes a real statement in any home. Unibody design Metal frame",
+        "reason": "The supplier web page explicitly states the metallic frame with unibody design, and the product headline also mentions 'bezel-less design'."
+      },
+      "judged_at": "2026-05-17T16:09:07+00:00"
+    },
+    "66d6ad9b0a8475171746c4a0d2dacd0fdd13ab0634ffbf1270d8f087630f058e": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Xiaomi TV A Pro 32 has a high screen-to-body ratio.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "The ultra-narrow bezel design provides a high screen-to-body ratio far beyond that of standard TVs.",
+        "reason": "The supplier web page explicitly states the Xiaomi TV A Pro 32 has a high screen-to-body ratio due to its ultra-narrow bezel design."
+      },
+      "judged_at": "2026-05-17T16:09:10+00:00"
+    },
+    "a362b3d54c6ff1c0e218c16a957db791f57856871814a70ccf80c0fc6e6232a1": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Xiaomi TV A Pro 32 has two 10W high-power stereo speakers with 20W total output.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "The 2 × 10W high-power stereo speakers fill the room with rich high and bass tones and provide an immersive sound experience.",
+        "reason": "The source explicitly states 2 × 10W speakers, which equals 20W total output, directly supporting the claim."
+      },
+      "judged_at": "2026-05-17T16:09:13+00:00"
+    },
+    "77b353caa9934feaaaa2d60a1cf768c98211139bbb291c2b063d6c87acf0662b": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Xiaomi TV A Pro 32 supports Dolby Audio™ technology.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Powerful 20W speakers with Dolby Audio™ , DTS-X, DTS Virtual:X",
+        "reason": "The supplier web page for the Xiaomi TV A Pro 32 explicitly lists Dolby Audio™ as a supported technology."
+      },
+      "judged_at": "2026-05-17T16:09:16+00:00"
+    },
+    "9a1b4a9493666c0693c1b50ffed3b0d374608553ea71fb2af87876280a4d922c": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Xiaomi TV A Pro 32 supports DTS-X and DTS Virtual:X dual decoding technologies.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "The Dolby Audio™ + DTS-X dual decoding technology produces vivid sound effects for a more immersive sound experience*. In addition, the cutting-edge DTS Virtual:X technology produces three-dimensional sound",
+        "reason": "The supplier web page explicitly mentions both DTS-X and DTS Virtual:X technologies for the Xiaomi TV A Pro 32."
+      },
+      "judged_at": "2026-05-17T16:09:20+00:00"
+    },
+    "c5aa6db807225660bfecab266d94e4e6236e380a164fbdaf2babe394590d6cc5": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Xiaomi TV A Pro 32 runs on Google TV™.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Google TV™ brings together movies, shows, and more from across your apps and subscriptions and organizes them just for you.",
+        "reason": "The supplier web page for the Xiaomi TV A Pro 32 explicitly states it runs Google TV™."
+      },
+      "judged_at": "2026-05-17T16:09:24+00:00"
+    },
+    "7656359563ba02955cbf9f03ed8dff47406aeb92b4f83467179d4fe0f05fb81f": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Xiaomi TV A Pro 32 includes Google Assistant voice control.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Ask Google to find movies, stream apps, play music, and control the TV - all with your voice. Even get answers, control smart home devices, and more. Just say \"Ok Google\" or press the Google Assistant button",
+        "reason": "The supplier web page explicitly describes Google Assistant voice control as a feature of the Xiaomi TV A Pro 32."
+      },
+      "judged_at": "2026-05-17T16:09:29+00:00"
+    },
+    "6fca5f0c67e515f7cfece12b43b36e9fccc1e60787d2fd448979d8cb53c352d0": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Xiaomi TV A Pro 32 comes with a 360° Bluetooth remote control.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "360° Bluetooth remote control Easily control your smart TV with the 360° Bluetooth remote control.",
+        "reason": "The supplier web page for the Xiaomi TV A Pro 32 explicitly mentions a 360° Bluetooth remote control."
+      },
+      "judged_at": "2026-05-17T16:09:32+00:00"
+    },
+    "15add76dfdb34cd208093657069835dec954ada34f7211ce6e605c2e45cce89d": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Xiaomi TV A Pro 32 has a quad-core A55 CPU.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "The powerful quad-core A55 CPU combined with 1.5GB RAM + 8GB ROM* offers smoother operation and more space for your favourite apps.",
+        "reason": "The supplier web page for the Xiaomi TV A Pro 32 explicitly states it has a quad-core A55 CPU."
+      },
+      "judged_at": "2026-05-17T16:09:37+00:00"
+    },
+    "5f38a0e58b6e25629fc0ec5cc7034b8cec5bcc744dc382924622e06f6fc11890": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Xiaomi TV A Pro 32 has 1.5GB RAM.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "The powerful quad-core A55 CPU combined with 1.5GB RAM + 8GB ROM* offers smoother operation and more space for your favourite apps.",
+        "reason": "The supplier web page for the Xiaomi TV A Pro 32 explicitly states 1.5GB RAM."
+      },
+      "judged_at": "2026-05-17T16:09:42+00:00"
+    },
+    "18a68356cc30643bff53e8e136bcd7a55ec5db21bd7890538affb6140235601a": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Xiaomi TV A Pro 32 has 8GB ROM.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "The powerful quad-core A55 CPU combined with 1.5GB RAM + 8GB ROM* offers smoother operation and more space for your favourite apps.",
+        "reason": "The supplier web page for the Xiaomi TV A Pro 32 explicitly states 8GB ROM."
+      },
+      "judged_at": "2026-05-17T16:09:46+00:00"
+    },
+    "e33c0a2ec3c05e446aeb122b0f2cc79dc85e7c3551f5f31a9ab9f2d464223bbf": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Xiaomi TV A Pro 32 supports 2.4GHz/5GHz Wi-Fi.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Designed with a 2.4GHz/5GHz Wi-Fi solution, various commonly used ports and Bluetooth 5.0 to easily connect to different devices",
+        "reason": "The supplier web page for Xiaomi TV A Pro 32 explicitly states it supports 2.4GHz/5GHz Wi-Fi."
+      },
+      "judged_at": "2026-05-17T16:09:48+00:00"
+    },
+    "5f1bfa045d1de5a341cc7151e520d3a81e0ef30de96e75c1cbd605c9db065164": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Xiaomi TV A Pro 32 supports Bluetooth 5.0.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Bluetooth 5.0 2.4GHz/5GHz Wi-Fi",
+        "reason": "The Xiaomi TV A Pro 32 product page explicitly lists Bluetooth 5.0 as a connectivity feature."
+      },
+      "judged_at": "2026-05-17T16:09:52+00:00"
+    },
+    "7c34fc0d42ba475dfd82ae04a0f039e4b0df65faa5ff4f16e0f2259120472b38": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Xiaomi TV A Pro 32 has Chromecast built-in™.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "The Chromecast built-in™* and Miracast allow you to continue watching what's on your smart mobile devices on a bigger screen",
+        "reason": "The supplier web page for the Xiaomi TV A Pro 32 explicitly mentions Chromecast built-in™ as a feature."
+      },
+      "judged_at": "2026-05-17T16:09:55+00:00"
+    },
+    "2681dca68cee11d951dc7e7a98740706488f1150f8dbda3cae48d00a3285e8dd": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Xiaomi TV A Pro 32 supports Miracast capability.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "The Chromecast built-in™* and Miracast allow you to continue watching what's on your smart mobile devices on a bigger screen, elevating your visual experience.",
+        "reason": "The supplier web page for the Xiaomi TV A Pro 32 explicitly mentions Miracast as a supported feature."
+      },
+      "judged_at": "2026-05-17T16:10:00+00:00"
+    },
+    "959368fac1a802ea79d3b82c32b8511763f94cea76639e296e7b6bef7c4d600b": {
+      "judge": "haiku_claim_extract",
+      "payload": {
+        "block": "sales_arguments",
+        "text_excerpt": "- Premium metallic frame with a bezel-less, unibody design for an exquisite aest",
+        "text_len": 606,
+        "text": "- Premium metallic frame with a bezel-less, unibody design for an exquisite aesthetic and immersive viewing.\n- 32\" HD smart LED TV delivering high-resolution images and stunning colors for an engaging visual experience.\n- Powerful 20W stereo speakers with Dolby Audio™, DTS-X, and DTS Virtual:X for immersive, cinema-grade sound.\n- Integrated Google TV™ with Google Assistant voice control for personalized content discovery and smart home management.\n- Seamless content streaming from mobile devices via Chromecast built-in™ and Miracast, enhanced by robust dual-band Wi-Fi and Bluetooth 5.0 connectivity."
+      },
+      "verdict": {
+        "claims": [
+          "Xiaomi TV A Pro 32\" has a metallic frame with bezel-less, unibody design.",
+          "Xiaomi TV A Pro 32\" is a 32-inch HD smart LED TV.",
+          "Xiaomi TV A Pro 32\" has 20W stereo speakers.",
+          "Xiaomi TV A Pro 32\" supports Dolby Audio™.",
+          "Xiaomi TV A Pro 32\" supports DTS-X.",
+          "Xiaomi TV A Pro 32\" supports DTS Virtual:X.",
+          "Xiaomi TV A Pro 32\" has integrated Google TV™.",
+          "Xiaomi TV A Pro 32\" includes Google Assistant voice control.",
+          "Xiaomi TV A Pro 32\" has Chromecast built-in™.",
+          "Xiaomi TV A Pro 32\" supports Miracast.",
+          "Xiaomi TV A Pro 32\" has dual-band Wi-Fi connectivity.",
+          "Xiaomi TV A Pro 32\" has Bluetooth 5.0."
+        ]
+      },
+      "judged_at": "2026-05-17T16:10:02+00:00"
+    },
+    "efed8f76527fbb0034d0727fc7cc86be479d47903318be6bb4fe233589a43d0e": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Xiaomi TV A Pro 32\" has a metallic frame with bezel-less, unibody design.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Featuring an exquisite metallic frame with a unibody design, Xiaomi A Pro Series makes a real statement in any home. Unibody design Metal frame",
+        "reason": "The supplier web page explicitly states the Xiaomi TV A Pro 32 has a metallic frame with unibody design, and also describes a bezel-less/ultra-narrow bezel design."
+      },
+      "judged_at": "2026-05-17T16:10:06+00:00"
+    },
+    "dc1cdafa65ed12afa1999ad0f9f33503ecf5e79fabc3c9c85dfd07547b8abc9a": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Xiaomi TV A Pro 32\" is a 32-inch HD smart LED TV.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "32\" HD smart LED TV",
+        "reason": "The supplier web page explicitly describes the Xiaomi TV A Pro 32 as a '32\" HD smart LED TV'."
+      },
+      "judged_at": "2026-05-17T16:10:10+00:00"
+    },
+    "f95a587682a8680e46a2c781c0c60531494b1cf1b355dce48783c32f229bb236": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Xiaomi TV A Pro 32\" has 20W stereo speakers.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Powerful 20W speakers with Dolby Audio™, DTS-X, DTS Virtual:X",
+        "reason": "The supplier web page for the Xiaomi TV A Pro 32 explicitly states '20W speakers' in the product overview."
+      },
+      "judged_at": "2026-05-17T16:10:14+00:00"
+    },
+    "a88db6ce4f278f58e608f782b142ce2708d2192c6c32249a39af48c44d265bba": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Xiaomi TV A Pro 32\" supports Dolby Audio™.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Powerful 20W speakers with Dolby Audio™ , DTS-X, DTS Virtual:X",
+        "reason": "The supplier web page for Xiaomi TV A Pro 32 explicitly lists Dolby Audio™ as a supported audio feature."
+      },
+      "judged_at": "2026-05-17T16:10:18+00:00"
+    },
+    "c78cefe56f7ccc88e2f7b33841aa36d0bddd291be67df35dd46492fb22343ae5": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Xiaomi TV A Pro 32\" supports DTS-X.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Powerful 20W speakers with Dolby Audio™ , DTS-X, DTS Virtual:X",
+        "reason": "The supplier web page for the Xiaomi TV A Pro 32 explicitly lists DTS-X as a supported audio feature."
+      },
+      "judged_at": "2026-05-17T16:10:21+00:00"
+    },
+    "0d16912911b92484494d7e5e409a1a8fe87fa08948b21d0fc5080d902f19c4a2": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Xiaomi TV A Pro 32\" supports DTS Virtual:X.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "the cutting-edge DTS Virtual:X technology produces three-dimensional sound with an overhead dimension that recreates the cinema experience.",
+        "reason": "The supplier web page for the Xiaomi TV A Pro 32\" explicitly mentions DTS Virtual:X support."
+      },
+      "judged_at": "2026-05-17T16:10:25+00:00"
+    },
+    "44cfb2898a61ed4ff4c5a93e93af895de1d859538e7a38993fe4f0c673aa4545": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Xiaomi TV A Pro 32\" has integrated Google TV™.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Google TV™ brings together movies, shows, and more from across your apps and subscriptions and organizes them just for you.",
+        "reason": "The supplier web page for the Xiaomi TV A Pro 32 explicitly mentions Google TV™ as a feature of the device."
+      },
+      "judged_at": "2026-05-17T16:10:29+00:00"
+    },
+    "f0356b12060714b9c9ddc364647870aa9668dd4658b2271d62debd150fc2e52d": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Xiaomi TV A Pro 32\" includes Google Assistant voice control.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Control your TV using only your voice. Just ask Google... Ask Google to find movies, stream apps, play music, and control the TV - all with your voice.",
+        "reason": "The supplier web page for the Xiaomi TV A Pro 32\" explicitly describes Google Assistant voice control functionality."
+      },
+      "judged_at": "2026-05-17T16:10:32+00:00"
+    },
+    "b42c884275cf0ddf22c1160a2dec01c8c7ae5da001e22acae6b3afee75216eea": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Xiaomi TV A Pro 32\" has Chromecast built-in™.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "The Chromecast built-in™* and Miracast allow you to continue watching what's on your smart mobile devices on a bigger screen",
+        "reason": "The supplier web page for the Xiaomi TV A Pro 32 explicitly mentions Chromecast built-in™ as a feature."
+      },
+      "judged_at": "2026-05-17T16:10:37+00:00"
+    },
+    "d4407f3d60aa2fa0d5f4b55a1926492080325c17d7fbb9cdca1d2d448cfb60b1": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Xiaomi TV A Pro 32\" supports Miracast.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "The Chromecast built-in™* and Miracast allow you to continue watching what's on your smart mobile devices on a bigger screen, elevating your visual experience.",
+        "reason": "The supplier web page for the Xiaomi TV A Pro 32 explicitly states Miracast support."
+      },
+      "judged_at": "2026-05-17T16:10:42+00:00"
+    },
+    "d3654feaa9b122bf5186bdf9d4917724919068d814a255072f5a90499c95ca05": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Xiaomi TV A Pro 32\" has dual-band Wi-Fi connectivity.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Designed with a 2.4GHz/5GHz Wi-Fi solution, various commonly used ports and Bluetooth 5.0 to easily connect to different devices",
+        "reason": "The supplier web page explicitly states the Xiaomi TV A Pro 32\" uses a 2.4GHz/5GHz Wi-Fi solution, which is dual-band Wi-Fi."
+      },
+      "judged_at": "2026-05-17T16:10:45+00:00"
+    },
+    "8cedbcb053cef74c7f99f2d2c83126b7979d36f972a91bc965ba2f315fae2b14": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Xiaomi TV A Pro 32\" has Bluetooth 5.0.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Bluetooth 5.0 2.4GHz/5GHz Wi-Fi",
+        "reason": "The supplier web page for the Xiaomi TV A Pro 32 explicitly lists Bluetooth 5.0 as a connectivity feature."
+      },
+      "judged_at": "2026-05-17T16:10:49+00:00"
+    },
+    "334e4dc58a15b61191538bf6416de4537854b6d97a98b8bf40adda7dfc80a827": {
+      "judge": "haiku_claim_extract",
+      "payload": {
+        "block": "seo_long_description",
+        "text_excerpt": "The Xiaomi TV A Pro 32 offers a smart and immersive viewing experience, characte",
+        "text_len": 867,
+        "text": "The Xiaomi TV A Pro 32 offers a smart and immersive viewing experience, characterized by its premium metallic frame and bezel-less design. This 32-inch HD smart LED TV delivers high-resolution images with stunning colors, ensuring an engaging visual experience from the moment it's turned on. Its unibody metallic design adds a touch of sophistication to any home environment.\n\nBeyond its visual appeal, the TV integrates powerful 20W stereo speakers with Dolby Audio™, DTS-X, and DTS Virtual:X dual decoding technologies, filling the room with rich, three-dimensional sound. Powered by a quad-core A55 CPU, 1.5GB RAM, and 8GB ROM, it ensures smooth operation for Google TV™, which organizes movies and shows from various apps. Voice control via Google Assistant, along with Chromecast built-in™ and Miracast, further enhances its smart capabilities and connectivity."
+      },
+      "verdict": {
+        "claims": [
+          "Xiaomi TV A Pro 32 has a 32-inch screen size.",
+          "Xiaomi TV A Pro 32 has HD resolution.",
+          "Xiaomi TV A Pro 32 features a premium metallic frame.",
+          "Xiaomi TV A Pro 32 has a bezel-less design.",
+          "Xiaomi TV A Pro 32 is an LED TV.",
+          "Xiaomi TV A Pro 32 has a unibody metallic design.",
+          "Xiaomi TV A Pro 32 includes 20W stereo speakers.",
+          "Xiaomi TV A Pro 32 supports Dolby Audio™.",
+          "Xiaomi TV A Pro 32 supports DTS-X audio technology.",
+          "Xiaomi TV A Pro 32 supports DTS Virtual:X audio technology.",
+          "Xiaomi TV A Pro 32 is powered by a quad-core A55 CPU.",
+          "Xiaomi TV A Pro 32 has 1.5GB RAM.",
+          "Xiaomi TV A Pro 32 has 8GB ROM storage.",
+          "Xiaomi TV A Pro 32 runs Google TV™.",
+          "Xiaomi TV A Pro 32 supports voice control via Google Assistant.",
+          "Xiaomi TV A Pro 32 has Chromecast built-in™.",
+          "Xiaomi TV A Pro 32 supports Miracast connectivity."
+        ]
+      },
+      "judged_at": "2026-05-17T16:10:52+00:00"
+    },
+    "982c61d3103402b91dafaadc24d475dc0eb7927c42ddf2a28e1989cb272636da": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Xiaomi TV A Pro 32 has a 32-inch screen size.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Xiaomi TV A Pro 32\" GL",
+        "reason": "The proforma invoice explicitly lists the product as 'Xiaomi TV A Pro 32\" GL', indicating a 32-inch screen size."
+      },
+      "judged_at": "2026-05-17T16:10:55+00:00"
+    },
+    "852cc783d1a687fd5aa06b02870a3954a68f6a41dfe44c03b3d643a3643f3ee5": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Xiaomi TV A Pro 32 has HD resolution.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "32\" HD smart LED TV",
+        "reason": "The supplier web page explicitly describes the Xiaomi TV A Pro 32 as a '32\" HD smart LED TV'."
+      },
+      "judged_at": "2026-05-17T16:10:58+00:00"
+    },
+    "cfa8cd6b319e65dd5c9940809fc332b6bfe48ddb5b4e0a09d9cc2998ca0d9527": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Xiaomi TV A Pro 32 features a premium metallic frame.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Featuring an exquisite metallic frame with a unibody design, Xiaomi A Pro Series makes a real statement in any home.",
+        "reason": "The supplier web page explicitly describes the Xiaomi TV A Pro 32 as having a metallic frame."
+      },
+      "judged_at": "2026-05-17T16:11:04+00:00"
+    },
+    "9f74debbd4968f58b07871f7403ff48ea9684813b2564789c64ae585c6954c18": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Xiaomi TV A Pro 32 has a bezel-less design.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Premium metallic frame with bezel-less design",
+        "reason": "The supplier web page for the Xiaomi TV A Pro 32 explicitly states it has a 'bezel-less design'."
+      },
+      "judged_at": "2026-05-17T16:11:08+00:00"
+    },
+    "2ccd65b30110d235f942a33686fb717d35796eaab29c0842f7b9e5c3210598a6": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Xiaomi TV A Pro 32 is an LED TV.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "32\" HD smart LED TV",
+        "reason": "The supplier web page for the Xiaomi TV A Pro 32 explicitly describes it as a smart LED TV."
+      },
+      "judged_at": "2026-05-17T16:11:10+00:00"
+    },
+    "7908bf8ef0f9890acb4681afc8d064dba69c4fa7338719a81f52f4b0452d3e8c": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Xiaomi TV A Pro 32 has a unibody metallic design.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Featuring an exquisite metallic frame with a unibody design, Xiaomi A Pro Series makes a real statement in any home.",
+        "reason": "The supplier web page explicitly states the Xiaomi TV A Pro 32 features a metallic frame with a unibody design."
+      },
+      "judged_at": "2026-05-17T16:11:13+00:00"
+    },
+    "1eb8147b3b9e3debafd26cbca78f5855f65462950aa85a7bbb6538ea89b646ee": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Xiaomi TV A Pro 32 includes 20W stereo speakers.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "The 2 × 10W high-power stereo speakers fill the room with rich high and bass tones and provide an immersive sound experience.",
+        "reason": "The source explicitly states 2×10W stereo speakers, which equals 20W total, directly supporting the claim."
+      },
+      "judged_at": "2026-05-17T16:11:17+00:00"
+    },
+    "38b6659e709f9703e2660ae8c5e4f7de1fdf42bf9f75d13dc3f593a41a01eea1": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Xiaomi TV A Pro 32 supports Dolby Audio™.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Powerful 20W speakers with Dolby Audio™ , DTS-X, DTS Virtual:X",
+        "reason": "The supplier web page for Xiaomi TV A Pro 32 explicitly lists Dolby Audio™ as a supported audio feature."
+      },
+      "judged_at": "2026-05-17T16:11:21+00:00"
+    },
+    "10c1edf44115e7262e6c66e7e43c570e65285c91cb54912835288785c347382f": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Xiaomi TV A Pro 32 supports DTS-X audio technology.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Powerful 20W speakers with Dolby Audio™ , DTS-X, DTS Virtual:X",
+        "reason": "The supplier web page for the Xiaomi TV A Pro 32 explicitly lists DTS-X as a supported audio technology."
+      },
+      "judged_at": "2026-05-17T16:11:24+00:00"
+    },
+    "7f6861ed0bfcd1e658fceb93800becea857ce5b4357f77d6e8af9825ca549707": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Xiaomi TV A Pro 32 supports DTS Virtual:X audio technology.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "The Dolby Audio™ + DTS-X dual decoding technology produces vivid sound effects... the cutting-edge DTS Virtual:X technology produces three-dimensional sound",
+        "reason": "The supplier web page for the Xiaomi TV A Pro 32 explicitly mentions DTS Virtual:X audio technology as a supported feature."
+      },
+      "judged_at": "2026-05-17T16:11:27+00:00"
+    },
+    "d18e7fb39f00da9fb9fac1a9cdd6b6841b5a6dca6e861cfc243739cd2b36e9ee": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Xiaomi TV A Pro 32 is powered by a quad-core A55 CPU.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "The powerful quad-core A55 CPU combined with 1.5GB RAM + 8GB ROM* offers smoother operation and more space for your favourite apps. Quad-core A55",
+        "reason": "The supplier web page for the Xiaomi TV A Pro 32 explicitly states it uses a quad-core A55 CPU."
+      },
+      "judged_at": "2026-05-17T16:11:33+00:00"
+    },
+    "9a141f5d3d092df5e4aab24444c0ca55dae03082d1ef6b51636c9abd086f2341": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Xiaomi TV A Pro 32 has 8GB ROM storage.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "The powerful quad-core A55 CPU combined with 1.5GB RAM + 8GB ROM* offers smoother operation and more space for your favourite apps.",
+        "reason": "The supplier web page for the Xiaomi TV A Pro 32 explicitly states 8GB ROM storage."
+      },
+      "judged_at": "2026-05-17T16:11:36+00:00"
+    },
+    "5ff216e4830d50e5f74f45f83168c93404660dad439c855336a0ea1d7ee7806c": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Xiaomi TV A Pro 32 runs Google TV™.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Google TV™ brings together movies, shows, and more from across your apps and subscriptions and organizes them just for you.",
+        "reason": "The supplier web page for the Xiaomi TV A Pro 32 explicitly mentions Google TV™ as the device's software experience."
+      },
+      "judged_at": "2026-05-17T16:11:40+00:00"
+    },
+    "ef503a484a3b63c6f183a52cf176bff6b1e0f87b253de4ff4096de57fd06daa6": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Xiaomi TV A Pro 32 supports voice control via Google Assistant.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Ask Google to find movies, stream apps, play music, and control the TV - all with your voice. Even get answers, control smart home devices, and more. Just say \"Ok Google\" or press the Google Assistant button",
+        "reason": "The supplier web page for the Xiaomi TV A Pro 32 explicitly describes voice control via Google Assistant."
+      },
+      "judged_at": "2026-05-17T16:11:44+00:00"
+    },
+    "f3f365917cda8384b51585cc17da8b0aa0e9443e23c8c54f0a863f995a3e02dc": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Xiaomi TV A Pro 32 supports Miracast connectivity.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "The Chromecast built-in™* and Miracast allow you to continue watching what's on your smart mobile devices on a bigger screen, elevating your visual experience.",
+        "reason": "The supplier web page for the Xiaomi TV A Pro 32 explicitly mentions Miracast as a connectivity feature."
+      },
+      "judged_at": "2026-05-17T16:11:48+00:00"
+    },
+    "b90296fb8cbbcc6b22bf8a02bad5de1af8d6d2d451f26ee352c1139dacd18e53": {
+      "judge": "haiku_claim_extract",
+      "payload": {
+        "block": "meta_description",
+        "text_excerpt": "Experience immersive viewing with the Xiaomi TV A Pro 32. Featuring a premium me",
+        "text_len": 155,
+        "text": "Experience immersive viewing with the Xiaomi TV A Pro 32. Featuring a premium metallic, bezel-less design, HD display, Google TV, and powerful Dolby Audio."
+      },
+      "verdict": {
+        "claims": [
+          "Xiaomi TV A Pro 32 has a 32-inch screen size.",
+          "Xiaomi TV A Pro 32 features a metallic design.",
+          "Xiaomi TV A Pro 32 has a bezel-less design.",
+          "Xiaomi TV A Pro 32 has an HD display.",
+          "Xiaomi TV A Pro 32 runs Google TV.",
+          "Xiaomi TV A Pro 32 has Dolby Audio."
+        ]
+      },
+      "judged_at": "2026-05-17T16:11:50+00:00"
+    },
+    "d20115dbee8d0c985151e5dd225b22a14af1f5c17593fcaefd716abd48cbd248": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Xiaomi TV A Pro 32 features a metallic design.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Featuring an exquisite metallic frame with a unibody design, Xiaomi A Pro Series makes a real statement in any home.",
+        "reason": "The supplier web page explicitly states the Xiaomi TV A Pro 32 features a metallic frame/design."
+      },
+      "judged_at": "2026-05-17T16:11:52+00:00"
+    },
+    "92e5669a7b68b063e7e6125ee43596e394be4d387da1c99e2afc4dc1d99fb00b": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Xiaomi TV A Pro 32 has an HD display.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "32\" HD smart LED TV",
+        "reason": "The supplier web page explicitly describes the Xiaomi TV A Pro 32 as a '32\" HD smart LED TV'."
+      },
+      "judged_at": "2026-05-17T16:11:55+00:00"
+    },
+    "70ef5e62f0de7f1e9a96641a7f94dcf6843f9c56fbbaac85c0e38da919b35bd3": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Xiaomi TV A Pro 32 runs Google TV.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Google TV™ brings together movies, shows, and more from across your apps and subscriptions and organizes them just for you.",
+        "reason": "The supplier web page explicitly mentions Google TV as the software experience on the Xiaomi TV A Pro 32."
+      },
+      "judged_at": "2026-05-17T16:11:59+00:00"
+    },
+    "34a4ba23b051bfc606584faef09f6849fd55210ce0236185f227a166c2951c8b": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Xiaomi TV A Pro 32 has Dolby Audio.",
+        "judge_variant": "pdf"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Powerful 20W speakers with Dolby Audio™ , DTS-X, DTS Virtual:X",
+        "reason": "The supplier web page for the Xiaomi TV A Pro 32 explicitly lists Dolby Audio™ as a feature."
+      },
+      "judged_at": "2026-05-17T16:12:03+00:00"
+    }
+  }
+}

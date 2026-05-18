@@ -40,13 +40,24 @@ _PROJECT_ROOT = _THIS_DIR.parent.parent
 if str(_PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(_PROJECT_ROOT))
 
+# After the 2026-05-18 folder refactor: test files live in `tests/`, judges in
+# `lib/`, fixtures in `data/`. Pytest puts the test file's directory on
+# `sys.path`, but `from conftest import …` and `import judge` need both this
+# dir AND `lib/` discoverable from anywhere. Add them once here so the test
+# modules don't need to know about the layout.
+if str(_THIS_DIR) not in sys.path:
+    sys.path.insert(0, str(_THIS_DIR))
+_LIB_DIR = _THIS_DIR / "lib"
+if _LIB_DIR.is_dir() and str(_LIB_DIR) not in sys.path:
+    sys.path.insert(0, str(_LIB_DIR))
+
 # Load .env BEFORE any utils import — they read os.environ at module level.
 load_dotenv(_PROJECT_ROOT / ".env")
 
-FIXTURES_DIR = _THIS_DIR / "fixtures"
-ADVERSARIAL_DIR = _THIS_DIR / "adversarial"
-RUNS_DIR = _THIS_DIR / "runs"
-RUNS_DIR.mkdir(exist_ok=True)
+FIXTURES_DIR = _THIS_DIR / "data" / "fixtures"
+ADVERSARIAL_DIR = _THIS_DIR / "data" / "adversarial"
+RUNS_DIR = _THIS_DIR / "results" / "runs"
+RUNS_DIR.mkdir(parents=True, exist_ok=True)
 
 
 # ────────────────────────────────────────────────────────────────────────────

@@ -1,0 +1,122 @@
+{
+  "schema_version": 1,
+  "judgments": {
+    "7a12ffef93f88717f2c319f6a829d915c02cd54533d53bd2975def34ce51dcb7": {
+      "judge": "haiku_field_rescue",
+      "payload": {
+        "field": "header_info.product_name",
+        "value": "BelAir Chest Freezer"
+      },
+      "verdict": {
+        "supported": false,
+        "source": "neither",
+        "evidence": "Proforma lists 'Chest freezer' as item description, but web sources contain no product specifications or freezer model information."
+      },
+      "judged_at": "2026-05-16T16:48:41+00:00"
+    },
+    "8df8011844abee5d8a3b25b41a6259781144d67807b587effa8f9de00b8f8eea": {
+      "judge": "haiku_field_rescue",
+      "payload": {
+        "field": "header_info.price_estimate",
+        "value": "Unit price unavailable from document"
+      },
+      "verdict": {
+        "supported": true,
+        "source": "proforma",
+        "evidence": "Unit Price column present but values blank/empty ($0.00 shown)"
+      },
+      "judged_at": "2026-05-16T16:48:43+00:00"
+    },
+    "fd7bf4af9cd94d95fe5c48aaba1b7937de346a2e0f1fc6d0812f9b6fd8424376": {
+      "judge": "haiku_field_rescue",
+      "payload": {
+        "field": "warranty_service.period",
+        "value": "Unavailable from document (Specific product warranty not detailed)"
+      },
+      "verdict": {
+        "supported": false,
+        "source": "neither",
+        "evidence": "No warranty period information found in proforma or web sources"
+      },
+      "judged_at": "2026-05-16T16:48:44+00:00"
+    },
+    "ef4beae436c13880ce6471eacd5095c9c3a3335c7afc42563583ad72d143e761": {
+      "judge": "haiku_field_rescue",
+      "payload": {
+        "field": "warranty_service.coverage",
+        "value": "1% spare parts supplied Free of Charge (as per invoice terms)"
+      },
+      "verdict": {
+        "supported": true,
+        "source": "proforma",
+        "evidence": "1% spare parts will be supplied Free of Charge"
+      },
+      "judged_at": "2026-05-16T16:48:45+00:00"
+    },
+    "3f6dfaa679631218da77e53ecbecb42125e6293b4ae0a402913890b57e990e23": {
+      "judge": "haiku_field_rescue",
+      "payload": {
+        "field": "spec:Storage Accessories",
+        "value": "Two baskets"
+      },
+      "verdict": {
+        "supported": true,
+        "source": "proforma",
+        "evidence": "Chest freezer, white, lock and key, LED light, two basket, F"
+      },
+      "judged_at": "2026-05-16T16:48:46+00:00"
+    },
+    "cf78af69378f850721752300deddd0fb7e5787e8975862e586f0aadffa243e3e": {
+      "judge": "haiku_field_rescue",
+      "payload": {
+        "field": "spec:Capacity",
+        "value": "Unavailable from document"
+      },
+      "verdict": {
+        "supported": false,
+        "source": "neither",
+        "evidence": "The proforma lists chest freezer models (HC-210, HC-300, BD-500) but provides no capacity specifications. The web pages are about BelAir's agricultural operations in Mauritius, not appliance specifications."
+      },
+      "judged_at": "2026-05-16T16:48:48+00:00"
+    },
+    "de3474928a511bacb3791899e7ae9c361212c3e2a5d5c7eff3def3d54a22d5c3": {
+      "judge": "haiku_field_rescue",
+      "payload": {
+        "field": "spec:Dimensions",
+        "value": "Unavailable from document"
+      },
+      "verdict": {
+        "supported": false,
+        "source": "neither",
+        "evidence": "No dimensions information found in proforma or web sources"
+      },
+      "judged_at": "2026-05-16T16:48:50+00:00"
+    },
+    "73920daf9dc8c66aa63aae0d03d6225ace47e027f8061530a72f40a0da7613d6": {
+      "judge": "haiku_field_rescue",
+      "payload": {
+        "field": "spec:Energy Rating",
+        "value": "Unavailable from document"
+      },
+      "verdict": {
+        "supported": false,
+        "source": "neither",
+        "evidence": "The proforma lists energy ratings (A+, F) for freezer models, but no web sources provide product specifications. Field value is marked unavailable."
+      },
+      "judged_at": "2026-05-16T16:48:51+00:00"
+    },
+    "32b164408bf9d169a31d2d3333a95684cad82f800f66dbfa74816a78333a833f": {
+      "judge": "haiku_field_rescue",
+      "payload": {
+        "field": "spec:Temperature Range",
+        "value": "Unavailable from document"
+      },
+      "verdict": {
+        "supported": false,
+        "source": "neither",
+        "evidence": "No temperature range specification found in proforma or web sources"
+      },
+      "judged_at": "2026-05-16T16:48:53+00:00"
+    }
+  }
+}

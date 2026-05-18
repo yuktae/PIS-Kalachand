@@ -1,0 +1,119 @@
+{
+  "layer": 2,
+  "timestamp": "2026-05-17T20:04:45+00:00",
+  "threshold": 0.5,
+  "fixtures": [
+    {
+      "name": "bulk_ariete",
+      "classified": 38,
+      "hallucinated_grep": 0,
+      "rescued": 0,
+      "hallucinated_judged": 0,
+      "rate_grep": 0.0,
+      "rate_judged": 0.0,
+      "confirmed_hallucinations": []
+    },
+    {
+      "name": "bulk_belair_freezers",
+      "classified": 13,
+      "hallucinated_grep": 1,
+      "rescued": 1,
+      "hallucinated_judged": 0,
+      "rate_grep": 0.0769,
+      "rate_judged": 0.0,
+      "confirmed_hallucinations": []
+    },
+    {
+      "name": "bulk_sunon_wardrobes",
+      "classified": 8,
+      "hallucinated_grep": 0,
+      "rescued": 0,
+      "hallucinated_judged": 0,
+      "rate_grep": 0.0,
+      "rate_judged": 0.0,
+      "confirmed_hallucinations": []
+    },
+    {
+      "name": "bulk_xiaomi_tv",
+      "classified": 16,
+      "hallucinated_grep": 3,
+      "rescued": 3,
+      "hallucinated_judged": 0,
+      "rate_grep": 0.1875,
+      "rate_judged": 0.0,
+      "confirmed_hallucinations": []
+    },
+    {
+      "name": "single_ariete_1",
+      "classified": 15,
+      "hallucinated_grep": 0,
+      "rescued": 0,
+      "hallucinated_judged": 0,
+      "rate_grep": 0.0,
+      "rate_judged": 0.0,
+      "confirmed_hallucinations": []
+    },
+    {
+      "name": "single_belair_freezers",
+      "classified": 8,
+      "hallucinated_grep": 1,
+      "rescued": 0,
+      "hallucinated_judged": 1,
+      "rate_grep": 0.125,
+      "rate_judged": 0.125,
+      "confirmed_hallucinations": [
+        {
+          "field": "header_info.product_name",
+          "value": "BelAir Chest Freezer"
+        }
+      ]
+    },
+    {
+      "name": "single_poco_m7",
+      "classified": 53,
+      "hallucinated_grep": 7,
+      "rescued": 7,
+      "hallucinated_judged": 0,
+      "rate_grep": 0.1321,
+      "rate_judged": 0.0,
+      "confirmed_hallucinations": []
+    },
+    {
+      "name": "single_poco_x7",
+      "skipped": "no classified fields"
+    },
+    {
+      "name": "single_sunon_png",
+      "classified": 7,
+      "hallucinated_grep": 0,
+      "rescued": 0,
+      "hallucinated_judged": 0,
+      "rate_grep": 0.0,
+      "rate_judged": 0.0,
+      "confirmed_hallucinations": []
+    },
+    {
+      "name": "single_xiaomi_png",
+      "classified": 3,
+      "hallucinated_grep": 0,
+      "rescued": 0,
+      "hallucinated_judged": 0,
+      "rate_grep": 0.0,
+      "rate_judged": 0.0,
+      "confirmed_hallucinations": []
+    }
+  ],
+  "totals": {
+    "classified_fields": 161,
+    "hallucinated_grep": 12,
+    "rescued": 11,
+    "hallucinated_judged": 1
+  },
+  "overall_rate_grep": 0.0745,
+  "overall_rate_judged": 0.0062,
+  "anthropic_cost": {
+    "total_calls": 0,
+    "total_cost_usd": 0.0,
+    "by_model": {}
+  }
+}

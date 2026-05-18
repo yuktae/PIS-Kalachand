@@ -1,0 +1,58 @@
+{
+  "header_info": {
+    "product_name": "BelAir Chest Freezer",
+    "model_number": "BACF-500",
+    "brand": "BELAIR",
+    "price_estimate": ""
+  },
+  "found_image_url": null,
+  "seo_data": {
+    "generated_keywords": "BelAir, BACF-500, chest freezer, white freezer, lock and key, LED light, two baskets, quality freezer",
+    "meta_title": "BelAir BACF-500 Chest Freezer - White, Lock & LED",
+    "meta_description": "Discover the BelAir BACF-500 Chest Freezer, featuring a secure lock and key, bright LED lighting, and two convenient storage baskets. Designed for quality.",
+    "seo_long_description": "The BelAir BACF-500 Chest Freezer offers practical and secure frozen storage solutions. Its design includes a robust lock and key mechanism, providing enhanced security for its contents. Inside, an integrated LED light illuminates the interior, making it easy to view and retrieve items even in low-light conditions. The classic white finish ensures it blends seamlessly into various home or commercial environments.\n\nEngineered for user convenience, the BACF-500 is equipped with two internal storage baskets, facilitating organized storage and quick access to frequently used items. This model reflects BelAir's commitment to quality, a philosophy rooted in diligence, attention, and respect, ensuring that every product meets high standards and delivers an assurance of satisfaction to the customer."
+  },
+  "range_overview": "The BelAir BACF-500 Chest Freezer is designed to provide reliable and secure frozen storage. This model stands out with its practical features, including a secure lock and key system that ensures the safety of stored goods. The interior is thoughtfully equipped with an LED light, offering clear visibility to help users easily locate items, reducing the time spent searching.\n\nFurther enhancing its utility, the BACF-500 comes with two convenient storage baskets, allowing for better organization of different food types and quick access to frequently used items. Its clean white finish offers a versatile aesthetic that can complement various settings. As part of the BelAir product line, this chest freezer embodies the brand's dedication to quality, aiming to meet the highest standards and provide customers with a product that assures satisfaction through diligent design and attention to detail.",
+  "sales_arguments": [
+    "Secure storage with integrated lock and key mechanism.",
+    "Enhanced visibility inside the freezer with bright LED lighting.",
+    "Optimized organization facilitated by two convenient storage baskets.",
+    "Classic white finish offers versatile aesthetic integration.",
+    "Backed by BelAir's commitment to quality and customer satisfaction."
+  ],
+  "technical_specifications": {
+    "Product Type": "Chest freezer",
+    "Color": "White",
+    "Security Feature": "Lock and key",
+    "Interior Illumination": "LED light",
+    "Storage Accessories": "Two basket",
+    "Model Suffix/Designation": "F"
+  },
+  "warranty_service": {
+    "period": "",
+    "coverage": ""
+  },
+  "_web_context": "--- SOURCE: https://belair.mu/ ---\nBelAir Mauritius HOMEPAGE admin 2019-01-11T14:16:56+00:00 A HISTORY OF EXCELLENCE WELCOME OUR PHILOSOPHY Our goal is to create quality through through diligence, attention, and respect. We put every effort to ensure all our products meet the highest standards; a product purchased from us comes with an assurance of satisfaction. READ MORE THE ESTATE Bel Air Estate is a private estate situated in the south of Mauritius. MORE THE COMPANY Bel Air has some of the most fertile agricultural land in Mauritius. MORE AGRICULTURE We specialise in sugarcane, horticulture, and arboriculture. MORE CONTACT US Give us a call or leave us a message. We would love to hear from you. MORE HISTORY THE BEL AIR ESTATE READ MORE AGRICULTURE PERFECT QUALITY Bel Air Agricultural produces a variety of crops, avocados, bananas, onions, potatoes, and many more all have a home on the estate. We have specialised in producing the very best quality crop since our very beginnings… READ MORE\n\n--- SOURCE: https://belair.mu/contact/ ---\nLOCATION & CONTACT – BelAir Mauritius LOCATION & CONTACT admin 2018-06-18T07:41:14+00:00 LOCATION & CONTACT FIND US OR GET IN TOUCH ASK US A QUESTION OR WRITE US A MESSAGE",
+  "_field_origins": {
+    "header_info.product_name": "hallucinated",
+    "header_info.model_number": "verified",
+    "header_info.brand": "verified",
+    "header_info.price_estimate": "ai",
+    "warranty_service.period": "ai",
+    "warranty_service.coverage": "ai",
+    "range_overview": "ai",
+    "sales_arguments": "ai",
+    "seo_data.generated_keywords": "ai",
+    "seo_data.meta_title": "ai",
+    "seo_data.meta_description": "ai",
+    "seo_data.seo_long_description": "ai"
+  },
+  "_spec_origins": {
+    "Product Type": "verified",
+    "Color": "verified",
+    "Security Feature": "verified",
+    "Interior Illumination": "verified",
+    "Storage Accessories": "verified",
+    "Model Suffix/Designation": "hallucinated"
+  }
+}

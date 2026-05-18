@@ -1,0 +1,525 @@
+{
+  "schema_version": 1,
+  "judgments": {
+    "6e06954a77e6d9f7c4ae5d9b1d96c0a97e86fe7748860ee5097b05e5ee9b2dcf": {
+      "judge": "haiku_claim_extract",
+      "payload": {
+        "block": "range_overview",
+        "text_excerpt": "The Sunon 2D Wardrobe Felix Walnut, model XDY60.120060-FWAL, offers a robust and",
+        "text_len": 1116,
+        "text": "The Sunon 2D Wardrobe Felix Walnut, model XDY60.120060-FWAL, offers a robust and stylish storage solution for any bedroom. Constructed from high-quality 25/18mm E0 Grade Particle Board, this wardrobe ensures durability and stability. The surfaces are finished with Melamine, providing a smooth, easy-to-clean surface, while PVC Edge Banding enhances the longevity and resistance to wear and tear, contributing to the overall structural integrity and aesthetic appeal of the unit.\n\nDesigned for optimal organization, this 2-door wardrobe features a thoughtful internal configuration. It includes dedicated shelves and a clothes rail inside the main compartments, perfect for hanging garments and neatly folding clothes. Additionally, the design incorporates convenient open shelves in both the middle and bottom sections, offering accessible storage for frequently used items, decorative pieces, or additional folded apparel. The hardware package includes soft close hinges for quiet and gentle door operation, alongside a key lock mechanism to secure personal belongings, adding a layer of privacy and peace of mind."
+      },
+      "verdict": {
+        "claims": [
+          "Sunon 2D Wardrobe Felix Walnut model is XDY60.120060-FWAL.",
+          "Sunon 2D Wardrobe is constructed from 25/18mm E0 Grade Particle Board.",
+          "Sunon 2D Wardrobe surfaces are finished with Melamine.",
+          "Sunon 2D Wardrobe features PVC Edge Banding.",
+          "Sunon 2D Wardrobe has 2 doors.",
+          "Sunon 2D Wardrobe includes a clothes rail inside main compartments.",
+          "Sunon 2D Wardrobe has dedicated shelves inside main compartments.",
+          "Sunon 2D Wardrobe includes open shelves in middle section.",
+          "Sunon 2D Wardrobe includes open shelves in bottom section.",
+          "Sunon 2D Wardrobe features soft close hinges.",
+          "Sunon 2D Wardrobe includes a key lock mechanism."
+        ]
+      },
+      "judged_at": "2026-05-17T20:04:50+00:00"
+    },
+    "308bf5db5b0c8b020324ad185111a98043e540746012a8e2f12349981c35528a": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Sunon 2D Wardrobe Felix Walnut model is XDY60.120060-FWAL.",
+        "judge_variant": "text"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "xpv60.120060-FwaL | 22WAROROBE",
+        "reason": "The proforma text shows a model code that closely matches XDY60.120060-FWAL for the 2D Wardrobe Felix Walnut, supporting the claim despite minor OCR distortion."
+      },
+      "judged_at": "2026-05-17T20:05:07+00:00"
+    },
+    "e435d66aa2ca34b9f1378b016c3f304620247085bc7a847faba361bbc5c5266d": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Sunon 2D Wardrobe is constructed from 25/18mm E0 Grade Particle Board.",
+        "judge_variant": "text"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Material: 25/181mm EO Grade Partce Board with Melamine * PVC Edge Banding",
+        "reason": "The proforma text states the material is 25/18mm E0 Grade Particle Board, directly supporting the claim."
+      },
+      "judged_at": "2026-05-17T20:05:12+00:00"
+    },
+    "ae190b675914a40f490699f01437aaacdccbf46eb64332371558644185dac62e": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Sunon 2D Wardrobe surfaces are finished with Melamine.",
+        "judge_variant": "text"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Material: 25/181mm EO Grade Particle Board with Melamine * PVC Edge Banding",
+        "reason": "The proforma explicitly states the material includes Melamine as a surface finish."
+      },
+      "judged_at": "2026-05-17T20:05:14+00:00"
+    },
+    "cab119a3dbf7aec84da325d23c6d73104e75ef79f7bbebb956764a7e74c101b5": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Sunon 2D Wardrobe features PVC Edge Banding.",
+        "judge_variant": "text"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Material: 25/181mm EO Grade Particle Board with Melamine + PVC Edge Banding",
+        "reason": "The proforma text explicitly lists PVC Edge Banding as part of the material specification for this wardrobe."
+      },
+      "judged_at": "2026-05-17T20:05:16+00:00"
+    },
+    "552c840a4d1af5e64f9f73672de88c75fe6b5950e4e876834c8d502f95f388f1": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Sunon 2D Wardrobe has 2 doors.",
+        "judge_variant": "text"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Configuration: 2 doors wardrobe with shelves and clothes rail inside, open shelves in middle and bottom",
+        "reason": "The source explicitly states the configuration includes 2 doors."
+      },
+      "judged_at": "2026-05-17T20:05:18+00:00"
+    },
+    "873ac52896237bffb58aa272bf38dfa43f99afd81cec722e57401208a3273e63": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Sunon 2D Wardrobe includes a clothes rail inside main compartments.",
+        "judge_variant": "text"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "2 doors wardrobe with shelves and clothes rail inside, open shelves in middle and bottom",
+        "reason": "The proforma explicitly states the wardrobe includes a clothes rail inside."
+      },
+      "judged_at": "2026-05-17T20:05:21+00:00"
+    },
+    "cbb43bc699c3dbc70d250db67f4e6a44d81a7cb979d49a31c9a7d538489365b9": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Sunon 2D Wardrobe has dedicated shelves inside main compartments.",
+        "judge_variant": "text"
+      },
+      "verdict": {
+        "supported": false,
+        "evidence": "",
+        "reason": "The sources describe shelves and clothes rail inside, open shelves in middle and bottom, but do not specifically mention 'dedicated shelves inside main compartments' as a distinct feature."
+      },
+      "judged_at": "2026-05-17T20:05:23+00:00"
+    },
+    "ca306410b3146498c4556e8ef4f8c82448e2b1d4f548821479a98cb6b5d9243e": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Sunon 2D Wardrobe includes open shelves in middle section.",
+        "judge_variant": "text"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "open shelves in middle and bottom",
+        "reason": "The proforma text explicitly states the configuration includes open shelves in the middle and bottom."
+      },
+      "judged_at": "2026-05-17T20:05:28+00:00"
+    },
+    "1774464552a65dcac7db25242d53501388a2ea3c7291cdddd1aa15ac95124347": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Sunon 2D Wardrobe includes open shelves in bottom section.",
+        "judge_variant": "text"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "open shelves in middle and bottom",
+        "reason": "The proforma text explicitly states the wardrobe has 'open shelves in middle and bottom', directly supporting the claim."
+      },
+      "judged_at": "2026-05-17T20:05:30+00:00"
+    },
+    "da78070bc64d77916999b4a4fc475d2c7de9335402b5197b47c19824ee169dcc": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Sunon 2D Wardrobe features soft close hinges.",
+        "judge_variant": "text"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Hardware: Soft close hinges + Keylock",
+        "reason": "The proforma text explicitly lists 'Soft close hinges' as part of the hardware specifications for the 2D Wardrobe."
+      },
+      "judged_at": "2026-05-17T20:05:32+00:00"
+    },
+    "e63d51eccc2661b736b0a901ed73c7c09b3e7d067fb8707b1a4e31803b5be482": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Sunon 2D Wardrobe includes a key lock mechanism.",
+        "judge_variant": "text"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Hardware: Soft close hinges + Keylock",
+        "reason": "The proforma text explicitly lists 'Keylock' as part of the hardware specifications for the 2D Wardrobe."
+      },
+      "judged_at": "2026-05-17T20:05:34+00:00"
+    },
+    "7509739ceed6147eca2908c5ad5404e029175c40f11208584f6fde275073c0ff": {
+      "judge": "haiku_claim_extract",
+      "payload": {
+        "block": "sales_arguments",
+        "text_excerpt": "- Durable construction with 25/18mm E0 Grade Particle Board and Melamine finish.",
+        "text_len": 385,
+        "text": "- Durable construction with 25/18mm E0 Grade Particle Board and Melamine finish.\n- Enhanced longevity and resistance to wear with PVC Edge Banding.\n- Organized storage featuring 2 doors, internal shelves, and a clothes rail.\n- Convenient access to items with integrated open shelves in the middle and bottom.\n- Secure and quiet operation with soft close hinges and a reliable key lock."
+      },
+      "verdict": {
+        "claims": [
+          "Sunon 2D Wardrobe uses 25/18mm E0 Grade Particle Board construction.",
+          "Sunon 2D Wardrobe has a Melamine finish.",
+          "Sunon 2D Wardrobe features PVC Edge Banding for durability.",
+          "Sunon 2D Wardrobe has 2 doors.",
+          "Sunon 2D Wardrobe includes internal shelves.",
+          "Sunon 2D Wardrobe includes a clothes rail.",
+          "Sunon 2D Wardrobe has integrated open shelves in the middle section.",
+          "Sunon 2D Wardrobe has integrated open shelves in the bottom section.",
+          "Sunon 2D Wardrobe is equipped with soft close hinges.",
+          "Sunon 2D Wardrobe includes a key lock."
+        ]
+      },
+      "judged_at": "2026-05-17T20:05:37+00:00"
+    },
+    "7b644ab7b74d4826fedd1689710cee8f6047879556acf1a6439e5bb58015b8dc": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Sunon 2D Wardrobe uses 25/18mm E0 Grade Particle Board construction.",
+        "judge_variant": "text"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Material: 25/181mm EO Grade Partce Board with Melamine * PVC Edge Banding",
+        "reason": "The proforma text explicitly states 25/18mm E0 Grade Particle Board (OCR renders '181mm' but clearly refers to 25/18mm), matching the claim."
+      },
+      "judged_at": "2026-05-17T20:05:39+00:00"
+    },
+    "92a8fef34c4ab12b129e1ffb1d0906670036ddc5b70abcd3947c10b8d02bc299": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Sunon 2D Wardrobe has a Melamine finish.",
+        "judge_variant": "text"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Material: 25/181mm EO Grade Particle Board with Melamine * PVC Edge Banding",
+        "reason": "The proforma explicitly states the material includes a Melamine finish with PVC Edge Banding."
+      },
+      "judged_at": "2026-05-17T20:05:42+00:00"
+    },
+    "a979d59e5f9cbcc8fa4753ed95586d5f71903898775e1b0ad83dff8f74b80030": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Sunon 2D Wardrobe features PVC Edge Banding for durability.",
+        "judge_variant": "text"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Material: 25/181mm EO Grade Particle Board with Melamine + PVC Edge Banding",
+        "reason": "The proforma explicitly lists PVC Edge Banding as part of the material specification for this wardrobe."
+      },
+      "judged_at": "2026-05-17T20:05:44+00:00"
+    },
+    "0319892ffe4faf08db6e6115415c5c43ab2cdffccdb1605a4782a35599e8b360": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Sunon 2D Wardrobe includes internal shelves.",
+        "judge_variant": "text"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "2 doors wardrobe with shelves and clothes rail inside, open shelves in middle and bottom",
+        "reason": "The proforma explicitly states the wardrobe includes shelves inside and open shelves in the middle and bottom."
+      },
+      "judged_at": "2026-05-17T20:05:47+00:00"
+    },
+    "4022a8eb662e3faa07214afd7eb7e566dc611b8a46a8fb7f85b530f4b7c74ce4": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Sunon 2D Wardrobe includes a clothes rail.",
+        "judge_variant": "text"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "2 doors wardrobe with shelves and clothes rail inside, open shelves in middle and bottom",
+        "reason": "The proforma explicitly states the wardrobe includes a clothes rail inside."
+      },
+      "judged_at": "2026-05-17T20:05:49+00:00"
+    },
+    "7befb5a1ebff8bd01ba45646342483c7d53d3f3264232940e477690b152f738c": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Sunon 2D Wardrobe has integrated open shelves in the middle section.",
+        "judge_variant": "text"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "open shelves in middle and bottom",
+        "reason": "The proforma text explicitly states the wardrobe has open shelves in the middle and bottom sections."
+      },
+      "judged_at": "2026-05-17T20:05:50+00:00"
+    },
+    "ae4170ade909757996288e5dd8e843b638ce4a14d1f5c418961f3ef53f02426e": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Sunon 2D Wardrobe has integrated open shelves in the bottom section.",
+        "judge_variant": "text"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "open shelves in middle and bottom",
+        "reason": "The proforma text explicitly states the wardrobe has 'open shelves in middle and bottom', directly supporting the claim of open shelves in the bottom section."
+      },
+      "judged_at": "2026-05-17T20:05:53+00:00"
+    },
+    "d32801997bf08be32f8fa61cf7dd4200def1de598405ed32ad7a1f9557ba7ef4": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Sunon 2D Wardrobe is equipped with soft close hinges.",
+        "judge_variant": "text"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Hardware: Soft close hinges + Keylock",
+        "reason": "The proforma text explicitly lists 'Soft close hinges' as part of the hardware specification for the 2D Wardrobe."
+      },
+      "judged_at": "2026-05-17T20:05:55+00:00"
+    },
+    "e8c121a85006e4465d2517cc042183891517a72a0ea58dffa458ccac7f8152c8": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Sunon 2D Wardrobe includes a key lock.",
+        "judge_variant": "text"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Hardware: Soft close hinges + Keylock",
+        "reason": "The proforma text explicitly lists 'Keylock' as part of the hardware specifications for the 2D Wardrobe."
+      },
+      "judged_at": "2026-05-17T20:05:57+00:00"
+    },
+    "a29efff351e7dca27756a962ed644e7a6ec096059209a52338a9228b8d23e229": {
+      "judge": "haiku_claim_extract",
+      "payload": {
+        "block": "seo_long_description",
+        "text_excerpt": "The Sunon 2D Wardrobe Felix Walnut, model XDY60.120060-FWAL, is engineered for b",
+        "text_len": 1185,
+        "text": "The Sunon 2D Wardrobe Felix Walnut, model XDY60.120060-FWAL, is engineered for both style and functionality, making it an ideal addition to contemporary living spaces. Its construction utilizes premium 25/18mm E0 Grade Particle Board, known for its environmental friendliness and structural integrity, ensuring a long-lasting piece of furniture. The exterior is meticulously finished with Melamine, offering a sleek look and easy maintenance, complemented by robust PVC Edge Banding that protects against daily wear and enhances the wardrobe's lifespan.\n\nThis wardrobe provides comprehensive storage solutions with its intelligent internal layout. It features two main doors that conceal ample shelving and a dedicated clothes rail, perfect for organizing a diverse wardrobe. The design is further enhanced by accessible open shelves positioned in the middle and bottom sections, offering convenient spots for displaying items or storing essentials within easy reach. Equipped with soft close hinges, the doors operate smoothly and silently, while an integrated key lock provides an essential layer of security for your valuables, blending practical features with sophisticated design."
+      },
+      "verdict": {
+        "claims": [
+          "Sunon 2D Wardrobe Felix Walnut model is XDY60.120060-FWAL.",
+          "Sunon 2D Wardrobe Felix Walnut is constructed from 25/18mm E0 Grade Particle Board.",
+          "Sunon 2D Wardrobe Felix Walnut exterior is finished with Melamine.",
+          "Sunon 2D Wardrobe Felix Walnut features PVC Edge Banding.",
+          "Sunon 2D Wardrobe Felix Walnut has two main doors.",
+          "Sunon 2D Wardrobe Felix Walnut includes internal shelving.",
+          "Sunon 2D Wardrobe Felix Walnut has a dedicated clothes rail.",
+          "Sunon 2D Wardrobe Felix Walnut features open shelves in middle and bottom sections.",
+          "Sunon 2D Wardrobe Felix Walnut doors have soft close hinges.",
+          "Sunon 2D Wardrobe Felix Walnut includes an integrated key lock."
+        ]
+      },
+      "judged_at": "2026-05-17T20:05:59+00:00"
+    },
+    "a2f2522bc0fecc3c30552cbbe6a11e2ad9e7449e58ef324e55f43f58f0382c46": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Sunon 2D Wardrobe Felix Walnut is constructed from 25/18mm E0 Grade Particle Board.",
+        "judge_variant": "text"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Material: 25/181mm EO Grade Partce Board with Melamine + PVC Edge Banding",
+        "reason": "The source explicitly states the material is 25/18mm E0 Grade Particle Board, matching the claim (minor OCR artifacts aside)."
+      },
+      "judged_at": "2026-05-17T20:06:03+00:00"
+    },
+    "b3b29e388c9f9ef4ed5f45d5a28f47d05b1d20f03685012b7b0b2dcd968ef2da": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Sunon 2D Wardrobe Felix Walnut exterior is finished with Melamine.",
+        "judge_variant": "text"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Material: 25/18mm EO Grade Particle Board with Melamine * PVC Edge Banding",
+        "reason": "The proforma explicitly states the wardrobe is finished with Melamine (along with PVC Edge Banding)."
+      },
+      "judged_at": "2026-05-17T20:06:06+00:00"
+    },
+    "57e6b9b146e1c5993aab173d533903400f24fce5f57dd04090a5c48e5ed32428": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Sunon 2D Wardrobe Felix Walnut features PVC Edge Banding.",
+        "judge_variant": "text"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Material: 25/181mm EO Grade Particle Board with Melamine + PVC Edge Banding",
+        "reason": "The proforma text explicitly lists PVC Edge Banding as part of the material specification for this wardrobe."
+      },
+      "judged_at": "2026-05-17T20:06:08+00:00"
+    },
+    "02ed16136c5461ada985ef2293637dd14ee42cf6485ed6bb34a615012cf72fdd": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Sunon 2D Wardrobe Felix Walnut has two main doors.",
+        "judge_variant": "text"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "2 doors wardrobe with shelves and clothes rail inside, open shelves in middle and bottom",
+        "reason": "The source explicitly states the wardrobe has 2 doors."
+      },
+      "judged_at": "2026-05-17T20:06:11+00:00"
+    },
+    "b69d36388d9689460059cc983070179ef2ebc1e384318c862dfa5583a6ade63b": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Sunon 2D Wardrobe Felix Walnut includes internal shelving.",
+        "judge_variant": "text"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "2 doors wardrobe with shelves and clothes rail inside, open shelves in middle and bottom",
+        "reason": "The proforma explicitly states the wardrobe includes shelves inside, confirming internal shelving."
+      },
+      "judged_at": "2026-05-17T20:06:13+00:00"
+    },
+    "c3d7cab96f1cc6f8e424a1a3b58eeb904a92eb47b24819dc93eea7337579f33d": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Sunon 2D Wardrobe Felix Walnut has a dedicated clothes rail.",
+        "judge_variant": "text"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Configuration: 2 doors wardrobe with shelves and clothes rail inside, open shelves in middle and bottom",
+        "reason": "The source explicitly states the wardrobe includes a clothes rail inside."
+      },
+      "judged_at": "2026-05-17T20:06:16+00:00"
+    },
+    "156619ef16d1258727c4cffabdd8221cb44e4ebecdd1271acc04e7517169b256": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Sunon 2D Wardrobe Felix Walnut features open shelves in middle and bottom sections.",
+        "judge_variant": "text"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "open shelves in middle and bottom",
+        "reason": "The proforma text explicitly states 'open shelves in middle and bottom' as part of the configuration description."
+      },
+      "judged_at": "2026-05-17T20:06:18+00:00"
+    },
+    "5a051f83d243f068cdba8a5321c64a55184063a25557136862a9aca4d4b65c8d": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Sunon 2D Wardrobe Felix Walnut doors have soft close hinges.",
+        "judge_variant": "text"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Hardware: Soft close hinges + Keylock",
+        "reason": "The proforma explicitly lists 'Soft close hinges' as part of the hardware specification for this wardrobe."
+      },
+      "judged_at": "2026-05-17T20:06:20+00:00"
+    },
+    "e782992213052a899e2886856f25ea44f3c0a36a3dc29abff286198dc6320f99": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Sunon 2D Wardrobe Felix Walnut includes an integrated key lock.",
+        "judge_variant": "text"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Hardware: Soft close hinges + Keylock",
+        "reason": "The proforma text explicitly lists 'Keylock' as part of the hardware specifications for this wardrobe model."
+      },
+      "judged_at": "2026-05-17T20:06:23+00:00"
+    },
+    "2f380cc0b9166ec37e42ecfb63bbf518f5251c69255dc1d0f768df691652e8dd": {
+      "judge": "haiku_claim_extract",
+      "payload": {
+        "block": "meta_description",
+        "text_excerpt": "Discover the Sunon 2D Wardrobe Felix Walnut, featuring durable E0 grade particle",
+        "text_len": 158,
+        "text": "Discover the Sunon 2D Wardrobe Felix Walnut, featuring durable E0 grade particle board, melamine finish, soft close hinges, and a key lock for secure storage."
+      },
+      "verdict": {
+        "claims": [
+          "Sunon 2D Wardrobe Felix Walnut is made of E0 grade particle board.",
+          "Sunon 2D Wardrobe Felix Walnut has a melamine finish.",
+          "Sunon 2D Wardrobe Felix Walnut features soft close hinges.",
+          "Sunon 2D Wardrobe Felix Walnut includes a key lock for secure storage."
+        ]
+      },
+      "judged_at": "2026-05-17T20:06:25+00:00"
+    },
+    "54d313f22791293164ade078fd08acaf6468b4f1a678503b8597f88a3b1d61dc": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Sunon 2D Wardrobe Felix Walnut is made of E0 grade particle board.",
+        "judge_variant": "text"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Material: 25/18mm E0 Grade Particle Board with Melamine + PVC Edge Banding",
+        "reason": "The proforma explicitly states the material is E0 Grade Particle Board, directly supporting the claim."
+      },
+      "judged_at": "2026-05-17T20:06:27+00:00"
+    },
+    "843e23a425b2324b5381614f3b7a50113b58f307164e83b045cb903f429e0e16": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Sunon 2D Wardrobe Felix Walnut has a melamine finish.",
+        "judge_variant": "text"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Material: 25/18mm EO Grade Particle Board with Melamine * PVC Edge Banding",
+        "reason": "The proforma explicitly states the material includes a Melamine finish with PVC Edge Banding."
+      },
+      "judged_at": "2026-05-17T20:06:30+00:00"
+    },
+    "e557a5966952b803773eeddc13c77346d6e542495155c4cbb1dfacda33b9189f": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Sunon 2D Wardrobe Felix Walnut features soft close hinges.",
+        "judge_variant": "text"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Hardware: Soft close hinges + Keylock",
+        "reason": "The proforma explicitly lists 'Soft close hinges' as part of the hardware specifications for this wardrobe."
+      },
+      "judged_at": "2026-05-17T20:06:32+00:00"
+    },
+    "2310bc102d9c039d23b647bf6ad266bd2f5cb99e131bbad2379885bbf5cd946c": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Sunon 2D Wardrobe Felix Walnut includes a key lock for secure storage.",
+        "judge_variant": "text"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Hardware: Soft close hinges + Keylock",
+        "reason": "The proforma text explicitly lists 'Keylock' as part of the hardware for this wardrobe model."
+      },
+      "judged_at": "2026-05-17T20:06:34+00:00"
+    }
+  }
+}

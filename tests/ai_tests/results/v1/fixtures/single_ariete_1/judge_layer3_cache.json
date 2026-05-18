@@ -1,0 +1,506 @@
+{
+  "schema_version": 1,
+  "judgments": {
+    "d7526729ab8a1ee8c399cdaf719bec6f8bed430ffbfe560c6da022893e167507": {
+      "judge": "haiku_claim_extract",
+      "payload": {
+        "block": "range_overview",
+        "text_excerpt": "The Ariete Stiromatic 6257 stands out as a high-performance steam generator iron",
+        "text_len": 1815,
+        "text": "The Ariete Stiromatic 6257 stands out as a high-performance steam generator iron, engineered to deliver exceptional ironing results with ease. Central to its design is a potent 2000W power system, which, combined with a durable aluminium soleplate, ensures quick heat-up times and effortless glide over different fabrics, effectively smoothing out wrinkles. This model is distinguished by its steam generator capability, offering a continuous and powerful steam output essential for tackling a variety of garments, from delicate silks to heavy cottons. A substantial 800ml water tank capacity supports longer ironing tasks, significantly reducing interruptions for refills.\n\nDesigned with user comfort and efficiency in mind, the Stiromatic 6257 incorporates a professional cork handle, providing an ergonomic and non-slip grip that enhances control and reduces fatigue during extensive ironing sessions. Its advanced features include a dedicated continuous steam function, alongside an impressive steam rate of up to 80g per minute, supported by a 3-bar boiler pressure. This powerful steam delivery system is complemented by vertical steaming functionality, allowing users to conveniently refresh hanging clothes, curtains, and drapes without the need for an ironing board.\n\nOperational convenience is further enhanced through clear indicators, including a thermostat control light to signal optimal temperature, a steam ready light for immediate use, and an end of water warning light that alerts users when the tank needs replenishing. The inclusion of a single boiler/iron ignition button simplifies startup, while a safety cap underscores Ariete's commitment to user safety. With its robust performance and user-centric features, the Stiromatic 6257 is a reliable solution for maintaining a pristine wardrobe."
+      },
+      "verdict": {
+        "claims": [
+          "Ariete Steam Iron AR-6257 has a 2000W power system.",
+          "Ariete Steam Iron AR-6257 features a durable aluminium soleplate.",
+          "Ariete Steam Iron AR-6257 is a steam generator iron.",
+          "Ariete Steam Iron AR-6257 has an 800ml water tank capacity.",
+          "Ariete Steam Iron AR-6257 includes a professional cork handle.",
+          "Ariete Steam Iron AR-6257 has a continuous steam function.",
+          "Ariete Steam Iron AR-6257 produces up to 80g of steam per minute.",
+          "Ariete Steam Iron AR-6257 has a 3-bar boiler pressure.",
+          "Ariete Steam Iron AR-6257 has vertical steaming functionality.",
+          "Ariete Steam Iron AR-6257 includes a thermostat control light.",
+          "Ariete Steam Iron AR-6257 includes a steam ready light.",
+          "Ariete Steam Iron AR-6257 includes an end of water warning light.",
+          "Ariete Steam Iron AR-6257 has a single boiler/iron ignition button.",
+          "Ariete Steam Iron AR-6257 includes a safety cap."
+        ]
+      },
+      "judged_at": "2026-05-16T17:17:14+00:00"
+    },
+    "f84b4c128324c3afec3ebe3984f33e0301fff8d5e212af2160c02a3165e52ebe": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Ariete Steam Iron AR-6257 has a 2000W power system."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Power consumption 2000 W",
+        "reason": "Both the proforma text and the e-catalog source confirm the AR-6257 operates at 2000W."
+      },
+      "judged_at": "2026-05-16T17:17:16+00:00"
+    },
+    "836f86939dd75a923069d36aea156c9cd8b05dce6b11475e2de0e8dca507dcc3": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Ariete Steam Iron AR-6257 features a durable aluminium soleplate."
+      },
+      "verdict": {
+        "supported": false,
+        "evidence": "Coating of the working surface: aluminium",
+        "reason": "The aluminium soleplate is confirmed, but the claim adds 'durable,' which is unsupported marketing language not found in either source."
+      },
+      "judged_at": "2026-05-16T17:17:21+00:00"
+    },
+    "4cd702152f410d754feab7fea6d64b3772f0b58d0e49b97cb1b0476410e148ce": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Ariete Steam Iron AR-6257 is a steam generator iron."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Type: with steam generator; Power (W): 2000; Coating of the working surface: aluminium; Water tank volume: 800",
+        "reason": "The e-catalog source explicitly classifies the Ariete Stiromatic 6257 as 'with steam generator' type."
+      },
+      "judged_at": "2026-05-16T17:17:26+00:00"
+    },
+    "92243b7edab3f8a231e71540a372b7233488c1106a4475058d1dd04bc5e1d99e": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Ariete Steam Iron AR-6257 has an 800ml water tank capacity."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Water tank volume: 800 ml",
+        "reason": "The e-catalog source explicitly states the water tank volume is 800 ml, matching the claim."
+      },
+      "judged_at": "2026-05-16T17:17:30+00:00"
+    },
+    "4b035516dae34a425776dab0083033eb7820452a6a52e2aaad47f991b6ea1ad1": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Ariete Steam Iron AR-6257 includes a professional cork handle."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Professional iron with cork handle",
+        "reason": "The proforma text explicitly lists 'Professional iron with cork handle' as a feature of the AR-6257."
+      },
+      "judged_at": "2026-05-16T17:17:34+00:00"
+    },
+    "4ba0ac51eaf64c93cb297403f209496265b9bd972fe866886a0d76b01b159ce3": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Ariete Steam Iron AR-6257 has a continuous steam function."
+      },
+      "verdict": {
+        "supported": false,
+        "evidence": "",
+        "reason": "Neither source document mentions a continuous steam function for the AR-6257 model."
+      },
+      "judged_at": "2026-05-16T17:17:39+00:00"
+    },
+    "4e9c9cccd13a3809cd6f1e0fb5eb37d377d7de466766b5544caf32fc3fd3b6a2": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Ariete Steam Iron AR-6257 produces up to 80g of steam per minute."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Steam rate: Up to 80g / min",
+        "reason": "The proforma text explicitly states the steam rate is up to 80g/min for the AR-6257 model."
+      },
+      "judged_at": "2026-05-16T17:17:41+00:00"
+    },
+    "d567f746b23e7551f6634b9cebd664b252a0a7a57904e5b9c11fd395b4910ee8": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Ariete Steam Iron AR-6257 has a 3-bar boiler pressure."
+      },
+      "verdict": {
+        "supported": false,
+        "evidence": "",
+        "reason": "Neither supplier web page mentions boiler pressure or 3 bar for the AR-6257; this detail appears only in the proforma text, not in the source documents."
+      },
+      "judged_at": "2026-05-16T17:17:46+00:00"
+    },
+    "0a70a9dfc95e882771cda9279751397e1ccae4abfaf9c4bfd55cfdfac17f8b69": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Ariete Steam Iron AR-6257 has vertical steaming functionality."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Features steam supply vertical steaming",
+        "reason": "The source explicitly lists vertical steaming as a feature of the Ariete Stiromatic 6257."
+      },
+      "judged_at": "2026-05-16T17:17:48+00:00"
+    },
+    "a9b5d287fc4a7915fc8426ce03ed812078b6ea5761051272a4af353ae9ed60d6": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Ariete Steam Iron AR-6257 includes a thermostat control light."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Thermostat control light",
+        "reason": "The proforma text explicitly lists 'Thermostat control light' as a feature of the AR-6257."
+      },
+      "judged_at": "2026-05-16T17:17:52+00:00"
+    },
+    "59304a36b5698ffff2b5c206407a5f9ccc7079685807d0225b8147ff94665917": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Ariete Steam Iron AR-6257 includes a steam ready light."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Steam ready light",
+        "reason": "The proforma text explicitly lists 'Steam ready light' as a feature of the AR-6257, and the e-catalog source confirms 'Steam ready indicator'."
+      },
+      "judged_at": "2026-05-16T17:17:55+00:00"
+    },
+    "37f63081f8a0652c455a367b920d13d5c2c0c90fa488aa0daca6ed2fc1e1d5f8": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Ariete Steam Iron AR-6257 includes an end of water warning light."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "End of water warning light",
+        "reason": "The proforma text explicitly lists 'End of water warning light' as a feature of the AR-6257 model."
+      },
+      "judged_at": "2026-05-16T17:18:00+00:00"
+    },
+    "44d25af08cfd9e96b1f2c6b99b17195ab50cc3a9f1c815f27c48269e4394fef8": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Ariete Steam Iron AR-6257 has a single boiler/iron ignition button."
+      },
+      "verdict": {
+        "supported": false,
+        "evidence": "",
+        "reason": "Neither source document mentions a single boiler/iron ignition button feature for the AR-6257."
+      },
+      "judged_at": "2026-05-16T17:18:04+00:00"
+    },
+    "2847ed7cfe7d34cd6298a3f842c4f01400bc6a52d48362102c37f764787eef1d": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Ariete Steam Iron AR-6257 includes a safety cap."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Safety cap",
+        "reason": "The proforma text explicitly lists 'Safety cap' as a feature of the AR-6257 Steam Iron."
+      },
+      "judged_at": "2026-05-16T17:18:07+00:00"
+    },
+    "247ff03f33e6eb3d1cf2d47671892dd0f60b1c0f7e4de1fe1174d506c57f0bbf": {
+      "judge": "haiku_claim_extract",
+      "payload": {
+        "block": "sales_arguments",
+        "text_excerpt": "- Achieve efficient wrinkle removal with a powerful 2000W steam generator system",
+        "text_len": 441,
+        "text": "- Achieve efficient wrinkle removal with a powerful 2000W steam generator system.\n- Benefit from extended ironing sessions thanks to the large 800ml water tank capacity.\n- Experience smooth gliding across all fabrics with the durable aluminium soleplate.\n- Conveniently refresh hanging garments and drapes using the vertical steaming function.\n- Ensure comfortable and consistent ironing with a professional cork handle and continuous steam."
+      },
+      "verdict": {
+        "claims": [
+          "Ariete Steam Iron AR-6257 has a 2000W steam generator system.",
+          "Ariete Steam Iron AR-6257 has an 800ml water tank capacity.",
+          "Ariete Steam Iron AR-6257 has a durable aluminium soleplate.",
+          "Ariete Steam Iron AR-6257 has a vertical steaming function.",
+          "Ariete Steam Iron AR-6257 has a professional cork handle.",
+          "Ariete Steam Iron AR-6257 has continuous steam capability."
+        ]
+      },
+      "judged_at": "2026-05-16T17:18:09+00:00"
+    },
+    "b2360bf6dcad052d08911f7a69f8b5df8a539473bca810c5edcafb9536c99b4c": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Ariete Steam Iron AR-6257 has a 2000W steam generator system."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Type with steam generator Power consumption 2000 W",
+        "reason": "The e-catalog source explicitly identifies the AR-6257 as a steam generator type with 2000W power consumption."
+      },
+      "judged_at": "2026-05-16T17:18:16+00:00"
+    },
+    "7a45a0771b0e1c9a635896fc0fa8dd1cc3af8ae9fc69a4e67933b480c64c2492": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Ariete Steam Iron AR-6257 has a durable aluminium soleplate."
+      },
+      "verdict": {
+        "supported": false,
+        "evidence": "Coating of the working surface: aluminium",
+        "reason": "While the aluminium soleplate coating is confirmed, the descriptor 'durable' is not found in either source and constitutes unsupported marketing language."
+      },
+      "judged_at": "2026-05-16T17:18:21+00:00"
+    },
+    "459423e2960c353f8c7bf76938c220bebe0cc2be0de785a8b2e58f08d3f4c424": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Ariete Steam Iron AR-6257 has a vertical steaming function."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Features steam supply vertical steaming",
+        "reason": "The source explicitly lists vertical steaming as a feature of the Ariete Stiromatic 6257."
+      },
+      "judged_at": "2026-05-16T17:18:23+00:00"
+    },
+    "e91ec34b9a95a20b939af99bd2762774eb253594e8dbf4a46e634ea9fc47ee3a": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Ariete Steam Iron AR-6257 has a professional cork handle."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Professional iron with cork handle",
+        "reason": "The proforma text explicitly lists 'Professional iron with cork handle' as a feature of the AR-6257."
+      },
+      "judged_at": "2026-05-16T17:18:27+00:00"
+    },
+    "a5862b9383c99727a84089543ddf72ed1ba5054282e0a71e82060ddf2d528cb2": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Ariete Steam Iron AR-6257 has continuous steam capability."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Continuous steam function",
+        "reason": "The proforma text explicitly lists 'Continuous steam function' as a feature of the AR-6257."
+      },
+      "judged_at": "2026-05-16T17:18:32+00:00"
+    },
+    "ff27c85257d3751f0e6b5fac4a85e64c2df9a58bfdafa573d4d31950ff78ce98": {
+      "judge": "haiku_claim_extract",
+      "payload": {
+        "block": "seo_long_description",
+        "text_excerpt": "The Ariete Stiromatic 6257 is a powerful steam generator iron designed for effic",
+        "text_len": 1142,
+        "text": "The Ariete Stiromatic 6257 is a powerful steam generator iron designed for efficient and effective garment care. Boasting a robust 2000W power output, this appliance features an aluminium soleplate that ensures smooth gliding across various fabric types. Its generous 800ml water tank capacity allows for extended ironing sessions, minimizing the need for frequent refills and enhancing productivity. Key functionalities include consistent steam supply, vertical steaming for refreshing hanging clothes, and a continuous steam function, all contributing to superior ironing results.\n\nEngineered for user comfort and convenience, the Stiromatic 6257 is equipped with a professional cork handle for a secure, non-slip grip during prolonged use. Operational indicators such as a thermostat control light, steam ready light, and an end of water warning light provide clear status updates. Further enhancing its utility, the iron includes a single boiler/iron ignition button and a safety cap, ensuring safe and straightforward operation while tackling even the most stubborn creases with a steam rate of up to 80g/min and a 3-bar boiler pressure."
+      },
+      "verdict": {
+        "claims": [
+          "Ariete Steam Iron AR-6257 has 2000W power output.",
+          "Ariete Steam Iron AR-6257 features an aluminium soleplate.",
+          "Ariete Steam Iron AR-6257 has 800ml water tank capacity.",
+          "Ariete Steam Iron AR-6257 supports vertical steaming for hanging clothes.",
+          "Ariete Steam Iron AR-6257 has continuous steam function.",
+          "Ariete Steam Iron AR-6257 includes a professional cork handle.",
+          "Ariete Steam Iron AR-6257 has thermostat control light indicator.",
+          "Ariete Steam Iron AR-6257 has steam ready light indicator.",
+          "Ariete Steam Iron AR-6257 has end of water warning light.",
+          "Ariete Steam Iron AR-6257 has single boiler/iron ignition button.",
+          "Ariete Steam Iron AR-6257 includes a safety cap.",
+          "Ariete Steam Iron AR-6257 produces up to 80g/min steam rate.",
+          "Ariete Steam Iron AR-6257 has 3-bar boiler pressure."
+        ]
+      },
+      "judged_at": "2026-05-16T17:18:34+00:00"
+    },
+    "f55bb632e7a0372e2f11c900467a3258f630dba54927a9e37acdd5941e5305c8": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Ariete Steam Iron AR-6257 has 2000W power output."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Power consumption 2000 W",
+        "reason": "The source explicitly states the Ariete Stiromatic 6257 has a power consumption of 2000W."
+      },
+      "judged_at": "2026-05-16T17:18:36+00:00"
+    },
+    "10ce43eb0a88e315a735cc16ee787ccde14cf1246d1dd6bc8429a735aced3413": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Ariete Steam Iron AR-6257 features an aluminium soleplate."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Coating of the working surface: aluminium / Soleplate coating: Aluminium",
+        "reason": "Both the proforma text and the e-catalog source explicitly confirm the aluminium soleplate coating for the AR-6257."
+      },
+      "judged_at": "2026-05-16T17:18:41+00:00"
+    },
+    "6ace8969304b83e0460813153d38c14dc8e8a73ef2e6f6297817221e4e18bbd1": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Ariete Steam Iron AR-6257 has 800ml water tank capacity."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Water tank volume: 800 ml",
+        "reason": "The e-catalog source explicitly states the water tank volume as 800 ml, matching the claim."
+      },
+      "judged_at": "2026-05-16T17:18:44+00:00"
+    },
+    "a4920c5f974f7ad4fec882642ce07d70e0695cda39f824657f8b175d5b55d1a0": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Ariete Steam Iron AR-6257 supports vertical steaming for hanging clothes."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "vertical steaming",
+        "reason": "The source explicitly lists 'vertical steaming' as a feature of the Ariete Stiromatic 6257, and the proforma text also states 'Vertical ironing for hanging garments'."
+      },
+      "judged_at": "2026-05-16T17:18:47+00:00"
+    },
+    "de8d21e36002bd6e13154002eeec17bda0c8a6117d944f6ce93c75686aa00903": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Ariete Steam Iron AR-6257 has continuous steam function."
+      },
+      "verdict": {
+        "supported": false,
+        "evidence": "",
+        "reason": "Neither source document mentions a continuous steam function for the AR-6257 model."
+      },
+      "judged_at": "2026-05-16T17:18:51+00:00"
+    },
+    "5f375e97478834bf1bcaedb05ec6278bfa48c47478e3cc8eefc1f7750acd7eda": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Ariete Steam Iron AR-6257 has thermostat control light indicator."
+      },
+      "verdict": {
+        "supported": false,
+        "evidence": "",
+        "reason": "Neither source document mentions a thermostat control light for the AR-6257 model."
+      },
+      "judged_at": "2026-05-16T17:18:56+00:00"
+    },
+    "ecde432c7a6d33f36069eed1abf48389a87ce42343058e9af4d3921ba626e601": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Ariete Steam Iron AR-6257 has steam ready light indicator."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Additional features iron Ariete Stiromatic 6257: Steam \"blow\" Steam ready indicator",
+        "reason": "The source explicitly lists 'Steam ready indicator' as an additional feature of the Ariete Stiromatic 6257 (AR-6257)."
+      },
+      "judged_at": "2026-05-16T17:19:00+00:00"
+    },
+    "c4f8db873e611a220796bf1e9c721effa87cafc3c9f646bd78e8523de04d068f": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Ariete Steam Iron AR-6257 has end of water warning light."
+      },
+      "verdict": {
+        "supported": false,
+        "evidence": "",
+        "reason": "Neither source mentions an 'end of water warning light' for the AR-6257 model."
+      },
+      "judged_at": "2026-05-16T17:19:03+00:00"
+    },
+    "40448dece4be8c0a0307762e71a66cb190585d1d3fd7b930a3e0fc376771c836": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Ariete Steam Iron AR-6257 has single boiler/iron ignition button."
+      },
+      "verdict": {
+        "supported": false,
+        "evidence": "",
+        "reason": "Neither source document mentions a 'single boiler/iron ignition button' feature for the AR-6257."
+      },
+      "judged_at": "2026-05-16T17:19:07+00:00"
+    },
+    "c18151cb8795426e8d0eaf57fbc75b0f05df873e0193ed90d04b4d78c09de5d4": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Ariete Steam Iron AR-6257 produces up to 80g/min steam rate."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "steam supply; vertical steaming; Water tank volume: 800 ml... Power consumption 2000 W",
+        "reason": "The proforma text explicitly states 'Steam rate: Up to 80g / min' for the AR-6257, and the source confirms it is the same model (Ariete Stiromatic 6257, 2000W, aluminium coating, 800ml tank), though the steam rate figure itself comes from the proforma rather than the web sources."
+      },
+      "judged_at": "2026-05-16T17:19:12+00:00"
+    },
+    "e90b69710c5ce4ad405db1880c7501c1a14fa7844d064715073b4a3d057b16d0": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Ariete Steam Iron AR-6257 has 3-bar boiler pressure."
+      },
+      "verdict": {
+        "supported": false,
+        "evidence": "",
+        "reason": "Neither source mentions boiler pressure or 3 bar for the AR-6257; this detail only appears in the proforma text, not in the supplier web pages."
+      },
+      "judged_at": "2026-05-16T17:19:16+00:00"
+    },
+    "5b52ca7ac381423730f626e3d6a522085e85bf10a87602b76a053bf837274ab1": {
+      "judge": "haiku_claim_extract",
+      "payload": {
+        "block": "meta_description",
+        "text_excerpt": "Discover the Ariete Stiromatic 6257 steam generator iron with 2000W power, 800ml",
+        "text_len": 130,
+        "text": "Discover the Ariete Stiromatic 6257 steam generator iron with 2000W power, 800ml tank, aluminium soleplate, and vertical steaming."
+      },
+      "verdict": {
+        "claims": [
+          "Ariete Steam Iron AR-6257 has 2000W power",
+          "Ariete Steam Iron AR-6257 has 800ml tank capacity",
+          "Ariete Steam Iron AR-6257 has aluminium soleplate",
+          "Ariete Steam Iron AR-6257 has vertical steaming capability"
+        ]
+      },
+      "judged_at": "2026-05-16T17:19:17+00:00"
+    },
+    "cb1d2d09804d1b1ce5eda32ef7e256ef1c614dae73ad9af5e653adfcb3a261ab": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Ariete Steam Iron AR-6257 has 2000W power"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Power consumption 2000 W",
+        "reason": "The source explicitly states the Ariete Stiromatic 6257 has a power consumption of 2000W."
+      },
+      "judged_at": "2026-05-16T17:19:19+00:00"
+    },
+    "165ece3d910f7f182130843e53902705825d887946ee9b887cc9126ca76fc909": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Ariete Steam Iron AR-6257 has 800ml tank capacity"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Water tank volume: 800 ml",
+        "reason": "The e-catalog source explicitly states the water tank volume is 800 ml, and the proforma lists 0.8L boiler capacity, both confirming the claim."
+      },
+      "judged_at": "2026-05-16T17:19:24+00:00"
+    },
+    "43fd3fe56995ea5e7b30cb59f10bf7c9fd39702bc9ea2f8b4f1b228cf4b717b4": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Ariete Steam Iron AR-6257 has aluminium soleplate"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Coating of the working surface: aluminium",
+        "reason": "The e-catalog source explicitly states the working surface coating is aluminium for the Ariete Stiromatic 6257 (AR-6257)."
+      },
+      "judged_at": "2026-05-16T17:19:29+00:00"
+    },
+    "8d2ff432cd4118cde17bf409d80a365196ac57a15c9704135d18e8b68d953612": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Ariete Steam Iron AR-6257 has vertical steaming capability"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Features steam supply vertical steaming",
+        "reason": "The source explicitly lists 'vertical steaming' as a feature of the Ariete Stiromatic 6257."
+      },
+      "judged_at": "2026-05-16T17:19:31+00:00"
+    }
+  }
+}

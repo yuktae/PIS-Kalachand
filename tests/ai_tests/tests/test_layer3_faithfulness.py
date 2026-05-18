@@ -103,10 +103,19 @@ def _judge_claim_cached(
     srcs_h: str,
 ) -> dict:
     cache_path = fixture.dir / "judge_layer3_cache.json"
-    payload = {"claim": claim}
+    # Phase 4 Fix #4: thread the proforma PDF into Sonnet so table-bound specs
+    # don't get falsely flagged as unsupported. The cache key gets a `_pdf` tag
+    # so verdicts produced with vs without the PDF don't collide — clearing
+    # the old text-only cache is no longer required to pick up the fix.
+    pdf_path: str | None = None
+    p = fixture.proforma_path
+    if p.exists() and p.suffix.lower() == ".pdf":
+        pdf_path = str(p)
+    payload = {"claim": claim, "judge_variant": "pdf" if pdf_path else "text"}
 
     def _call_sonnet():
-        return judge.judge_claim(claim, proforma_text, web_context)
+        return judge.judge_claim(claim, proforma_text, web_context,
+                                  proforma_pdf_path=pdf_path)
 
     return judge_cache.judged_or_run(
         cache_path=cache_path,

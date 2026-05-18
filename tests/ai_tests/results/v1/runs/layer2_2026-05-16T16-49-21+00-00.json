@@ -1,0 +1,227 @@
+{
+  "layer": 2,
+  "timestamp": "2026-05-16T16:49:21+00:00",
+  "threshold": 0.5,
+  "fixtures": [
+    {
+      "name": "bulk_ariete",
+      "classified": 23,
+      "hallucinated_grep": 2,
+      "rescued": 1,
+      "hallucinated_judged": 1,
+      "rate_grep": 0.087,
+      "rate_judged": 0.0435,
+      "confirmed_hallucinations": [
+        {
+          "field": "spec:Functions",
+          "value": "Dry/steam, Vertical steam, Steam adjustment, Steam shot, Auto-clean, Spray function, Anti-drip"
+        }
+      ]
+    },
+    {
+      "name": "bulk_belair_freezers",
+      "classified": 14,
+      "hallucinated_grep": 3,
+      "rescued": 1,
+      "hallucinated_judged": 2,
+      "rate_grep": 0.2143,
+      "rate_judged": 0.1429,
+      "confirmed_hallucinations": [
+        {
+          "field": "header_info.price_estimate",
+          "value": "Unavailable"
+        },
+        {
+          "field": "warranty_service.period",
+          "value": "Unavailable"
+        }
+      ]
+    },
+    {
+      "name": "bulk_sunon_wardrobes",
+      "classified": 10,
+      "hallucinated_grep": 0,
+      "rescued": 0,
+      "hallucinated_judged": 0,
+      "rate_grep": 0.0,
+      "rate_judged": 0.0,
+      "confirmed_hallucinations": []
+    },
+    {
+      "name": "bulk_xiaomi_tv",
+      "classified": 19,
+      "hallucinated_grep": 8,
+      "rescued": 6,
+      "hallucinated_judged": 2,
+      "rate_grep": 0.4211,
+      "rate_judged": 0.1053,
+      "confirmed_hallucinations": [
+        {
+          "field": "header_info.price_estimate",
+          "value": "Unavailable"
+        },
+        {
+          "field": "warranty_service.coverage",
+          "value": "Unavailable"
+        }
+      ]
+    },
+    {
+      "name": "single_ariete_1",
+      "classified": 20,
+      "hallucinated_grep": 1,
+      "rescued": 1,
+      "hallucinated_judged": 0,
+      "rate_grep": 0.05,
+      "rate_judged": 0.0,
+      "confirmed_hallucinations": []
+    },
+    {
+      "name": "single_belair_freezers",
+      "classified": 18,
+      "hallucinated_grep": 9,
+      "rescued": 3,
+      "hallucinated_judged": 6,
+      "rate_grep": 0.5,
+      "rate_judged": 0.3333,
+      "confirmed_hallucinations": [
+        {
+          "field": "header_info.product_name",
+          "value": "BelAir Chest Freezer"
+        },
+        {
+          "field": "warranty_service.period",
+          "value": "Unavailable from document (Specific product warranty not detailed)"
+        },
+        {
+          "field": "spec:Capacity",
+          "value": "Unavailable from document"
+        },
+        {
+          "field": "spec:Dimensions",
+          "value": "Unavailable from document"
+        },
+        {
+          "field": "spec:Energy Rating",
+          "value": "Unavailable from document"
+        },
+        {
+          "field": "spec:Temperature Range",
+          "value": "Unavailable from document"
+        }
+      ]
+    },
+    {
+      "name": "single_poco_m7",
+      "classified": 52,
+      "hallucinated_grep": 7,
+      "rescued": 5,
+      "hallucinated_judged": 2,
+      "rate_grep": 0.1346,
+      "rate_judged": 0.0385,
+      "confirmed_hallucinations": [
+        {
+          "field": "header_info.price_estimate",
+          "value": "Unavailable"
+        },
+        {
+          "field": "warranty_service.coverage",
+          "value": "Unavailable"
+        }
+      ]
+    },
+    {
+      "name": "single_poco_x7",
+      "classified": 33,
+      "hallucinated_grep": 6,
+      "rescued": 5,
+      "hallucinated_judged": 1,
+      "rate_grep": 0.1818,
+      "rate_judged": 0.0303,
+      "confirmed_hallucinations": [
+        {
+          "field": "warranty_service.period",
+          "value": "Not specified in provided documents"
+        }
+      ]
+    },
+    {
+      "name": "single_sunon_png",
+      "classified": 7,
+      "hallucinated_grep": 0,
+      "rescued": 0,
+      "hallucinated_judged": 0,
+      "rate_grep": 0.0,
+      "rate_judged": 0.0,
+      "confirmed_hallucinations": []
+    },
+    {
+      "name": "single_xiaomi_png",
+      "classified": 10,
+      "hallucinated_grep": 9,
+      "rescued": 0,
+      "hallucinated_judged": 9,
+      "rate_grep": 0.9,
+      "rate_judged": 0.9,
+      "confirmed_hallucinations": [
+        {
+          "field": "header_info.product_name",
+          "value": "Xiaomi TV A Pro 32\" GL"
+        },
+        {
+          "field": "header_info.model_number",
+          "value": "50500"
+        },
+        {
+          "field": "header_info.price_estimate",
+          "value": "Unavailable"
+        },
+        {
+          "field": "warranty_service.period",
+          "value": "Unavailable"
+        },
+        {
+          "field": "warranty_service.coverage",
+          "value": "Unavailable"
+        },
+        {
+          "field": "spec:Screen Size",
+          "value": "32 inches"
+        },
+        {
+          "field": "spec:Product ID",
+          "value": "50500"
+        },
+        {
+          "field": "spec:Series",
+          "value": "A Pro"
+        },
+        {
+          "field": "spec:Version",
+          "value": "GL (Global)"
+        }
+      ]
+    }
+  ],
+  "totals": {
+    "classified_fields": 206,
+    "hallucinated_grep": 45,
+    "rescued": 22,
+    "hallucinated_judged": 23
+  },
+  "overall_rate_grep": 0.2184,
+  "overall_rate_judged": 0.1117,
+  "anthropic_cost": {
+    "total_calls": 45,
+    "total_cost_usd": 0.0972,
+    "by_model": {
+      "claude-haiku-4-5": {
+        "calls": 45,
+        "input": 76455,
+        "output": 2450,
+        "cache_read": 24265,
+        "cache_write": 4853
+      }
+    }
+  }
+}

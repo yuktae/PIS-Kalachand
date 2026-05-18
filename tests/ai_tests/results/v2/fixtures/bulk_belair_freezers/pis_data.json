@@ -1,0 +1,64 @@
+{
+  "header_info": {
+    "product_name": "BelAir BACF210W Chest Freezer",
+    "model_number": "BACF210W",
+    "brand": "BELAIR",
+    "price_estimate": ""
+  },
+  "found_image_url": null,
+  "seo_data": {
+    "generated_keywords": "BelAir, BACF210W, HC-210, chest freezer, white freezer, one basket, A+ energy rating, efficient freezer, food storage",
+    "meta_title": "BelAir BACF210W Chest Freezer - White, One Basket, A+",
+    "meta_description": "Discover the BelAir BACF210W chest freezer, featuring a white finish, one storage basket, and an A+ energy rating for efficient freezing.",
+    "seo_long_description": "The BelAir BACF210W is a practical and energy-efficient chest freezer, identified by its customer model number BACF210W and factory model HC-210. This appliance comes in a clean white finish, designed to integrate seamlessly into various settings. It features one internal storage basket, offering a convenient way to organize and access frozen goods. As a product under the BelAir brand, it is part of an offering that strives for quality and customer satisfaction.\n\nA key technical feature of the BACF210W is its A+ energy rating, highlighting its capability for efficient operation. This rating signifies that the freezer is designed to consume less energy, contributing to lower running costs. The focus on efficiency makes the BelAir BACF210W a suitable choice for those seeking a dependable freezer with an emphasis on economical performance for long-term food storage."
+  },
+  "range_overview": "The BelAir BACF210W Chest Freezer is a functional and efficient appliance designed for reliable food preservation. Identified by its customer model number BACF210W and factory model HC-210, this chest freezer features a clean white exterior. It is equipped with one internal storage basket, providing a practical solution for organizing frozen items and facilitating easy access.\n\nA notable attribute of the BACF210W is its A+ energy rating, indicating a commitment to energy efficiency. This rating suggests optimized power consumption, making it an economical choice for users seeking to manage their electricity usage effectively. The product is part of the BelAir brand offerings, which aims to deliver products that meet high standards.",
+  "sales_arguments": [
+    "Efficient A+ energy rating for optimized power consumption.",
+    "Includes one internal storage basket for organized freezing.",
+    "Classic white finish suitable for various environments.",
+    "Reliable chest freezer from the BelAir brand.",
+    "Designed for effective long-term food preservation."
+  ],
+  "technical_specifications": {
+    "Model (Customer)": "BACF210W",
+    "Model (Factory)": "HC-210",
+    "Type": "Chest freezer",
+    "Color": "White",
+    "Storage Baskets": "One",
+    "Energy Efficiency Class": "A+",
+    "FOB Port": "Lianyungang",
+    "Order Quantity": "149 units",
+    "Carton Quantity": "1HC"
+  },
+  "warranty_service": {
+    "period": "",
+    "coverage": "1% spare parts supplied Free of Charge"
+  },
+  "_web_context": "--- SOURCE: https://belair.mu/ ---\nBelAir Mauritius HOMEPAGE admin 2019-01-11T14:16:56+00:00 A HISTORY OF EXCELLENCE WELCOME OUR PHILOSOPHY Our goal is to create quality through through diligence, attention, and respect. We put every effort to ensure all our products meet the highest standards; a product purchased from us comes with an assurance of satisfaction. READ MORE THE ESTATE Bel Air Estate is a private estate situated in the south of Mauritius. MORE THE COMPANY Bel Air has some of the most fertile agricultural land in Mauritius. MORE AGRICULTURE We specialise in sugarcane, horticulture, and arboriculture. MORE CONTACT US Give us a call or leave us a message. We would love to hear from you. MORE HISTORY THE BEL AIR ESTATE READ MORE AGRICULTURE PERFECT QUALITY Bel Air Agricultural produces a variety of crops, avocados, bananas, onions, potatoes, and many more all have a home on the estate. We have specialised in producing the very best quality crop since our very beginnings… READ MORE\n\n--- SOURCE: https://belair.mu/contact/ ---\nLOCATION & CONTACT – BelAir Mauritius LOCATION & CONTACT admin 2018-06-18T07:41:14+00:00 LOCATION & CONTACT FIND US OR GET IN TOUCH ASK US A QUESTION OR WRITE US A MESSAGE",
+  "_field_origins": {
+    "header_info.product_name": "verified",
+    "header_info.model_number": "verified",
+    "header_info.brand": "verified",
+    "header_info.price_estimate": "ai",
+    "warranty_service.period": "ai",
+    "warranty_service.coverage": "hallucinated",
+    "range_overview": "ai",
+    "sales_arguments": "ai",
+    "seo_data.generated_keywords": "ai",
+    "seo_data.meta_title": "ai",
+    "seo_data.meta_description": "ai",
+    "seo_data.seo_long_description": "ai"
+  },
+  "_spec_origins": {
+    "Model (Customer)": "verified",
+    "Model (Factory)": "verified",
+    "Type": "verified",
+    "Color": "verified",
+    "Storage Baskets": "verified",
+    "Energy Efficiency Class": "verified",
+    "FOB Port": "verified",
+    "Order Quantity": "verified",
+    "Carton Quantity": "verified"
+  }
+}

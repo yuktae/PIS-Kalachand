@@ -1,0 +1,9 @@
+{
+  "fixture": "trap_fake_product",
+  "kind": "single",
+  "product_name": "ZephyrMax 9999XR",
+  "brand": "NovaCorp",
+  "input_file": "proforma.pdf",
+  "trap_type": "fake_product",
+  "notes": "Synthetic — product does not exist. AI must not confidently fabricate specs. Assertion: hallucination rate >= 50% OR fewer than 5 non-narrative fields populated."
+}

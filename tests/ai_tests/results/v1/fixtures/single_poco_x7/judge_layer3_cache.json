@@ -1,0 +1,962 @@
+{
+  "schema_version": 1,
+  "judgments": {
+    "952c8ee0a9d987d95c3e0d2f0d07ccd0f78b993e3343487dcfc0885f28caa015": {
+      "judge": "haiku_claim_extract",
+      "payload": {
+        "block": "range_overview",
+        "text_excerpt": "The POCO X7 Pro redefines speed and performance, powered by the flagship Dimensi",
+        "text_len": 2474,
+        "text": "The POCO X7 Pro redefines speed and performance, powered by the flagship Dimensity 8400-Ultra processor. This 4nm chipset features the world-first ARM Cortex-A725 CPU architecture, providing a significant boost in CPU and GPU performance, alongside a 50% improvement in NPU AI performance compared to its predecessor. Coupled with LPDDR5X RAM and UFS 4.0 storage, it offers configurations up to 12GB + 512GB, delivering a smooth and responsive user experience for gaming, multitasking, and demanding applications. The device incorporates WildBoost Optimization 3.0 and the POCO 3D IceLoop System (LiquidCool Technology 4.0) with a 5000mm² ultra-large loop pump to maintain optimal temperatures and sustained performance during intense use.\n\nVisually, the POCO X7 Pro impresses with its 6.67-inch CrystalRes 1.5K AMOLED display, offering a resolution of 2712 x 1220 pixels, a 120Hz refresh rate, and a peak brightness of 3200 nits. The display supports Dolby Vision and HDR10+, features 1920Hz PWM dimming, and is protected by Corning Gorilla Glass 7i. For photography, it boasts a 50MP main camera with OIS (f/1.5 aperture, 1/1.95\" sensor size), capable of 4K video recording at up to 60fps, complemented by an 8MP ultrawide camera and a 20MP front camera. The device's robust build includes IP68 dust and water resistance for enhanced durability.\n\nBattery life is a key highlight, with a 6000mAh (typical) Si/C Li-Ion battery that supports 90W HyperCharge, enabling a full charge to 100% in approximately 42 minutes. The phone runs on Android 15 with Xiaomi HyperOS 2, providing a refined user interface and smart performance scheduling for improved energy efficiency. Connectivity options include Dual SIM 5G, Wi-Fi 6 (802.11ax), Bluetooth 6.0, GPS (L1+L5), GLONASS, BDS, GALILEO, NavIC, NFC (market dependent), and an Infrared port. Audio is delivered through dual speakers with Dolby Atmos support, and the device is Hi-Res Audio and Hi-Res Wireless Audio certified. Available storage and RAM variants include 8GB+256GB, 12GB+256GB, and 12GB+512GB.\n\nThe design features dimensions of 160.8 x 75.2 x 8.3 mm and a weight of 195g (plastic back) or 198g (silicone polymer/eco leather back). Security is managed by an in-screen fingerprint sensor and AI Face Unlock. The comprehensive package includes the mobile phone, adapter, USB Type-C cable, SIM eject tool, protective case, safety information, quick start guide, and a warranty card, though contents may vary by region."
+      },
+      "verdict": {
+        "claims": [
+          "POCO X7 Pro is powered by Dimensity 8400-Ultra processor.",
+          "Dimensity 8400-Ultra is a 4nm chipset.",
+          "Dimensity 8400-Ultra features ARM Cortex-A725 CPU architecture.",
+          "POCO X7 Pro has 50% improvement in NPU AI performance compared to predecessor.",
+          "POCO X7 Pro supports LPDDR5X RAM and UFS 4.0 storage.",
+          "POCO X7 Pro offers configurations up to 12GB RAM + 512GB storage.",
+          "POCO X7 Pro includes WildBoost Optimization 3.0.",
+          "POCO X7 Pro features POCO 3D IceLoop System with LiquidCool Technology 4.0.",
+          "POCO X7 Pro has 5000mm² ultra-large loop pump for thermal management.",
+          "POCO X7 Pro has 6.67-inch CrystalRes 1.5K AMOLED display.",
+          "POCO X7 Pro display resolution is 2712 x 1220 pixels.",
+          "POCO X7 Pro display has 120Hz refresh rate.",
+          "POCO X7 Pro display peak brightness is 3200 nits.",
+          "POCO X7 Pro display supports Dolby Vision and HDR10+.",
+          "POCO X7 Pro display features 1920Hz PWM dimming.",
+          "POCO X7 Pro display is protected by Corning Gorilla Glass 7i.",
+          "POCO X7 Pro has 50MP main camera with OIS and f/1.5 aperture.",
+          "POCO X7 Pro main camera sensor size is 1/1.95 inches.",
+          "POCO X7 Pro main camera supports 4K video recording at up to 60fps.",
+          "POCO X7 Pro has 8MP ultrawide camera.",
+          "POCO X7 Pro has 20MP front camera.",
+          "POCO X7 Pro has IP68 dust and water resistance rating.",
+          "POCO X7 Pro battery capacity is 6000mAh (typical) Si/C Li-Ion.",
+          "POCO X7 Pro supports 90W HyperCharge fast charging.",
+          "POCO X7 Pro charges to 100% in approximately 42 minutes.",
+          "POCO X7 Pro runs Android 15 with Xiaomi HyperOS 2.",
+          "POCO X7 Pro supports Dual SIM 5G connectivity.",
+          "POCO X7 Pro supports Wi-Fi 6 (802.11ax).",
+          "POCO X7 Pro supports Bluetooth 6.0.",
+          "POCO X7 Pro supports GPS (L1+L5), GLONASS, BDS, GALILEO, and NavIC.",
+          "POCO X7 Pro has NFC (market dependent).",
+          "POCO X7 Pro has Infrared port.",
+          "POCO X7 Pro has dual speakers with Dolby Atmos support.",
+          "POCO X7 Pro is Hi-Res Audio certified.",
+          "POCO X7 Pro is Hi-Res Wireless Audio certified.",
+          "POCO X7 Pro storage variants include 8GB+256GB, 12GB+256GB, and 12GB+512GB.",
+          "POCO X7 Pro dimensions are 160.8 x 75.2 x 8.3 mm.",
+          "POCO X7 Pro weighs 195g with plastic back.",
+          "POCO X7 Pro weighs 198g with silicone polymer/eco leather back.",
+          "POCO X7 Pro has in-screen fingerprint sensor.",
+          "POCO X7 Pro has AI Face Unlock security feature."
+        ]
+      },
+      "judged_at": "2026-05-16T17:30:35+00:00"
+    },
+    "cda1293925e2f2e14db64b5562731a8ec8536cb68854cd7a5cd17cc2ffd4cef7": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO X7 Pro is powered by Dimensity 8400-Ultra processor."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Chipset Mediatek Dimensity 8400 Ultra (4 nm)",
+        "reason": "Both sources explicitly confirm the POCO X7 Pro uses the Dimensity 8400-Ultra processor."
+      },
+      "judged_at": "2026-05-16T17:30:38+00:00"
+    },
+    "37ebb98b270a2cf61689651b22772d23d92e270f817b89cc51cdddef1402f90c": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Dimensity 8400-Ultra is a 4nm chipset."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Mediatek Dimensity 8400 Ultra (4 nm)",
+        "reason": "Both the proforma text and GSMArena source explicitly state the Dimensity 8400-Ultra uses a 4nm manufacturing process."
+      },
+      "judged_at": "2026-05-16T17:30:41+00:00"
+    },
+    "23a154675c61ef52841c342050501614cc0d528a978c4bfef3f9871fd6570bea": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "Dimensity 8400-Ultra features ARM Cortex-A725 CPU architecture."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Featuring the world-first ARM Cortex-A725 CPU architecture with an All-Big-Core design and TSMC's advanced 4nm process technology",
+        "reason": "The source explicitly states the Dimensity 8400-Ultra features ARM Cortex-A725 CPU architecture."
+      },
+      "judged_at": "2026-05-16T17:30:44+00:00"
+    },
+    "20692e2b59adc9efffbaba65844ed47463ff19affd4c811a21572d90efc7c07e": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO X7 Pro has 50% improvement in NPU AI performance compared to predecessor."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Flagship 8th generation NPU AI performance +50%*",
+        "reason": "The source explicitly states a 50% AI performance improvement for the NPU, matching the claim exactly."
+      },
+      "judged_at": "2026-05-16T17:30:49+00:00"
+    },
+    "05bb6b36dd0d24d27d39da86b2881f66637f4005ffd9dfcb1719245d0ebf8706": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO X7 Pro supports LPDDR5X RAM and UFS 4.0 storage."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "LPDDR5X + UFS 4.0",
+        "reason": "The proforma text explicitly lists 'LPDDR5X + UFS 4.0' under Storage & RAM specifications."
+      },
+      "judged_at": "2026-05-16T17:30:51+00:00"
+    },
+    "4b185c9e28faef1efffc6ee408c4cd4f20692e948f90263282275c2b926d94f1": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO X7 Pro offers configurations up to 12GB RAM + 512GB storage."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "8GB+256GB, 12GB+256GB, 12GB+512GB",
+        "reason": "The proforma text explicitly lists 12GB+512GB as the highest storage/RAM configuration available."
+      },
+      "judged_at": "2026-05-16T17:30:54+00:00"
+    },
+    "d4f78c2edcf0477ed543259b023baa747c454729c64ab718b2a8b6d77e363c9e": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO X7 Pro includes WildBoost Optimization 3.0."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "WildBoost Optimization 3.0 Bring incredible gaming to hardcore POCOers. Powered by Xiaomi HyperOS 2 and Dimensity 8400-Ultra, next-gen WildBoost Optimization enhances performance",
+        "reason": "The source explicitly names WildBoost Optimization 3.0 as a feature of the POCO X7 Pro."
+      },
+      "judged_at": "2026-05-16T17:30:57+00:00"
+    },
+    "721d898cd7e858e1b54911c1fd960415331439bde9c9bf6a17b79dc0ff7e8d45": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO X7 Pro features POCO 3D IceLoop System with LiquidCool Technology 4.0."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "LiquidCool Technology 4.0 POCO 3D IceLoop system The POCO X7 Pro comes with the X series' most powerful cooling system",
+        "reason": "The source explicitly mentions both LiquidCool Technology 4.0 and POCO 3D IceLoop System for the POCO X7 Pro."
+      },
+      "judged_at": "2026-05-16T17:31:03+00:00"
+    },
+    "df3a6f53737b8d853914a80bc19279cfe1129cdf36ab6777ec6bede9645e937e": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO X7 Pro has 5000mm² ultra-large loop pump for thermal management."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "5000mm²* ultra-large loop pump Gas and liquid flow in separate channels without interference,ensuring smoother gas-liquid movement.",
+        "reason": "The source explicitly states the 5000mm² ultra-large loop pump as part of the device's cooling/thermal management system."
+      },
+      "judged_at": "2026-05-16T17:31:08+00:00"
+    },
+    "6988afc43ae7e7f4af345af25f2271abf4238d119fe3b135ff87be12fe59c969": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO X7 Pro has 6.67-inch CrystalRes 1.5K AMOLED display."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "6.67\" CrystalRes AMOLED display | Resolution: 2712 x 1220 (1.5K resolution)",
+        "reason": "All elements of the claim — screen size, CrystalRes branding, 1.5K resolution, and AMOLED panel type — are explicitly stated in the proforma/source documents."
+      },
+      "judged_at": "2026-05-16T17:31:13+00:00"
+    },
+    "25446590453d2be0e90daf1e19198d33aec75a6735ca38ccf08b51415fb99939": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO X7 Pro display resolution is 2712 x 1220 pixels."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Resolution: 2712 x 1220 (1.5K resolution)",
+        "reason": "The exact resolution of 2712 x 1220 pixels is directly stated in the proforma text specs section."
+      },
+      "judged_at": "2026-05-16T17:31:16+00:00"
+    },
+    "50d354cff969480f6fad5f98f6ca3ab8efe3297ad25380c603a8f799abf55ce4": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO X7 Pro display has 120Hz refresh rate."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Refresh rate: Up to 120Hz",
+        "reason": "The spec sheet explicitly states the display has a refresh rate of up to 120Hz."
+      },
+      "judged_at": "2026-05-16T17:31:18+00:00"
+    },
+    "33cbdf506a5ce7dd80e7f1077c178ed21db0d7a5e40ec89db4020ed5f88987f4": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO X7 Pro display peak brightness is 3200 nits."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "3200 nits(peak brig",
+        "reason": "The proforma text explicitly states '3200 nits(peak brig' and GSMArena confirms '3200 nits (peak)'."
+      },
+      "judged_at": "2026-05-16T17:31:21+00:00"
+    },
+    "a2d0601b4affd09e0106e1456b39f85d7498b153e6dd6c7a1589334d3fed8cef": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO X7 Pro display supports Dolby Vision and HDR10+."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Supports Dolby Vision® ... HDR10+",
+        "reason": "Both Dolby Vision and HDR10+ support are explicitly listed in the display specifications in the proforma text and confirmed by GSMArena source."
+      },
+      "judged_at": "2026-05-16T17:31:24+00:00"
+    },
+    "902660d2d57c62e8a9d1ca02eb04bb7547e479bb02dd4269e7dc909d76c53625": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO X7 Pro display features 1920Hz PWM dimming."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "1920Hz PWM dimming｜16,000-level brightness adjustment｜HDR10+",
+        "reason": "The proforma text explicitly lists '1920Hz PWM dimming' as a display feature of the POCO X7 Pro."
+      },
+      "judged_at": "2026-05-16T17:31:27+00:00"
+    },
+    "0f5c89cbdcb0b7a390a09cd60dcf559ba1e8e6a38ca3b1aab95c4fd8f96ceb0b": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO X7 Pro display is protected by Corning Gorilla Glass 7i."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Corning® Gorilla® Glass 7i",
+        "reason": "Both the proforma text and GSMArena source explicitly mention Corning Gorilla Glass 7i as the display protection."
+      },
+      "judged_at": "2026-05-16T17:31:30+00:00"
+    },
+    "deccd5f14b0119764dbc11bd3fe45a0d117fe20b46eaca60f647ac2d594ba8ad": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO X7 Pro has 50MP main camera with OIS and f/1.5 aperture."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "50 MP, f/1.5, 26mm (wide), 1/1.95\", 0.8µm, PDAF, OIS",
+        "reason": "Both the proforma text and GSMArena source explicitly confirm the 50MP main camera with OIS and f/1.5 aperture."
+      },
+      "judged_at": "2026-05-16T17:31:33+00:00"
+    },
+    "c6ee5d504d516a4f8d9b66b775d61615b5dce8bbdae05f0b27dd9a1ed89172c3": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO X7 Pro main camera sensor size is 1/1.95 inches."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "1/1.95'' sensor size",
+        "reason": "The proforma text explicitly states the main camera has a 1/1.95'' sensor size, and GSMArena confirms '1/1.95\"' for the main camera."
+      },
+      "judged_at": "2026-05-16T17:31:35+00:00"
+    },
+    "e30d4d76046c3111efffe2e81386ad336e2c2ca174a9846868e78ff30314d6dd": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO X7 Pro main camera supports 4K video recording at up to 60fps."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "4K video shooting: 24fps/30fps/60fps",
+        "reason": "The spec sheet explicitly lists 4K video recording options including 60fps as the maximum frame rate."
+      },
+      "judged_at": "2026-05-16T17:31:40+00:00"
+    },
+    "451fd41a783fe4e2d695836c3f45cf479b3562339b58c456549d5c3e79234f2c": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO X7 Pro has 8MP ultrawide camera."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "8MP ultra-wide camera",
+        "reason": "The proforma text explicitly lists an 8MP ultra-wide camera as part of the rear camera setup."
+      },
+      "judged_at": "2026-05-16T17:31:44+00:00"
+    },
+    "1ce31b16013a8ba7d48f2129a5942349ee397f8d24dee713d280ae94b2bad561": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO X7 Pro has 20MP front camera."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "20MP front camera",
+        "reason": "The proforma text and both sources explicitly state the front camera is 20MP."
+      },
+      "judged_at": "2026-05-16T17:31:47+00:00"
+    },
+    "9b2326a2081a1670dbb77139be1cff10bad29455813718d5681d986f460162cb": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO X7 Pro has IP68 dust and water resistance rating."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "IP68* dust and water resistance Flagship-level resistance for strong protection",
+        "reason": "The source explicitly states the POCO X7 Pro has IP68 dust and water resistance."
+      },
+      "judged_at": "2026-05-16T17:31:49+00:00"
+    },
+    "3c8ad86fc1a9087d7fe9baac172ba57d4962f1b0f3489a202314be73ec4def2f": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO X7 Pro battery capacity is 6000mAh (typical) Si/C Li-Ion."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Si/C Li-Ion 6000 mAh (Global) / 6000mAh (typ)",
+        "reason": "Both the Si/C Li-Ion chemistry and 6000mAh typical capacity are explicitly stated in the sources."
+      },
+      "judged_at": "2026-05-16T17:31:54+00:00"
+    },
+    "4acc4fd912684e708aa22ed9d8a07f4226ec312b8da44bc82eddaaf7a48655a0": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO X7 Pro supports 90W HyperCharge fast charging."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "6000mAh (typ) battery with 90W* HyperCharge Charge to 100% in 42 mins*",
+        "reason": "Both the proforma text and source pages explicitly state the POCO X7 Pro supports 90W HyperCharge."
+      },
+      "judged_at": "2026-05-16T17:31:56+00:00"
+    },
+    "6d588cf3ddff72b2a80dca6229647d142fa06099f73fb7a8bf3bac9e1998c4ec": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO X7 Pro charges to 100% in approximately 42 minutes."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Charge to 100% in 42 mins*",
+        "reason": "The source explicitly states the device charges to 100% in 42 minutes."
+      },
+      "judged_at": "2026-05-16T17:31:59+00:00"
+    },
+    "15ef2dd4c36c4b3f7fd5987deaf32f8bbb4e56b4bd7dbf853e67b78f53b7e425": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO X7 Pro runs Android 15 with Xiaomi HyperOS 2."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Android 15, HyperOS 2",
+        "reason": "The GSMArena source explicitly states the OS is Android 15, HyperOS 2, and the proforma text confirms Xiaomi HyperOS 2."
+      },
+      "judged_at": "2026-05-16T17:32:02+00:00"
+    },
+    "9f86f007e04603366353a520277bbd6084c943c78b555f73fb85c1bf56a17617": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO X7 Pro supports Dual SIM 5G connectivity."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Dual SIM，dual standby（5G+5G，5G+4G）",
+        "reason": "The spec sheet explicitly states the device supports Dual SIM with dual standby including 5G+5G and 5G+4G configurations."
+      },
+      "judged_at": "2026-05-16T17:32:05+00:00"
+    },
+    "07440beece797d5fe2c6107782693b2c77af22759c670d1ce11ef164e5591edf": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO X7 Pro supports Wi-Fi 6 (802.11ax)."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Wi-Fi Protocol: 802.11a/b/g/n/ac/ax",
+        "reason": "The proforma lists 802.11ax, which is the technical standard name for Wi-Fi 6, a standard synonym."
+      },
+      "judged_at": "2026-05-16T17:32:13+00:00"
+    },
+    "caff7e13c61d52668d0d6a2e221d4c93911c8a40306a3e7cff6ca6e871bef8be": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO X7 Pro supports Bluetooth 6.0."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Bluetooth 6.0",
+        "reason": "The Proforma Text (official spec sheet) explicitly lists Bluetooth 6.0 under Network & Connectivity."
+      },
+      "judged_at": "2026-05-16T17:32:19+00:00"
+    },
+    "00f2144d2a3f509d7aeb739b550dd5f2da8ed93ea20c739be207a9f8cd667646": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO X7 Pro supports GPS (L1+L5), GLONASS, BDS, GALILEO, and NavIC."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "GPS: L1+L5 | Galileo: E1+E5a | GLONASS: G1 | Beidou: B1I+B2a+B1C | NavIC: L5A-GPS supplementary positioning",
+        "reason": "All five navigation systems mentioned in the claim are explicitly listed in the proforma specs."
+      },
+      "judged_at": "2026-05-16T17:32:25+00:00"
+    },
+    "74a3344b8d642fd40dbc1e23b1f3a2a7f4fb3e86a4c2bda2ef950615ba606939": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO X7 Pro has NFC (market dependent)."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "NFC Yes (market/region dependent)",
+        "reason": "The GSMArena source explicitly states NFC is supported but market/region dependent."
+      },
+      "judged_at": "2026-05-16T17:32:27+00:00"
+    },
+    "e2ef1ced235fa8111d0a409d36ce3212ec0dcb068fe8cf9a0b68fc8f1d865c6a": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO X7 Pro has Infrared port."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Infrared port Yes",
+        "reason": "GSMArena explicitly lists 'Infrared port Yes', and the proforma specs also mention 'IR blaster' under Sensors."
+      },
+      "judged_at": "2026-05-16T17:32:31+00:00"
+    },
+    "520a5f62c1bceb19dda68be9f7563937e1f17bc3a1cbd6b02d413d7e0fe4158e": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO X7 Pro has dual speakers with Dolby Atmos support."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Dual speakers / Dolby Atmos®",
+        "reason": "The proforma spec sheet explicitly lists both 'Dual speakers' and 'Dolby Atmos®' under the Audio section."
+      },
+      "judged_at": "2026-05-16T17:32:38+00:00"
+    },
+    "13bfb8f8950b5776a7208937a50f8cb7ecc9159b3d1efa3cea3a7ecd9aaff304": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO X7 Pro is Hi-Res Audio certified."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Hi-Res Audio｜Hi-Res Audio Wireless",
+        "reason": "The source explicitly lists Hi-Res Audio as a feature, which directly supports the claim of Hi-Res Audio certification."
+      },
+      "judged_at": "2026-05-16T17:32:44+00:00"
+    },
+    "621d1172d4215023de198de519156b00a17d6821da988d8d822d5153a3f25beb": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO X7 Pro is Hi-Res Wireless Audio certified."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Hi-Res Audio｜Hi-Res Audio Wireless",
+        "reason": "The proforma spec sheet explicitly lists Hi-Res Audio Wireless as a supported audio feature."
+      },
+      "judged_at": "2026-05-16T17:32:48+00:00"
+    },
+    "e0524df217a94e63798215dfa589a6015f1761497ed5fdfc62aea5d26db9fb33": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO X7 Pro storage variants include 8GB+256GB, 12GB+256GB, and 12GB+512GB."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "8GB+256GB, 12GB+256GB, 12GB+512GB",
+        "reason": "The proforma text explicitly lists all three storage/RAM variants."
+      },
+      "judged_at": "2026-05-16T17:32:50+00:00"
+    },
+    "b4ae3948cae7f05ac068152215d100c883b41b71c80a538ab01e5af0502bee28": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO X7 Pro dimensions are 160.8 x 75.2 x 8.3 mm."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Dimensions 160.8 x 75.2 x 8.3 mm (6.33 x 2.96 x 0.33 in)",
+        "reason": "The claim exactly matches the dimensions listed in the GSMArena source."
+      },
+      "judged_at": "2026-05-16T17:32:55+00:00"
+    },
+    "cd0c5ecc0884bc434e0027d91a39e5f501e36303646c3642648ad77033621c11": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO X7 Pro weighs 195g with plastic back."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Weight: 195g(plastic) / 198 (PU）",
+        "reason": "The spec sheet explicitly states 195g corresponds to the plastic variant."
+      },
+      "judged_at": "2026-05-16T17:33:00+00:00"
+    },
+    "17f26680a9042c8bb1617b929ce094b1925a367bd0e885b9633eb9235a233808": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO X7 Pro weighs 198g with silicone polymer/eco leather back."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Weight: 195g(plastic) / 198 (PU）",
+        "reason": "The proforma text directly links 198g to the PU (eco leather/silicone polymer) variant, matching the claim."
+      },
+      "judged_at": "2026-05-16T17:33:06+00:00"
+    },
+    "bc10b4de143744ebf591d609e664a70fb2d51233af47ca62a915b7f4bc9f2e21": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO X7 Pro has in-screen fingerprint sensor."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Fingerprint (under display, optical)",
+        "reason": "GSMArena source explicitly states the fingerprint sensor is under the display, which is synonymous with 'in-screen fingerprint sensor'."
+      },
+      "judged_at": "2026-05-16T17:33:08+00:00"
+    },
+    "453457617e76bb46e4c7dd81af28df218fe79252e449f115f33736e87ea0e165": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO X7 Pro has AI Face Unlock security feature."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Security: In-screen fingerprint sensor / AI Face Unlock / NFC / Support",
+        "reason": "The proforma spec sheet explicitly lists AI Face Unlock as a security feature of the POCO X7 Pro."
+      },
+      "judged_at": "2026-05-16T17:33:12+00:00"
+    },
+    "2510308a97b71ff30459c4ee9587381bf17cacb7de088e4db44b91236e17be4d": {
+      "judge": "haiku_claim_extract",
+      "payload": {
+        "block": "sales_arguments",
+        "text_excerpt": "- Experience flagship-level performance with the Dimensity 8400-Ultra processor,",
+        "text_len": 629,
+        "text": "- Experience flagship-level performance with the Dimensity 8400-Ultra processor, achieving an AnTuTu score of 1,704,330.\n- Immerse yourself in visuals on the CrystalRes 1.5K 120Hz AMOLED display with 3200 nits peak brightness and Dolby Vision.\n- Stay powered throughout the day with a 6000mAh (typ) battery and recharge to 100% in just 42 minutes using 90W HyperCharge.\n- Capture stunning photos and videos with the 50MP main camera featuring Optical Image Stabilization (OIS) and 4K@60fps recording.\n- Enjoy enhanced durability and peace of mind with IP68 dust and water resistance, providing strong protection against elements."
+      },
+      "verdict": {
+        "claims": [
+          "POCO X7 Pro has a Dimensity 8400-Ultra processor.",
+          "POCO X7 Pro achieves an AnTuTu score of 1,704,330.",
+          "POCO X7 Pro has a CrystalRes 1.5K 120Hz AMOLED display.",
+          "POCO X7 Pro display has 3200 nits peak brightness.",
+          "POCO X7 Pro display supports Dolby Vision.",
+          "POCO X7 Pro has a 6000mAh (typ) battery.",
+          "POCO X7 Pro charges to 100% in 42 minutes with 90W HyperCharge.",
+          "POCO X7 Pro has a 50MP main camera with Optical Image Stabilization.",
+          "POCO X7 Pro records 4K video at 60fps.",
+          "POCO X7 Pro has IP68 dust and water resistance."
+        ]
+      },
+      "judged_at": "2026-05-16T17:33:15+00:00"
+    },
+    "98dec228f95586958aed37165fb9d5a822caf614748eb5d0c7e53a7b0e31bb0f": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO X7 Pro has a Dimensity 8400-Ultra processor."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Chipset Mediatek Dimensity 8400 Ultra (4 nm)",
+        "reason": "Both sources explicitly confirm the POCO X7 Pro uses the Dimensity 8400-Ultra processor."
+      },
+      "judged_at": "2026-05-16T17:33:17+00:00"
+    },
+    "7fafa952de12ce0ed0b14aea14ec4ac9c5d44a7e93dd3f2d55683a1869325a1e": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO X7 Pro achieves an AnTuTu score of 1,704,330."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "1,704,330* Antutu score *Data tested based on AnTuTu v10 by POCO Internal Labs. Actual results may vary.",
+        "reason": "The exact AnTuTu score of 1,704,330 is directly stated on the official Xiaomi product page source."
+      },
+      "judged_at": "2026-05-16T17:33:21+00:00"
+    },
+    "7db9a98f6c3cecc147e32c2cbbb55ed57f7b590a7660849e0c1a1d469580d2f3": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO X7 Pro has a CrystalRes 1.5K 120Hz AMOLED display."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "CrystalRes 1.5K 120Hz AMOLED display",
+        "reason": "The exact phrase 'CrystalRes 1.5K 120Hz AMOLED display' appears verbatim in the source page."
+      },
+      "judged_at": "2026-05-16T17:33:24+00:00"
+    },
+    "53d29bae85dd07654fabaa13d86a8c501ba0fe8352faf6037fb012d84b729adb": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO X7 Pro display has 3200 nits peak brightness."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Brightness: 700 nits (typ), 1400 nits(HBM brightness), 3200 nits(peak brig",
+        "reason": "The proforma text explicitly states 3200 nits peak brightness for the display."
+      },
+      "judged_at": "2026-05-16T17:33:27+00:00"
+    },
+    "d9b01470d34fe9ec041ec84883b2e72c434967c7d3e33d1f5bafbad88ebd3c3f": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO X7 Pro display supports Dolby Vision."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Supports Dolby Vision®",
+        "reason": "The proforma text explicitly states the display 'Supports Dolby Vision®'."
+      },
+      "judged_at": "2026-05-16T17:33:29+00:00"
+    },
+    "a026634f69e8dd360077865c70f40f04cf07900339dd352c25877813d442e81a": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO X7 Pro has a 6000mAh (typ) battery."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "6000mAh (typ) battery with 90W HyperCharge",
+        "reason": "The source explicitly states the battery capacity as 6000mAh (typ)."
+      },
+      "judged_at": "2026-05-16T17:33:32+00:00"
+    },
+    "7a2e738116c6b0250fea0b4b33d62683e7cb2b91aba34015631ec190e1899fa9": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO X7 Pro charges to 100% in 42 minutes with 90W HyperCharge."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "6000mAh (typ) battery with 90W* HyperCharge Charge to 100% in 42 mins*",
+        "reason": "The source explicitly states the device charges to 100% in 42 minutes using 90W HyperCharge."
+      },
+      "judged_at": "2026-05-16T17:33:35+00:00"
+    },
+    "d11ad8af581babf6307b0aaef3077769af16e8fd281c7df6ab5eccdb014818b4": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO X7 Pro has a 50MP main camera with Optical Image Stabilization."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "50MP main camera with OIS",
+        "reason": "Both the proforma text and source pages explicitly state the 50MP main camera includes OIS (Optical Image Stabilization)."
+      },
+      "judged_at": "2026-05-16T17:33:38+00:00"
+    },
+    "0dbef6bb414d10a81f68f37f843a928ba69bb503b86080c66c74c98c7f84a7a4": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO X7 Pro records 4K video at 60fps."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "4K video shooting: 24fps/30fps/60fps",
+        "reason": "Both the proforma spec sheet and GSMArena explicitly list 60fps as a supported 4K video recording frame rate."
+      },
+      "judged_at": "2026-05-16T17:33:43+00:00"
+    },
+    "f91a9ae01a5487efdc4395f8a2e5c730c594722d4221261140f42d7d0af12cbc": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO X7 Pro has IP68 dust and water resistance."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "IP68* dust and water resistance Flagship-level resistance for strong protection",
+        "reason": "The source explicitly states the POCO X7 Pro has IP68 dust and water resistance."
+      },
+      "judged_at": "2026-05-16T17:33:45+00:00"
+    },
+    "1e30c2527ba6450762cc9e62c124eed477c36ef245dbb64a17a281e0662f0315": {
+      "judge": "haiku_claim_extract",
+      "payload": {
+        "block": "seo_long_description",
+        "text_excerpt": "The POCO X7 Pro stands out as a high-performance smartphone designed for demandi",
+        "text_len": 1111,
+        "text": "The POCO X7 Pro stands out as a high-performance smartphone designed for demanding users. Featuring the Flagship Dimensity 8400-Ultra chipset built on a 4nm process with ARM Cortex-A725 CPU architecture, it delivers exceptional gaming and multitasking capabilities, achieving an impressive AnTuTu score of 1,704,330. This performance is further enhanced by LPDDR5X RAM and UFS 4.0 storage, ensuring smooth and reliable operation, complemented by advanced LiquidCool Technology 4.0 with a 5000mm² ultra-large loop pump for sustained peak performance.\n\nBeyond raw power, the POCO X7 Pro offers an immersive visual experience on its CrystalRes 1.5K 120Hz AMOLED display, boasting 3200 nits peak brightness, 12-bit color depth, and Corning Gorilla Glass 7i protection. Photography is handled by a versatile 50MP main camera with OIS for stable shots, alongside an 8MP ultrawide and a 20MP front camera. The device is built for durability with an IP68 dust and water resistance rating, houses a substantial 6000mAh (typ) battery, and supports blazing-fast 90W HyperCharge, achieving a full charge in just 42 minutes."
+      },
+      "verdict": {
+        "claims": [
+          "POCO X7 Pro features Dimensity 8400-Ultra chipset built on 4nm process.",
+          "POCO X7 Pro has ARM Cortex-A725 CPU architecture.",
+          "POCO X7 Pro achieves AnTuTu score of 1,704,330.",
+          "POCO X7 Pro includes LPDDR5X RAM.",
+          "POCO X7 Pro has UFS 4.0 storage.",
+          "POCO X7 Pro features LiquidCool Technology 4.0 with 5000mm² ultra-large loop pump.",
+          "POCO X7 Pro has 1.5K 120Hz AMOLED display.",
+          "POCO X7 Pro display has 3200 nits peak brightness.",
+          "POCO X7 Pro display has 12-bit color depth.",
+          "POCO X7 Pro display has Corning Gorilla Glass 7i protection.",
+          "POCO X7 Pro has 50MP main camera with OIS.",
+          "POCO X7 Pro has 8MP ultrawide camera.",
+          "POCO X7 Pro has 20MP front camera.",
+          "POCO X7 Pro has IP68 dust and water resistance rating.",
+          "POCO X7 Pro has 6000mAh (typ) battery.",
+          "POCO X7 Pro supports 90W HyperCharge.",
+          "POCO X7 Pro achieves full charge in 42 minutes with 90W HyperCharge."
+        ]
+      },
+      "judged_at": "2026-05-16T17:33:48+00:00"
+    },
+    "5239ce374bfbabc364846c957fe9720b581c55dc2dabce211c9663c772879562": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO X7 Pro features Dimensity 8400-Ultra chipset built on 4nm process."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Mediatek Dimensity 8400 Ultra (4 nm)",
+        "reason": "Both sources confirm the Dimensity 8400-Ultra chipset is built on a 4nm manufacturing process."
+      },
+      "judged_at": "2026-05-16T17:33:50+00:00"
+    },
+    "fb54c40d2f87c7d2674e16efcf5614d0642dbdf5bdbd5093bb80d17bb9604ae9": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO X7 Pro has ARM Cortex-A725 CPU architecture."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Featuring the world-first ARM Cortex-A725 CPU architecture with an All-Big-Core design and TSMC's advanced 4nm process technology",
+        "reason": "The mi.com source explicitly states the POCO X7 Pro features ARM Cortex-A725 CPU architecture."
+      },
+      "judged_at": "2026-05-16T17:33:55+00:00"
+    },
+    "074b4c46e10e07e7442b955662add48a82a4948c6931a93b74b2b50eee297486": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO X7 Pro achieves AnTuTu score of 1,704,330."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "1,704,330* Antutu score *Data tested based on AnTuTu v10 by POCO Internal Labs. Actual results may vary.",
+        "reason": "The exact AnTuTu score of 1,704,330 is directly stated on the official Xiaomi product page source."
+      },
+      "judged_at": "2026-05-16T17:33:59+00:00"
+    },
+    "bfeaeece93a04c8e20928c47e021e8cc858dbaadf121de815fea250bcc614ac0": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO X7 Pro includes LPDDR5X RAM."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "LPDDR5X + UFS 4.0",
+        "reason": "The spec sheet explicitly lists LPDDR5X as the RAM type under Storage & RAM."
+      },
+      "judged_at": "2026-05-16T17:34:03+00:00"
+    },
+    "dda78ec3856f0d3ad040807cee28e729b0e01b1d7ae9831c697cceb907162d0d": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO X7 Pro has UFS 4.0 storage."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "LPDDR5X + UFS 4.0",
+        "reason": "The proforma text explicitly lists UFS 4.0 as the storage type for the POCO X7 Pro."
+      },
+      "judged_at": "2026-05-16T17:34:06+00:00"
+    },
+    "cfb669fa93833a6208e0424db1a5e6ddd247ed5afe7cc9b916ecb34598a9545d": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO X7 Pro features LiquidCool Technology 4.0 with 5000mm² ultra-large loop pump."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "LiquidCool Technology 4.0 POCO 3D IceLoop system... 5000mm²* ultra-large loop pump Gas and liquid flow in separate channels without interference",
+        "reason": "The Xiaomi product page explicitly states LiquidCool Technology 4.0 with a 5000mm² ultra-large loop pump."
+      },
+      "judged_at": "2026-05-16T17:34:10+00:00"
+    },
+    "7658933d8876f5601a2595bd35dc59932ec1b1fed532441b3e2e17d64a803d45": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO X7 Pro has 1.5K 120Hz AMOLED display."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "CrystalRes 1.5K 120Hz AMOLED display",
+        "reason": "The source explicitly states the POCO X7 Pro features a CrystalRes 1.5K 120Hz AMOLED display."
+      },
+      "judged_at": "2026-05-16T17:34:16+00:00"
+    },
+    "0740036431a28b0e4e5bf0230b8351fbd7eaff366ad1770c6098c9e9e4e2d6b2": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO X7 Pro display has 12-bit color depth."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Color depth: 12bit",
+        "reason": "The proforma spec sheet explicitly states the display has 12-bit color depth."
+      },
+      "judged_at": "2026-05-16T17:34:20+00:00"
+    },
+    "c80ce5d7721d0fee1e681dca0ffefd437275beda549b28a657e60b58f11c8e11": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO X7 Pro display has Corning Gorilla Glass 7i protection."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Corning® Gorilla® Glass 7i",
+        "reason": "The proforma text and both sources explicitly mention Corning Gorilla Glass 7i as the display protection."
+      },
+      "judged_at": "2026-05-16T17:34:23+00:00"
+    },
+    "58d193a74a80db6c1302d840d22345e18f836cc64b1448cc25e1a8abac86aa28": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO X7 Pro has 50MP main camera with OIS."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "50MP main camera with OIS",
+        "reason": "The claim is directly stated verbatim in both the proforma text and the source documents."
+      },
+      "judged_at": "2026-05-16T17:34:25+00:00"
+    },
+    "f89a5ac7948f0595f57f8f1ce66011e2f1381beb048ebe0d64c282e003e7312d": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO X7 Pro has 6000mAh (typ) battery."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "6000mAh (typ) battery with 90W HyperCharge",
+        "reason": "The source explicitly states the battery capacity as 6000mAh (typ)."
+      },
+      "judged_at": "2026-05-16T17:34:27+00:00"
+    },
+    "87cf9ef8b077aae8ed8c3d5c3aa14c38222ecc09139f77dd4d97717881b8a6e5": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO X7 Pro supports 90W HyperCharge."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "6000mAh (typ) battery with 90W HyperCharge",
+        "reason": "Both the proforma text and source pages explicitly state the POCO X7 Pro supports 90W HyperCharge."
+      },
+      "judged_at": "2026-05-16T17:34:30+00:00"
+    },
+    "ae468153af78b5c57610019ddc2f3cf5655670883934c0de29a00291f4acfa52": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO X7 Pro achieves full charge in 42 minutes with 90W HyperCharge."
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Charge to 100% in 42 mins*",
+        "reason": "The source explicitly states the device charges to 100% in 42 minutes with 90W HyperCharge."
+      },
+      "judged_at": "2026-05-16T17:34:33+00:00"
+    },
+    "cf1692e46d856e44a37fb7f89bc9ffd104fad69b730e6f143a26e650f1dd7a64": {
+      "judge": "haiku_claim_extract",
+      "payload": {
+        "block": "meta_description",
+        "text_excerpt": "Experience the POCO X7 Pro with Flagship Dimensity 8400-Ultra, CrystalRes 1.5K 1",
+        "text_len": 155,
+        "text": "Experience the POCO X7 Pro with Flagship Dimensity 8400-Ultra, CrystalRes 1.5K 120Hz AMOLED display, 90W HyperCharge, 50MP OIS camera, and IP68 durability."
+      },
+      "verdict": {
+        "claims": [
+          "POCO X7 Pro has Dimensity 8400-Ultra processor",
+          "POCO X7 Pro has CrystalRes 1.5K 120Hz AMOLED display",
+          "POCO X7 Pro supports 90W HyperCharge",
+          "POCO X7 Pro has 50MP camera with OIS",
+          "POCO X7 Pro has IP68 durability rating"
+        ]
+      },
+      "judged_at": "2026-05-16T17:34:35+00:00"
+    },
+    "b8bc5a722b3d790985aaff637679ae8acba2b90c27f1436d10eab496c50b8f2b": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO X7 Pro has Dimensity 8400-Ultra processor"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "Chipset Mediatek Dimensity 8400 Ultra (4 nm)",
+        "reason": "Both sources explicitly confirm the POCO X7 Pro uses the Dimensity 8400-Ultra processor."
+      },
+      "judged_at": "2026-05-16T17:34:38+00:00"
+    },
+    "adc592d2c756db1335f361438182462c48f2ee30b4cfb50141d6c3931c49da69": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO X7 Pro has CrystalRes 1.5K 120Hz AMOLED display"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "CrystalRes 1.5K 120Hz AMOLED display",
+        "reason": "The exact phrase 'CrystalRes 1.5K 120Hz AMOLED display' appears verbatim in the source document."
+      },
+      "judged_at": "2026-05-16T17:34:40+00:00"
+    },
+    "a97fa22bdc6714d38b384655535e5cc0af7f7216825869cb626b73736f2393a4": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO X7 Pro supports 90W HyperCharge"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "6000mAh (typ) battery with 90W HyperCharge",
+        "reason": "Both the proforma text and source pages explicitly state the POCO X7 Pro supports 90W HyperCharge."
+      },
+      "judged_at": "2026-05-16T17:34:43+00:00"
+    },
+    "365dc3bebefbbdd661176775b99842276e1de331f6e8e6bfa875ef822fd92dab": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO X7 Pro has 50MP camera with OIS"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "50MP main camera with OIS",
+        "reason": "The claim is directly stated in both the proforma text and the source documents."
+      },
+      "judged_at": "2026-05-16T17:34:45+00:00"
+    },
+    "ce96e894d9b1ab612bdf4a9c222c454c24212d9e42971fb03de85bc0addde286": {
+      "judge": "sonnet_claim_judge",
+      "payload": {
+        "claim": "POCO X7 Pro has IP68 durability rating"
+      },
+      "verdict": {
+        "supported": true,
+        "evidence": "IP68* dust and water resistance",
+        "reason": "The Xiaomi product page explicitly lists IP68 dust and water resistance for the POCO X7 Pro."
+      },
+      "judged_at": "2026-05-16T17:34:50+00:00"
+    }
+  }
+}

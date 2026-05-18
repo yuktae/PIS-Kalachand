@@ -1,0 +1,60 @@
+{
+  "header_info": {
+    "product_name": "Sunon 2D Wardrobe - Oak/Warm White",
+    "model_number": "XDY60.120060-OAK-W",
+    "brand": "Sunon",
+    "price_estimate": "20,385"
+  },
+  "found_image_url": null,
+  "seo_data": {
+    "generated_keywords": "Sunon 2D wardrobe, oak, warm white, particle board, melamine, PVC edge banding, soft close hinges, key lock, modern wardrobe, clothes storage, bedroom furniture, functional wardrobe, XDY60.120060-OAK-W",
+    "meta_title": "Sunon 2D Wardrobe - Oak/Warm White (XDY60.120060-OAK-W)",
+    "meta_description": "Discover the Sunon 2D Wardrobe in Oak/Warm White. Features 2 doors, shelves, clothes rail, soft-close hinges, and key lock for secure storage.",
+    "seo_long_description": "The Sunon 2D Wardrobe, model XDY60.120060-OAK-W, offers a robust and elegant storage solution for any modern bedroom. Constructed from 25/18mm E0 Grade Particle Board, it ensures durability and environmental responsibility. The surfaces are finished with high-quality melamine and reinforced with PVC edge banding, providing enhanced resistance to daily wear and tear while maintaining a sleek aesthetic. This wardrobe's design is thoughtfully crafted to blend seamlessly into various interior styles, offering both functionality and sophisticated appeal.\n\nDesigned for optimal organization, this 2-door wardrobe features a versatile interior configuration. It includes both internal shelves and a dedicated clothes rail, catering to a mix of folded garments and hanging items. Additionally, open shelves are strategically placed in the middle and bottom sections, ideal for displaying personal effects or storing frequently accessed items. The integration of soft-close hinges ensures quiet and smooth door operation, while a key lock mechanism adds an extra layer of security for your belongings, making it a practical and secure choice for essential storage."
+  },
+  "range_overview": "The Sunon 2D Wardrobe, specifically the XDY60.120060-OAK-W model, is an expertly crafted storage unit designed for both aesthetic appeal and practical functionality. It features a robust construction utilizing 25/18mm E0 Grade Particle Board, a material known for its durability and compliance with strict emission standards, ensuring a healthier indoor environment. The exterior is meticulously finished with high-quality melamine and reinforced with PVC edge banding, which not only enhances its visual appeal with an elegant Oak frame and Warm White doors but also provides superior resistance against scratches, moisture, and impact, ensuring long-term resilience.\n\nThis wardrobe measures 1200mm in width, 600mm in depth, and 2000mm in height, providing ample storage capacity without overwhelming the room. Its intelligent internal configuration includes two doors that open to reveal both internal shelves and a dedicated clothes rail, allowing for flexible organization of various garments. Further enhancing its utility, open shelves are conveniently integrated into the middle and bottom sections, offering additional space for accessories, folded items, or decorative pieces. The inclusion of soft-close hinges ensures a smooth, quiet, and gentle closing action for the doors, preventing wear and tear and adding a touch of premium comfort. For added security, the wardrobe is also equipped with a key lock, safeguarding personal items.",
+  "sales_arguments": [
+    "Constructed with durable 25/18mm E0 Grade Particle Board for longevity and environmental safety.",
+    "Features a sophisticated Oak frame with Warm White doors, complemented by Melamine and PVC Edge Banding for enhanced aesthetics and resilience.",
+    "Optimized 2-door configuration with internal shelves, a clothes rail, and open shelves for comprehensive storage.",
+    "Equipped with soft-close hinges for quiet operation and extended product life.",
+    "Includes a key lock mechanism, providing enhanced security for personal belongings."
+  ],
+  "technical_specifications": {
+    "Model Number": "XDY60.120060-OAK-W",
+    "Description": "2D Wardrobe",
+    "Color": "Oak frame + White doors",
+    "Dimension WxDxH (mm)": "1200*600*2000",
+    "Material": "25/18mm E0 Grade Particle Board with Melamine + PVC Edge Banding",
+    "Configuration": "2 doors wardrobe with shelves and clothes rail inside, open shelves in middle and bottom",
+    "Hardware": "Soft close hinges + Key lock"
+  },
+  "warranty_service": {
+    "period": "Unavailable",
+    "coverage": "Unavailable"
+  },
+  "_web_context": "",
+  "_field_origins": {
+    "header_info.product_name": "ai",
+    "header_info.model_number": "verified",
+    "header_info.brand": "verified",
+    "header_info.price_estimate": "verified",
+    "warranty_service.period": "ai",
+    "warranty_service.coverage": "ai",
+    "range_overview": "ai",
+    "sales_arguments": "ai",
+    "seo_data.generated_keywords": "ai",
+    "seo_data.meta_title": "ai",
+    "seo_data.meta_description": "ai",
+    "seo_data.seo_long_description": "ai"
+  },
+  "_spec_origins": {
+    "Model Number": "verified",
+    "Description": "verified",
+    "Color": "verified",
+    "Dimension WxDxH (mm)": "verified",
+    "Material": "verified",
+    "Configuration": "verified",
+    "Hardware": "verified"
+  }
+}

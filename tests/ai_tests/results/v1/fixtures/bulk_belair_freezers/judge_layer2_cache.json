@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "judgments": {
+    "9f832e9ef5b1ba24e63f1487077fcb10bd1a72b4c61dd0d9ee87a51423d8ed85": {
+      "judge": "haiku_field_rescue",
+      "payload": {
+        "field": "header_info.price_estimate",
+        "value": "Unavailable"
+      },
+      "verdict": {
+        "supported": false,
+        "source": "neither",
+        "evidence": "The field value is 'Unavailable', which indicates no actual price estimate data to verify against sources."
+      },
+      "judged_at": "2026-05-16T16:48:24+00:00"
+    },
+    "c21461bceca50504fdf2b5404dcf6f635cf7689ae42b03ceb0a10b26d9e7b462": {
+      "judge": "haiku_field_rescue",
+      "payload": {
+        "field": "warranty_service.period",
+        "value": "Unavailable"
+      },
+      "verdict": {
+        "supported": false,
+        "source": "neither",
+        "evidence": "No warranty service period information found in proforma or web sources"
+      },
+      "judged_at": "2026-05-16T16:48:26+00:00"
+    },
+    "433092a4121759dc5266e5195b47ebb53d6aef149f5fc46488e8b028758b74e3": {
+      "judge": "haiku_field_rescue",
+      "payload": {
+        "field": "warranty_service.coverage",
+        "value": "1% spare parts will be supplied Free of Charge to the buyer (details for end-user warranty are not specified)"
+      },
+      "verdict": {
+        "supported": true,
+        "source": "proforma",
+        "evidence": "1% spare parts will be supplied Free of Charge"
+      },
+      "judged_at": "2026-05-16T16:48:27+00:00"
+    }
+  }
+}
