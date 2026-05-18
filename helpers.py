@@ -316,11 +316,13 @@ def diff_and_log(product_id, old_data, new_data, prefix='', _version_num=None,
         if _normalize(old_data) == _normalize(new_data):
             return
         try:
+            fmt_old = _format_value(old_data)
+            fmt_new = _format_value(new_data)
             db.session.add(_make_field_change(
                 product_id=product_id, user_id=user_id,
                 field_name=_clean_field_name(prefix or 'root'),
-                old_value=_format_value(old_data)[:2000] if _format_value(old_data) else None,
-                new_value=_format_value(new_data)[:2000] if _format_value(new_data) else None,
+                old_value=fmt_old[:2000] if fmt_old else None,
+                new_value=fmt_new[:2000] if fmt_new else None,
                 version_num=_version_num,
                 workflow_stage=_workflow_stage,
             ))
@@ -349,11 +351,13 @@ def diff_and_log(product_id, old_data, new_data, prefix='', _version_num=None,
             if _normalize(old_val) == _normalize(new_val):
                 continue
             try:
+                fmt_old = _format_value(old_val)
+                fmt_new = _format_value(new_val)
                 db.session.add(_make_field_change(
                     product_id=product_id, user_id=user_id,
                     field_name=_clean_field_name(field),
-                    old_value=_format_value(old_val)[:2000] if _format_value(old_val) else None,
-                    new_value=_format_value(new_val)[:2000] if _format_value(new_val) else None,
+                    old_value=fmt_old[:2000] if fmt_old else None,
+                    new_value=fmt_new[:2000] if fmt_new else None,
                     version_num=_version_num,
                     workflow_stage=_workflow_stage,
                 ))
@@ -793,7 +797,7 @@ def extract_raw_text_from_files(file_paths) -> str:
         try:
             if ext == '.pdf':
                 import fitz  # type: ignore
-                doc = fitz.open(fp)
+                doc = fitz.open(fp)  # type: ignore[attr-defined]
                 for page in doc:
                     chunks.append(page.get_text("text"))
                 doc.close()
