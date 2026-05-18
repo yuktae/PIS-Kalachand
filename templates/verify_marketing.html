@@ -6,14 +6,15 @@
    Origin enum:
      - verified     — value found in the Proforma raw text
      - web_grounded — value found in the Brave-fetched supplier web text
-     - inferred     — value came from inferred_specs (deduced, no source check)
+     - inferred     — value came from inferred_specs (deduced by AI from
+                      brand-context knowledge — see BRAND_CONTEXT_LIBRARY
+                      in utils/ai_generation.py for niche-brand defaults)
      - ai           — narrative composed by the AI (paragraphs)
      - hallucinated — value found in NEITHER the proforma nor web sources
      - discrepancy  — proforma path: AI claimed it as source but grep can't find it
-   The macro renders verified (✔ yellow) and discrepancy (⚠ red) distinctly;
-   all other AI-bucket states (ai/inferred/web_grounded/hallucinated/source)
-   render as the same red ✨ sparkle so the UI stays unchanged. Eval tests
-   are what consume the new states meaningfully. #}
+   Phase 3 Fix #5: `inferred` now renders as a distinct purple "AI-enriched"
+   pill so the marketing team can tell brand-context deductions apart from
+   unverified narrative AI output. #}
 {% set _origins = data.get('_field_origins') or {} %}
 {% set _spec_origins = data.get('_spec_origins') or {} %}
 {% set _confidence = data.get('_confidence') or {} %}
@@ -35,7 +36,12 @@
           title="Web-grounded — found in the supplier's web page, not the Proforma. Verify the source page if accuracy matters.">
         🌐
     </span>
-    {% elif _o in ['ai', 'inferred', 'source', 'hallucinated'] %}
+    {% elif _o == 'inferred' %}
+    <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-purple-50 text-purple-600 text-[11px] border border-purple-200"
+          title="AI-enriched — deduced from brand-context knowledge (BelAir, Sunon, Kenstar, etc.), not printed in the document. Cross-check before publishing.">
+        ✨
+    </span>
+    {% elif _o in ['ai', 'source', 'hallucinated'] %}
     <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-50 text-red-500 text-[11px] border border-red-100"
           title="AI-generated — verify against the source document.">
         ✨
@@ -55,6 +61,7 @@
 {% set _has_any_ai = _origins or _spec_origins %}
 {% set _has_discrepancy = _origins.values() | select('equalto', 'discrepancy') | list or _spec_origins.values() | select('equalto', 'discrepancy') | list %}
 {% set _has_web_grounded = _origins.values() | select('equalto', 'web_grounded') | list or _spec_origins.values() | select('equalto', 'web_grounded') | list %}
+{% set _has_enriched = _origins.values() | select('equalto', 'inferred') | list or _spec_origins.values() | select('equalto', 'inferred') | list %}
 {% set _source_files = data.get('_source_files') or [] %}
 {% set _variants = data.get('variants') or [] %}
 
@@ -189,6 +196,12 @@
                 <span class="inline-flex items-center gap-2">
                     <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-blue-50 text-blue-600 text-[11px] border border-blue-200">🌐</span>
                     <span><span class="font-bold">Web-grounded</span> — found on the supplier site, not the Proforma.</span>
+                </span>
+                {% endif %}
+                {% if _has_enriched %}
+                <span class="inline-flex items-center gap-2">
+                    <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-purple-50 text-purple-600 text-[11px] border border-purple-200">✨</span>
+                    <span><span class="font-bold">AI-enriched</span> — likely correct, cross-check.</span>
                 </span>
                 {% endif %}
                 <span class="inline-flex items-center gap-2">
@@ -515,8 +528,9 @@
                             {% set _is_disc_spec = _spec_o == 'discrepancy' %}
                             {% set _is_fact_spec = _spec_o == 'verified' %}
                             {% set _is_web_spec = _spec_o == 'web_grounded' %}
-                            {% set _is_ai_spec = _spec_o in ['ai', 'inferred', 'source', 'hallucinated'] %}
-                            <tr class="border-b border-gray-50 group hover:bg-gray-50 transition-colors {% if _is_disc_spec %}bg-red-50/40{% elif _is_ai_spec %}bg-red-50/20{% elif _is_web_spec %}bg-blue-50/20{% elif _is_fact_spec %}bg-yellow-50/30{% endif %}">
+                            {% set _is_enriched_spec = _spec_o == 'inferred' %}
+                            {% set _is_ai_spec = _spec_o in ['ai', 'source', 'hallucinated'] %}
+                            <tr class="border-b border-gray-50 group hover:bg-gray-50 transition-colors {% if _is_disc_spec %}bg-red-50/40{% elif _is_ai_spec %}bg-red-50/20{% elif _is_enriched_spec %}bg-purple-50/20{% elif _is_web_spec %}bg-blue-50/20{% elif _is_fact_spec %}bg-yellow-50/30{% endif %}">
                                 <td class="px-6 py-3 font-semibold w-1/3">
                                     <div class="flex items-center gap-2">
                                         <input name="spec_name" value="{{ k }}"
@@ -527,6 +541,9 @@
                                         {% elif _is_web_spec %}
                                         <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-blue-50 text-blue-600 text-[11px] border border-blue-200 shrink-0"
                                               title="Web-grounded — found in the supplier web page, not the Proforma.">🌐</span>
+                                        {% elif _is_enriched_spec %}
+                                        <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-purple-50 text-purple-600 text-[11px] border border-purple-200 shrink-0"
+                                              title="AI-enriched — deduced from brand-context knowledge (BelAir, Sunon, Kenstar, etc.), not printed on the document. Cross-check before publishing.">✨</span>
                                         {% elif _is_ai_spec %}
                                         <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-50 text-red-500 text-[11px] border border-red-100 shrink-0"
                                               title="AI-generated — not printed on the source document.">✨</span>
