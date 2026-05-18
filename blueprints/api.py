@@ -77,13 +77,58 @@ def _pis_worker(app, job_id, model_name, supplier_url, ai_filepaths, contains_im
         try:
             upload_folder = app.config['UPLOAD_FOLDER']
             _update_job(job_id, status='processing', progress=10, message='Initializing Analysis...')
+
+            # Build the web/site context fed to generate_pis_data. Mirrors the
+            # bulk-wizard content task: always run Brave so the verify-PIS
+            # badges can split Fact vs Web-grounded vs AI; the supplier URL,
+            # when given, is a supplement concatenated ahead of Brave's text.
             site_data = {"text": "", "html": ""}
+            site_text_parts: list[str] = []
             if supplier_url:
-                _update_job(job_id, progress=20, message='Reading Website Text...')
-                site_data = scrape_url_data(supplier_url)
+                _update_job(job_id, progress=15, message='Reading supplier website...')
+                scraped = scrape_url_data(supplier_url) or {}
+                if scraped.get('text'):
+                    site_text_parts.append(scraped['text'])
+                site_data['html'] = scraped.get('html') or ''
+
+            _update_job(job_id, progress=25, message='Searching the web for product context...')
+            web_context = ""
+            try:
+                from utils.image_processing import gather_web_context_for_content
+                web_context = gather_web_context_for_content(model_name) or ""
+                if web_context:
+                    site_text_parts.append(web_context)
+            except Exception as e:
+                print(f"⚠ Brave web context fetch failed for '{model_name}': {e}")
+
+            site_data['text'] = "\n\n".join(p for p in site_text_parts if p)
 
             _update_job(job_id, progress=40, message='Generating PIS Content...')
             ai_data = generate_pis_data(ai_filepaths, model_name, site_data)
+
+            # Origin classification — grep AI fields against the proforma raw
+            # text (verified) and web context (web_grounded) so the verify-PIS
+            # legend renders Fact / Web / AI-enriched / AI-generated badges
+            # instead of falling back to a uniform red ✨ on every field.
+            # `_web_context` uses the combined site text (supplier scrape +
+            # Brave) so anything sourced from either gets web-grounded.
+            try:
+                from helpers import (
+                    extract_raw_text_from_files,
+                    classify_flat_pis_origins,
+                )
+                raw_doc_text = extract_raw_text_from_files(ai_filepaths) or ""
+                combined_web = site_data['text']
+                field_origins, spec_origins = classify_flat_pis_origins(
+                    ai_data, raw_doc_text, web_context=combined_web or None,
+                )
+                ai_data['_field_origins'] = field_origins
+                ai_data['_spec_origins'] = spec_origins
+                if combined_web:
+                    ai_data['_web_context'] = combined_web
+            except Exception as e:
+                print(f"⚠ origin classification failed for single PIS: {e}")
+
             extracted_image_path = None
 
             if contains_images and ai_filepaths:
@@ -372,13 +417,36 @@ def _single_finalize_worker(app, job_id, token, model_name,
                 upload_folder = os.path.join(app.root_path, upload_folder)
 
             # ── 1. Content extraction ────────────────────────────────────
+            # Always run Brave web search so single-wizard imports get the
+            # same Web-grounded coverage as the bulk wizard. The supplier
+            # URL scrape (only set in Edit PIS today) is kept as a text
+            # supplement when present. Both feed `site_data['text']` so
+            # `generate_proforma_data` can ground its output against them.
             site_data = {"text": "", "html": ""}
+            site_text_parts: list[str] = []
             if supplier_url:
                 _update_job(job_id, progress=15, message='Scraping supplier URL...')
                 try:
-                    site_data = scrape_url_data(supplier_url)
+                    scraped = scrape_url_data(supplier_url) or {}
+                    if scraped.get('text'):
+                        site_text_parts.append(scraped['text'])
+                    site_data['html'] = scraped.get('html') or ''
                 except Exception as e:
-                    print(f'[single async] scrape failed (continuing): {e}')
+                    print(f'[single async] supplier scrape failed (continuing): {e}')
+
+            _update_job(job_id, progress=22, message='Searching the web for product context...')
+            web_context = ""
+            try:
+                from utils.image_processing import gather_web_context_for_content
+                web_context = gather_web_context_for_content(
+                    model_name, brand=brand or None,
+                ) or ""
+                if web_context:
+                    site_text_parts.append(web_context)
+            except Exception as e:
+                print(f"[single async] Brave web context failed for '{model_name}': {e}")
+
+            site_data['text'] = "\n\n".join(p for p in site_text_parts if p)
 
             _update_job(job_id, progress=30, message='Extracting content with AI...')
             extracted = generate_proforma_data(
@@ -404,6 +472,23 @@ def _single_finalize_worker(app, job_id, token, model_name,
             header = pis.get('header_info', {}) or {}
             final_name  = (header.get('product_name') or model_name or '').strip() or model_name
             final_brand = (header.get('brand') or brand or '').strip() or brand
+
+            # Origin classification — grep AI fields against proforma raw
+            # text (verified) and combined web context (web_grounded) so
+            # the verify-PIS legend renders Fact / Web / AI-enriched / AI
+            # badges instead of falling back to a uniform red ✨.
+            try:
+                from helpers import classify_flat_pis_origins
+                combined_web = site_data['text']
+                field_origins, spec_origins = classify_flat_pis_origins(
+                    pis, raw_doc_text, web_context=combined_web or None,
+                )
+                pis['_field_origins'] = field_origins
+                pis['_spec_origins'] = spec_origins
+                if combined_web:
+                    pis['_web_context'] = combined_web
+            except Exception as e:
+                print(f'[single async] origin classification failed: {e}')
 
             # ── 2. Image extraction — simplified two-tier ────────────────
             candidates: list[str] = []  # relative `uploads/...` paths, deduped

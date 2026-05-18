@@ -727,30 +727,39 @@ def _relevance_tokens(text: str) -> list[str]:
     return [t.lower() for t in raw if len(t) >= _RELEVANCE_TOKEN_MIN_LEN]
 
 
-def _page_is_relevant(text: str, model_name: str) -> bool:
+def _page_is_relevant(text: str, model_name: str,
+                       brand: str | None = None) -> bool:
     """Phase 2 Fix #3 — relevance check. A fetched page is considered
     relevant if its text contains either the model number/SKU OR at least
-    two distinct tokens from the model name. Brand alone is NOT enough
-    (a Xiaomi catalogue page mentions the brand on every product, but
-    that's exactly the irrelevant content we want to drop).
+    two distinct tokens drawn from BOTH the model name AND the brand.
+
+    Including the brand fixes products like "TV A Pro 32 GL" where the
+    model name on its own only contributes one ≥3-char token ("pro") —
+    not enough to satisfy the ≥2 rule — even though the legit supplier
+    page clearly mentions both the brand and the model. Combining the
+    two token sets keeps catalogue-only pages out (one brand mention
+    isn't enough on its own) while letting real product pages through.
     """
     if not text:
         return False
     haystack = text.lower()
     model_tokens = _relevance_tokens(model_name)
-    if not model_tokens:
+    brand_tokens = _relevance_tokens(brand or "")
+    all_tokens = set(model_tokens) | set(brand_tokens)
+    if not all_tokens:
         # No tokens to check against — fall back to accepting whatever we
         # got so we don't accidentally starve a niche product of context.
         return True
     # SKU-shape token (mixed letters+digits, length ≥ 4) is the strongest
-    # signal — one match is enough to call the page relevant.
+    # signal — one match is enough to call the page relevant. Only the
+    # model name supplies SKUs; brands are word-shaped.
     for tok in model_tokens:
         if len(tok) >= 4 and any(c.isdigit() for c in tok) and any(c.isalpha() for c in tok):
             if tok in haystack:
                 return True
-    # Otherwise require ≥2 distinct model-name tokens to appear, so a page
-    # that only mentions the generic word "TV" isn't accepted as relevant.
-    hits = sum(1 for tok in set(model_tokens) if tok in haystack)
+    # Otherwise require ≥2 distinct tokens (from model + brand) to appear,
+    # so a page that only mentions the brand isn't accepted as relevant.
+    hits = sum(1 for tok in all_tokens if tok in haystack)
     return hits >= 2
 
 
@@ -786,7 +795,7 @@ def gather_web_context_for_content(model_name: str,
     for url, text in zip(urls, texts):
         if not text:
             continue
-        if not _page_is_relevant(text, model_name):
+        if not _page_is_relevant(text, model_name, brand):
             dropped += 1
             if log_cb:
                 try: log_cb(f"web ctx: dropped irrelevant page {url}")
