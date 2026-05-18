@@ -840,8 +840,8 @@
                                     <span>Search the web</span>
                                 </button>
                                 <button type="button" @click="openRetouchModal()"
-                                    :disabled="!candidates.length"
-                                    :class="!candidates.length ? 'opacity-40 cursor-not-allowed' : ''"
+                                    :disabled="!retouchableImages.length"
+                                    :class="!retouchableImages.length ? 'opacity-40 cursor-not-allowed' : ''"
                                     class="w-full px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-2"
                                     title="Pick an existing image and let AI clean it up — keeps the product faithful">
                                     <svg class="w-3.5 h-3.5 text-red-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
@@ -940,11 +940,11 @@
                              the thumbnails. -m-x-4 + px-4 extends the white
                              background to the full panel width (escapes the
                              surrounding p-4 padding). -->
-                        <template x-if="additionalImages.length > 0">
+                        <template x-if="galleryImages.length > 0">
                             <div class="sticky top-0 z-20 bg-white/95 backdrop-blur-sm -mx-4 px-4 py-2 mb-3 border-b border-slate-100 flex items-center justify-between">
                                 <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500">
                                     Gallery images
-                                    <span class="ml-1 text-slate-400" x-text="'(' + additionalImages.length + ')'"></span>
+                                    <span class="ml-1 text-slate-400" x-text="'(' + galleryImages.length + ')'"></span>
                                 </p>
                                 <template x-if="!selectMode">
                                     <button type="button" @click="enterSelectMode()"
@@ -967,9 +967,9 @@
                         </template>
 
                         <!-- Additional Images Grid -->
-                        <template x-if="additionalImages.length > 0">
+                        <template x-if="galleryImages.length > 0">
                             <div class="grid grid-cols-2 gap-2">
-                                <template x-for="(img_path, idx) in additionalImages" :key="img_path">
+                                <template x-for="(img_path, idx) in galleryImages" :key="img_path">
                                     <div class="aspect-square bg-white rounded-xl flex items-center justify-center overflow-hidden relative group cursor-pointer transition-all"
                                          :class="isSelected(img_path) ? 'border-2 border-red-500 ring-2 ring-red-200 shadow-md' : 'border border-gray-100 hover:border-red-200 hover:shadow-sm'"
                                          @click.stop="onThumbClick(img_path)">
@@ -993,16 +993,22 @@
                                         <span x-show="!selectMode"
                                             class="absolute top-1.5 right-1.5 bg-white/80 text-[8px] font-bold text-gray-500 w-5 h-5 rounded-md flex items-center justify-center backdrop-blur-sm border border-gray-100"
                                             x-text="idx + 1"></span>
+                                        <!-- Main badge — shown on the thumbnail that mirrors the hero slot -->
+                                        <template x-if="!selectMode && img_path === mainImage">
+                                            <span class="absolute bottom-1.5 left-1.5 bg-gradient-to-r from-slate-800 to-slate-700 text-white text-[8px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider shadow-sm">★ Main</span>
+                                        </template>
                                         <!-- Per-thumb actions: hidden in select mode -->
                                         <div x-show="!selectMode"
                                             class="absolute inset-0 bg-gradient-to-t from-black/65 via-black/15 to-transparent flex items-end justify-center gap-1.5 pb-3 opacity-0 group-hover:opacity-100 transition-all duration-200 pointer-events-none flex-wrap">
-                                            <button type="button"
-                                                @click.stop="promoteToMain(img_path)"
-                                                class="pointer-events-auto flex items-center gap-1 text-[10px] font-bold text-white bg-amber-500/90 hover:bg-amber-500 px-2.5 py-1 rounded-md backdrop-blur-sm transition-colors"
-                                                title="Set as main image">
-                                                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.16c.969 0 1.371 1.24.588 1.81l-3.366 2.446a1 1 0 00-.364 1.118l1.286 3.957c.3.922-.755 1.688-1.54 1.118l-3.366-2.445a1 1 0 00-1.176 0l-3.366 2.445c-.784.57-1.838-.196-1.54-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.05 9.384c-.783-.57-.38-1.81.588-1.81h4.16a1 1 0 00.95-.69l1.286-3.957z"/></svg>
-                                                Main
-                                            </button>
+                                            <template x-if="img_path !== mainImage">
+                                                <button type="button"
+                                                    @click.stop="promoteToMain(img_path)"
+                                                    class="pointer-events-auto flex items-center gap-1 text-[10px] font-bold text-white bg-amber-500/90 hover:bg-amber-500 px-2.5 py-1 rounded-md backdrop-blur-sm transition-colors"
+                                                    title="Set as main image">
+                                                    <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.16c.969 0 1.371 1.24.588 1.81l-3.366 2.446a1 1 0 00-.364 1.118l1.286 3.957c.3.922-.755 1.688-1.54 1.118l-3.366-2.445a1 1 0 00-1.176 0l-3.366 2.445c-.784.57-1.838-.196-1.54-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.05 9.384c-.783-.57-.38-1.81.588-1.81h4.16a1 1 0 00.95-.69l1.286-3.957z"/></svg>
+                                                    Main
+                                                </button>
+                                            </template>
                                             <template x-if="variants && variants.length > 0">
                                                 <button type="button"
                                                     @click.stop="toggleAssignDropdown(img_path, $event)"
@@ -1264,20 +1270,23 @@
                         <div class="p-5 max-h-[70vh] overflow-y-auto">
                             <p class="text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-2">1. Pick the image to retouch</p>
                             <div class="grid grid-cols-3 sm:grid-cols-4 gap-2 mb-5">
-                                <template x-for="c in candidates" :key="c.path">
+                                <template x-for="p in retouchableImages" :key="p">
                                     <button type="button"
-                                        @click="retouchPickedPath = c.path"
-                                        :class="retouchPickedPath === c.path
+                                        @click="retouchPickedPath = p"
+                                        :class="retouchPickedPath === p
                                             ? 'ring-4 ring-red-500 border-red-500'
                                             : 'border-slate-200 hover:border-red-300'"
-                                        class="aspect-square bg-slate-100 rounded-lg border-2 overflow-hidden focus:outline-none transition-all">
-                                        <img :src="(c.path && (c.path.startsWith('http://') || c.path.startsWith('https://'))) ? c.path : ('/static/' + c.path)"
+                                        class="aspect-square bg-slate-100 rounded-lg border-2 overflow-hidden focus:outline-none transition-all relative">
+                                        <img :src="(p.startsWith('http://') || p.startsWith('https://')) ? p : ('/static/' + p)"
                                              class="w-full h-full object-contain"
                                              onerror="this.style.opacity='0.2'">
+                                        <template x-if="p === mainImage">
+                                            <span class="absolute bottom-1 left-1 bg-gradient-to-r from-slate-800 to-slate-700 text-white text-[8px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider shadow-sm">★ Main</span>
+                                        </template>
                                     </button>
                                 </template>
-                                <p x-show="!candidates.length" class="col-span-full text-xs text-slate-400 italic py-6 text-center">
-                                    No gallery images yet — search the web or upload one first.
+                                <p x-show="!retouchableImages.length" class="col-span-full text-xs text-slate-400 italic py-6 text-center">
+                                    No images yet — search the web or upload one first.
                                 </p>
                             </div>
 
@@ -2323,6 +2332,34 @@ function productGallery(init) {
             return (this.mainImage ? 1 : 0) + this.additionalImages.length;
         },
 
+        /* Gallery view = main image (if any) followed by additional_images.
+           The two fields stay disjoint in the database — we only merge them
+           for rendering so the main image is visible in the gallery grid
+           alongside everything else. Filters defensively in case a stale
+           response leaves the main path in additional_images. */
+        get galleryImages() {
+            const extras = this.additionalImages.filter(p => p && p !== this.mainImage);
+            return this.mainImage ? [this.mainImage, ...extras] : extras;
+        },
+
+        /* Every image the user could plausibly pick to retouch: the current
+           main, the gallery, plus any _bulk_image_candidates that aren't
+           already represented. Products imported outside the bulk flow have
+           an empty candidates array, so without merging in main+gallery the
+           Retouch button was disabled even when a main image was clearly
+           visible. De-duped while preserving order. */
+        get retouchableImages() {
+            const seen = new Set();
+            const out = [];
+            const push = (p) => {
+                if (p && !seen.has(p)) { seen.add(p); out.push(p); }
+            };
+            if (this.mainImage) push(this.mainImage);
+            this.additionalImages.forEach(push);
+            this.candidates.forEach(c => { if (c && c.path) push(c.path); });
+            return out;
+        },
+
         /* The main image is only crop-able when it's a local `uploads/…`
            path (the crop endpoint enforces UPLOAD_FOLDER provenance). For
            images already living on Azure Blob this disables the button. */
@@ -2381,8 +2418,9 @@ function productGallery(init) {
 
         /* ── Action: Retouch with AI ───────────────────────────────────── */
         openRetouchModal() {
-            if (!this.candidates.length) return;
-            this.retouchPickedPath = this.mainImage || (this.candidates[0]?.path || '');
+            const pool = this.retouchableImages;
+            if (!pool.length) return;
+            this.retouchPickedPath = this.mainImage || pool[0];
             this.retouchNote = '';
             this.retouchOpen = true;
             this.showImageMenu = false;
