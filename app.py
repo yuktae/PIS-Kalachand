@@ -5,6 +5,7 @@ Gunicorn CMD: gunicorn ... app:app
 The `app` variable at module level is created by create_app() so Gunicorn can import it.
 """
 import os
+import secrets
 import sys
 if hasattr(sys.stdout, 'reconfigure'):
     sys.stdout.reconfigure(encoding='utf-8', errors='replace')
@@ -104,6 +105,8 @@ def create_app() -> Flask:
         elif response.content_type and 'text/html' in response.content_type:
             response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
         response.headers['X-Content-Type-Options'] = 'nosniff'
+        response.headers['X-Frame-Options'] = 'DENY'
+        response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
         return response
 
     # ── TEMPLATE GLOBALS ────────────────────────────────────────────────────
@@ -145,8 +148,8 @@ def create_app() -> Flask:
             with db.engine.connect() as conn:
                 db.metadata.create_all(bind=conn, checkfirst=True)
                 conn.commit()
-        except Exception:
-            pass
+        except Exception as e:
+            print(f'⚠️  DB schema init failed: {e}. Check DATABASE_URL and that PostgreSQL is running.')
 
         # ── Idempotent column adds for tables that existed before a model
         # column was introduced. `create_all(checkfirst=True)` only creates
@@ -209,10 +212,12 @@ def create_app() -> Flask:
                     display_name='System Admin',
                     is_active=True
                 )
-                admin.set_password('admin123')
+                default_password = secrets.token_urlsafe(12)
+                admin.set_password(default_password)
                 db.session.add(admin)
                 db.session.commit()
-                print('✅ Default admin account created: admin@jkalachand.com / admin123')
+                print(f'✅ Default admin created: admin@jkalachand.com / {default_password}')
+                print('WARNING: CHANGE THIS PASSWORD IMMEDIATELY via Admin -> Users.')
         except Exception:
             db.session.rollback()
             print('ℹ️ Admin account already exists or seed skipped (multi-worker race)')

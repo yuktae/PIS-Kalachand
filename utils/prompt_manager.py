@@ -28,6 +28,7 @@ TASK:
    - **VERBATIM MODEL NUMBER**: Copy `model_number` exactly as it appears in the document — no rephrasing, no abbreviation, no reformatting.
    - **NO-SOURCE GUARD**: If no source text was extracted from the document and no relevant web context is available, leave all narrative fields (range_overview, sales_arguments, seo_data.*) blank rather than composing them from general product knowledge.
    - **INDEPENDENT CONTENT**: This description must be standalone. NEVER refer to other products, model variations, or colors in your text. Each overview must be unique and fully populated.
+   - **PLAIN TEXT VALUES**: Every string value (range_overview, sales_arguments items, seo_data.*, etc.) must be plain text. Do NOT use Markdown formatting — no `**bold**`, no `*italic*`, no `__underline__`, no leading `#` headings, no bullet markers inside the string.
 4. HERO IMAGE SELECTION:
    - Review the 'IMAGE CANDIDATES' list below.
    - **CRITICAL**: Select the single URL that represents the **HERO SHOT** (main product image).
@@ -75,6 +76,7 @@ Task:
    - If a field is missing from the source, leave it as an empty string "". Do NOT write placeholder text like "Unavailable", "Unavailable from document", "N/A", or "Not specified".
    - **VERBATIM MODEL NUMBER**: Copy `model_number` exactly as it appears in the document — no rephrasing, no abbreviation, no reformatting.
    - **NO-SOURCE GUARD**: If no source text was extracted from a product entry and no relevant web context is available for it, leave that product's narrative fields (range_overview, sales_arguments, seo_data.*) blank rather than composing them from general product knowledge.
+   - **PLAIN TEXT VALUES**: Every string value (range_overview, sales_arguments items, seo_data.*, etc.) must be plain text. Do NOT use Markdown formatting — no `**bold**`, no `*italic*`, no `__underline__`, no leading `#` headings, no bullet markers inside the string.
 4. **INDEPENDENT DESCRIPTIONS**:
    - Each product must have its own standalone, unique, and comprehensive description.
    - **CRITICAL**: NEVER refer to other products in the list (e.g., AVOID "See Model X for more info" or "Refer to the overview of the cream version").
@@ -190,6 +192,10 @@ For every product object you MUST split data into TWO nodes:
   that case.
 - Each product's `range_overview` must be standalone — never refer to
   other products in the list.
+- **PLAIN TEXT VALUES**: every string in `ai_enriched_details` and
+  `source_facts` must be plain text. NO Markdown — no `**bold**`, no
+  `*italic*`, no `__underline__`, no `#` headings, no bullet markers
+  inside the string itself.
 - For HERO IMAGE selection: pick the URL representing a clean main
   product photo. Avoid diagrams, internal components, badges, icons.
 - Documents may mix French and English (Mauritius). Output every
@@ -668,6 +674,7 @@ Read the uploaded document(s) and produce ONE PIS covering ALL of the variants a
 - DO NOT pick one variant and ignore the others.
 - DO NOT output a JSON list — only ONE product object covering all variants.
 - Write everything in English (the source may mix French/English).
+- PLAIN TEXT VALUES: every string (range_overview, sales_arguments items, seo_data.*, etc.) must be plain text. NO Markdown — no `**bold**`, no `*italic*`, no `__underline__`, no `#` headings.
 
 {web_context}
 

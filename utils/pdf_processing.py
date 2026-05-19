@@ -4,6 +4,7 @@ Handles PDF image extraction using high-quality page screenshots
 and AI-powered product detection.
 """
 
+import logging
 import os
 import io
 import json
@@ -18,6 +19,8 @@ from werkzeug.utils import secure_filename
 from google import genai
 from google.genai import types
 from .prompt_manager import get_prompt
+
+logger = logging.getLogger(__name__)
 
 _MODEL = 'gemini-2.5-flash'
 _NANO_BANANA_MODEL = 'gemini-2.5-flash-image'   # Image-out model (a.k.a. nano-banana)
@@ -1230,7 +1233,8 @@ def _is_mostly_solid(pil_image, threshold=15):
         avg_stddev = sum(stat.stddev) / len(stat.stddev)
 
         return avg_stddev < threshold
-    except:
+    except Exception:
+        logger.exception("solid-image stddev check failed — treating as non-solid")
         return False
 
 

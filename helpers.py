@@ -687,6 +687,12 @@ def normalize_pis_data(data):
     data.setdefault('range_overview', '')
     if 'sales_arguments' not in data or not isinstance(data.get('sales_arguments'), list):
         data['sales_arguments'] = []
+    else:
+        data['sales_arguments'] = [
+            re.sub(r'(\*\*|__)(.+?)\1', r'\2', str(x)).strip()
+            for x in data['sales_arguments']
+            if str(x).strip()
+        ]
     if 'technical_specifications' not in data or not isinstance(data.get('technical_specifications'), dict):
         data['technical_specifications'] = {}
     if 'warranty_service' not in data or not isinstance(data.get('warranty_service'), dict):

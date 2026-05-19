@@ -155,7 +155,8 @@ def extract_domain(url):
     try:
         parsed = urlparse(url)
         return parsed.netloc.replace("www.", "")
-    except:
+    except Exception:
+        logger.exception("extract_domain failed for url=%r", url)
         return None
 
 
@@ -868,7 +869,8 @@ def is_bad_image_url(url: str) -> bool:
     try:
         domain = urlparse(url).netloc.replace("www.", "").lower()
         return domain in BAD_IMAGE_DOMAINS
-    except:
+    except Exception:
+        logger.exception("is_bad_image_url check failed for url=%r", url)
         return False
 
 

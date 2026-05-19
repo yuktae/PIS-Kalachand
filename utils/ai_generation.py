@@ -4,6 +4,7 @@ Handles all Gemini AI-powered content generation
 """
 
 import json
+import logging
 import os
 import time
 import re
@@ -14,7 +15,9 @@ from .category_classifier import classify_product_category
 from .json_utils import safe_json_loads
 from .prompt_manager import get_prompt
 
-_MODEL = 'gemini-2.5-flash'
+logger = logging.getLogger(__name__)
+
+_MODEL = os.getenv('GEMINI_MODEL', 'gemini-2.5-flash')
 
 # Phase 3.0: thread-local Gemini clients. The parent worker thread holds a
 # Flask app context and a Gemini client; child workers in
@@ -884,7 +887,8 @@ def generate_specsheet_optimization(product_data):
             config=types.GenerateContentConfig(response_mime_type="application/json", temperature=0.1)
         )
         return safe_json_loads(response.text, fallback={})
-    except:
+    except Exception:
+        logger.exception("spec_optimization failed — returning empty result")
         return {}
 
 
