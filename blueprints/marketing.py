@@ -30,6 +30,7 @@ from utils.image_processing import (
 )
 from utils import single_wizard as sw
 from utils import bulk_wizard as bw
+from utils.upload_validation import validate_upload
 from sqlalchemy.orm.attributes import flag_modified
 from extensions import limiter
 
@@ -247,6 +248,13 @@ def create_pis():
             filename = secure_filename(ai_file.filename)
             filepath = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
             ai_file.save(filepath)
+            ok, err = validate_upload(filepath)
+            if not ok:
+                try:
+                    os.remove(filepath)
+                except OSError:
+                    pass
+                return err or "Unsupported upload.", 400
             ai_filepaths.append(filepath)
 
     upload_folder = current_app.config['UPLOAD_FOLDER']
@@ -365,6 +373,13 @@ def import_proforma():
             filename = secure_filename(ai_file.filename)
             filepath = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
             ai_file.save(filepath)
+            ok, err = validate_upload(filepath)
+            if not ok:
+                try:
+                    os.remove(filepath)
+                except OSError:
+                    pass
+                return err or "Unsupported upload.", 400
             ai_filepaths.append(filepath)
 
     if not ai_filepaths and not supplier_url:
@@ -586,6 +601,13 @@ def import_proforma_auto_detect():
             filename = secure_filename(f.filename)
             fpath = os.path.join(upload_folder, filename)
             f.save(fpath)
+            ok, err = validate_upload(fpath)
+            if not ok:
+                try:
+                    os.remove(fpath)
+                except OSError:
+                    pass
+                return {"error": err or "Unsupported upload."}, 400
             saved_paths.append(fpath)
             saved_names.append(filename)
 
@@ -704,6 +726,14 @@ def import_proforma_bulk_triage():
             filename = secure_filename(f.filename)
             fpath = os.path.join(upload_folder, filename)
             f.save(fpath)
+            ok, err = validate_upload(fpath)
+            if not ok:
+                try:
+                    os.remove(fpath)
+                except OSError:
+                    pass
+                body = json.dumps({"error": err or "Unsupported upload."}) + "\n"
+                return Response(body, status=400, mimetype='application/x-ndjson')
             saved_paths.append(fpath)
             saved_names.append(filename)
 
@@ -981,6 +1011,14 @@ def import_proforma_single_scan():
             filename = secure_filename(f.filename)
             fpath = os.path.join(upload_folder, filename)
             f.save(fpath)
+            ok, err = validate_upload(fpath)
+            if not ok:
+                try:
+                    os.remove(fpath)
+                except OSError:
+                    pass
+                body = json.dumps({"error": err or "Unsupported upload."}) + "\n"
+                return Response(body, status=400, mimetype='application/x-ndjson')
             saved_paths.append(fpath)
             saved_names.append(filename)
 
@@ -1672,6 +1710,13 @@ def create_bulk():
             filename = secure_filename(ai_file.filename)
             filepath = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
             ai_file.save(filepath)
+            ok, err = validate_upload(filepath)
+            if not ok:
+                try:
+                    os.remove(filepath)
+                except OSError:
+                    pass
+                return err or "Unsupported upload.", 400
             ai_filepaths.append(filepath)
 
     if not ai_filepaths and not supplier_url:

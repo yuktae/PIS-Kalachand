@@ -458,6 +458,7 @@
                     <span x-show="!running && cascadeStarted">Re-run</span>
                     <span x-show="running" x-text="runningStage"></span>
                 </button>
+                <p x-show="errorMsg && !sections.name" x-cloak class="text-xs text-red-600 mt-3 text-center" x-text="errorMsg"></p>
             </section>
 
             <!-- Progress bar (hidden until something started) -->
@@ -1017,7 +1018,7 @@
                         { method: 'POST', body: fd });
                     const payload = await this.consumeStream(resp);
                     if (!payload || payload.error) {
-                        this.bulkErrorMsg = payload?.error || 'Triage scan failed.';
+                        this.bulkErrorMsg = payload?.error || this.errorMsg || 'Triage scan failed.';
                         return;
                     }
                     this.bulkSessionToken = payload.session_token;
@@ -1277,7 +1278,17 @@
             async consumeStream(response) {
                 if (!response.ok) {
                     let txt = ''; try { txt = await response.text(); } catch(_) {}
-                    this.errorMsg = 'HTTP ' + response.status + (txt ? ': ' + txt.slice(0, 200) : '');
+                    // Upload-validation 400s return {"error":"..."} as NDJSON.
+                    // Surface the message itself rather than the raw JSON body.
+                    let cleanMsg = '';
+                    if (txt) {
+                        try {
+                            const parsed = JSON.parse(txt.split('\n').find(l => l.trim()) || '');
+                            if (parsed && typeof parsed.error === 'string') cleanMsg = parsed.error;
+                        } catch (_) { /* fall through to raw slice */ }
+                    }
+                    this.errorMsg = cleanMsg
+                        || ('HTTP ' + response.status + (txt ? ': ' + txt.slice(0, 200) : ''));
                     return null;
                 }
                 if (!response.body) {
