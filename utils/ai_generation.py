@@ -12,6 +12,7 @@ from typing import Any
 from google import genai
 from google.genai import types
 from .category_classifier import classify_product_category
+from .gemini_settings import gemini_http_options
 from .json_utils import safe_json_loads
 from .prompt_manager import get_prompt
 
@@ -32,7 +33,10 @@ _thread_local = _threading.local()
 def _get_client():
     c = getattr(_thread_local, 'client', None)
     if c is None:
-        c = genai.Client(api_key=os.getenv('GOOGLE_API_KEY'))
+        c = genai.Client(
+            api_key=os.getenv('GOOGLE_API_KEY'),
+            http_options=gemini_http_options(),
+        )
         _thread_local.client = c
     return c
 

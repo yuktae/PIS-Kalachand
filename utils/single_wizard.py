@@ -48,6 +48,7 @@ from .pdf_processing import (
     extract_specific_image, extract_product_from_image,
     extract_isolated_product_with_nano_banana,
 )
+from .gemini_settings import gemini_http_options
 
 
 # ── Gemini client ────────────────────────────────────────────────────────────
@@ -63,7 +64,10 @@ _thread_local = _threading.local()
 def _get_client():
     c = getattr(_thread_local, 'client', None)
     if c is None:
-        c = genai.Client(api_key=os.getenv('GOOGLE_API_KEY'))
+        c = genai.Client(
+            api_key=os.getenv('GOOGLE_API_KEY'),
+            http_options=gemini_http_options(),
+        )
         _thread_local.client = c
     return c
 
