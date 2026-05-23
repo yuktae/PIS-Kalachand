@@ -157,7 +157,9 @@
                                 </div>
                             </div>
 
-                            {# Expandable field-change list #}
+                            {# Expandable field-change list — only shows fields
+                               that actually differ from the previous version
+                               (filter applied via /compare in toggleChanges). #}
                             <div x-show="changesOpen[e.id]" x-cloak
                                  class="mt-4 pt-4 border-t border-gray-50 space-y-2">
                                 <template x-for="c in (changesCache[e.version_num] || [])" :key="c.id">
@@ -167,7 +169,8 @@
                                         <div class="bg-emerald-50 border border-emerald-100 rounded-md px-2 py-1 text-emerald-700 font-medium truncate" x-text="c.new_value || '(empty)'"></div>
                                     </div>
                                 </template>
-                                <p x-show="!changesCache[e.version_num]" class="text-[11px] text-gray-400">Loading changes…</p>
+                                <p x-show="changesCache[e.version_num] === undefined" class="text-[11px] text-gray-400">Loading changes…</p>
+                                <p x-show="changesCache[e.version_num] && changesCache[e.version_num].length === 0" class="text-[11px] text-gray-400 italic">No editor field changed at this event.</p>
                             </div>
                         </div>
                     </li>
@@ -624,17 +627,52 @@ function timelineV2(productId) {
         },
 
         async toggleChanges(eventId, versionNum) {
+            // Look up the event's version_id (FieldChangeLog is keyed by
+            // version_num but /compare requires the ProductVersion.id).
+            const event = this._findEvent(eventId);
+            const versionId = event?.version_id;
             this.changesOpen[eventId] = !this.changesOpen[eventId];
             if (this.changesOpen[eventId] && !this.changesCache[versionNum]) {
+                if (!versionId) {
+                    // No snapshot for this event (e.g. plain log entry).
+                    // Nothing to diff — leave the cache empty.
+                    this.changesCache[versionNum] = [];
+                    return;
+                }
                 try {
-                    const r = await fetch(`/api/product/${this.productId}/changelog`);
-                    const all = await r.json();
-                    this.changesCache[versionNum] = all.filter(c => c.version_num === versionNum);
+                    // Same endpoint the Compare modal uses — applies the
+                    // whitelist + identical-value filter via _build_phase_diff
+                    // so the inline list never shows fields where current and
+                    // target are the same (the old /changelog endpoint dumped
+                    // every raw FieldChangeLog row, which is why this list
+                    // used to show 20 identical rows for a 1-real-change event).
+                    const r = await fetch(`/api/product/${this.productId}/versions/${versionId}/compare`);
+                    const data = await r.json();
+                    const changedOnly = (data.fields || []).filter(f => f.changed);
+                    // Map to the {field_name, old_value, new_value} shape the
+                    // inline list template already renders (the modal uses
+                    // current_value/target_value; the inline list was built
+                    // around the older /changelog shape).
+                    this.changesCache[versionNum] = changedOnly.map((f, i) => ({
+                        id: `${versionNum}-${i}`,
+                        field_name: f.field_name,
+                        old_value: f.current_value,
+                        new_value: f.target_value,
+                    }));
                 } catch (e) {
-                    console.error('changelog load failed', e);
+                    console.error('compare load failed', e);
                     this.changesCache[versionNum] = [];
                 }
             }
+        },
+
+        _findEvent(eventId) {
+            for (const g of this.groups || []) {
+                for (const e of g.events || []) {
+                    if (e.id === eventId) return e;
+                }
+            }
+            return null;
         },
 
         async previewVersion(versionId, versionNum) {
