@@ -105,7 +105,12 @@ def create_app() -> Flask:
         elif response.content_type and 'text/html' in response.content_type:
             response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
         response.headers['X-Content-Type-Options'] = 'nosniff'
-        response.headers['X-Frame-Options'] = 'DENY'
+        # SAMEORIGIN — not DENY — because the marketing review page embeds
+        # /preview_pis_html/<id> and the source-file panel embeds static
+        # uploads via same-origin iframes. DENY blocked both, leaving the
+        # browser showing "refused to connect" on the live preview tile.
+        # SAMEORIGIN still blocks cross-origin clickjacking.
+        response.headers['X-Frame-Options'] = 'SAMEORIGIN'
         response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
         return response
 

@@ -772,11 +772,16 @@
                             {% set _ext = src.rsplit('.', 1)[-1] | lower %}
                             <div x-show="activeSrc === {{ loop.index0 }}" class="h-full">
                                 {% if _ext == 'pdf' %}
-                                <iframe src="{{ url_for('static', filename=src) }}#view=FitH"
+                                {# Cache-buster (?v=last_edited) is mandatory: app.py sets
+                                   SEND_FILE_MAX_AGE_DEFAULT=1y on all /static/ responses,
+                                   so a stale response (e.g. one that pre-dates a header
+                                   change like the X-Frame-Options DENY→SAMEORIGIN fix)
+                                   would stay frozen in the browser cache for a year. #}
+                                <iframe src="{{ url_for('static', filename=src) }}?v={{ product.last_edited_at.timestamp() | int if product.last_edited_at else product.id }}#view=FitH"
                                         class="w-full h-full" frameborder="0"></iframe>
                                 {% elif _ext in ['jpg','jpeg','png','webp','gif','bmp'] %}
                                 <div class="h-full overflow-auto p-3 flex items-start justify-center bg-[#F8F9FC]">
-                                    <img src="{{ url_for('static', filename=src) }}" class="max-w-full rounded-lg shadow border border-slate-200">
+                                    <img src="{{ url_for('static', filename=src) }}?v={{ product.last_edited_at.timestamp() | int if product.last_edited_at else product.id }}" class="max-w-full rounded-lg shadow border border-slate-200">
                                 </div>
                                 {% else %}
                                 <div class="h-full flex flex-col items-center justify-center p-6 text-center">
