@@ -21,6 +21,7 @@ from helpers import (
     set_product_category, get_product_category_label, CATEGORY_UNCATEGORISED,
 )
 from utils.decorators import require_role, require_login
+from utils.workflow import Stage
 from utils.history import log_event
 from utils.web_scraping import scrape_url_data, scrape_url_data_deep
 from utils.ai_generation import generate_pis_data, generate_bulk_pis_data, generate_proforma_data
@@ -43,8 +44,8 @@ marketing_bp = Blueprint('marketing', __name__)
 @marketing_bp.route('/dashboard/marketing')
 @require_role('marketing')
 def dashboard_marketing():
-    approved_stages = ['ready_for_web', 'specsheet_draft', 'pending_director_spec', 'web_changes_requested', 'finalized']
-    marketing_stages = ['marketing_draft', 'marketing_in_progress', 'marketing_changes_requested', 'pending_director_pis'] + approved_stages
+    approved_stages = [Stage.READY_FOR_WEB, Stage.SPECSHEET_DRAFT, Stage.PENDING_DIRECTOR_SPEC, Stage.WEB_CHANGES_REQUESTED, Stage.FINALIZED]
+    marketing_stages = [Stage.MARKETING_DRAFT, Stage.MARKETING_IN_PROGRESS, Stage.MARKETING_CHANGES_REQUESTED, Stage.PENDING_DIRECTOR_PIS] + approved_stages
 
     # Order by `last_edited_at` — bumped by SQLAlchemy on every UPDATE so
     # autosaves, approvals, category writes, and stage transitions all
@@ -62,10 +63,10 @@ def dashboard_marketing():
 
     metrics = {
         'total_active': len(active_pipeline),
-        'drafts': sum(1 for p in active_pipeline if p.workflow_stage == 'marketing_draft'),
-        'changes': sum(1 for p in active_pipeline if p.workflow_stage == 'marketing_changes_requested'),
-        'need_review': sum(1 for p in active_pipeline if p.workflow_stage == 'pending_director_pis'),
-        'in_process': sum(1 for p in active_pipeline if p.workflow_stage == 'marketing_in_progress'),
+        'drafts': sum(1 for p in active_pipeline if p.workflow_stage == Stage.MARKETING_DRAFT),
+        'changes': sum(1 for p in active_pipeline if p.workflow_stage == Stage.MARKETING_CHANGES_REQUESTED),
+        'need_review': sum(1 for p in active_pipeline if p.workflow_stage == Stage.PENDING_DIRECTOR_PIS),
+        'in_process': sum(1 for p in active_pipeline if p.workflow_stage == Stage.MARKETING_IN_PROGRESS),
         'approved': sum(1 for p in active_pipeline if p.workflow_stage in approved_stages)
     }
 
@@ -134,15 +135,15 @@ def history_marketing():
     # the History Log can be filtered end-to-end (Marketing → Director →
     # Web → Director → Finalized).
     STAGE_FILTER_MAP = {
-        'marketing_draft':              'PIS DRAFT',
-        'marketing_in_progress':        'PIS DRAFT',
-        'marketing_changes_requested':  'PIS CHANGES',
-        'pending_director_pis':         'PIS REVIEW',
-        'ready_for_web':                'PIS APPROVED',
-        'specsheet_draft':              'SPEC DRAFT',
-        'web_changes_requested':        'SPEC CHANGES',
-        'pending_director_spec':        'SPEC REVIEW',
-        'finalized':                    'FINALIZED',
+        Stage.MARKETING_DRAFT:              'PIS DRAFT',
+        Stage.MARKETING_IN_PROGRESS:        'PIS DRAFT',
+        Stage.MARKETING_CHANGES_REQUESTED:  'PIS CHANGES',
+        Stage.PENDING_DIRECTOR_PIS:         'PIS REVIEW',
+        Stage.READY_FOR_WEB:                'PIS APPROVED',
+        Stage.SPECSHEET_DRAFT:              'SPEC DRAFT',
+        Stage.WEB_CHANGES_REQUESTED:        'SPEC CHANGES',
+        Stage.PENDING_DIRECTOR_SPEC:        'SPEC REVIEW',
+        Stage.FINALIZED:                    'FINALIZED',
     }
 
     # Annotated so Pyrefly doesn't widen `item['product']` to the union of
@@ -170,10 +171,10 @@ def history_marketing():
             })
 
         stage = p.workflow_stage or ''
-        pis_approved_stages = ['ready_for_web', 'specsheet_draft', 'pending_director_spec', 'web_changes_requested', 'finalized']
+        pis_approved_stages = [Stage.READY_FOR_WEB, Stage.SPECSHEET_DRAFT, Stage.PENDING_DIRECTOR_SPEC, Stage.WEB_CHANGES_REQUESTED, Stage.FINALIZED]
         current_pis_status = 'Draft'
-        if 'pending_director_pis' in stage:   current_pis_status = 'Pending Review'
-        elif 'marketing_changes_requested' in stage: current_pis_status = 'Changes Requested'
+        if Stage.PENDING_DIRECTOR_PIS in stage:   current_pis_status = 'Pending Review'
+        elif Stage.MARKETING_CHANGES_REQUESTED in stage: current_pis_status = 'Changes Requested'
         elif any(s in stage for s in pis_approved_stages): current_pis_status = 'Approved'
 
         latest_actor = timeline[0]['actor'] if timeline else 'System'
@@ -213,7 +214,7 @@ def history_marketing():
 def marketing_archive():
     # Marketing + Admin can view the archive. Admin needs read access for
     # oversight; the archive itself is read-only so there's no risk.
-    approved_stages = ['finalized', 'ready_for_web', 'specsheet_draft', 'pending_director_spec', 'web_changes_requested']
+    approved_stages = [Stage.FINALIZED, Stage.READY_FOR_WEB, Stage.SPECSHEET_DRAFT, Stage.PENDING_DIRECTOR_SPEC, Stage.WEB_CHANGES_REQUESTED]
     archived_products = Product.query.filter(
         Product.workflow_stage.in_(approved_stages),
         Product.deleted_at.is_(None)
@@ -317,7 +318,7 @@ def create_pis():
                     pis_data=ai_data,
                     image_path=extracted_image_path,
                     seo_keywords=ai_data.get('seo_data', {}).get('generated_keywords', ''),
-                    workflow_stage='marketing_draft'
+                    workflow_stage=Stage.MARKETING_DRAFT
                 )
                 db.session.add(new_product)
                 db.session.commit()
@@ -518,7 +519,7 @@ def import_proforma():
                         model_name=display_name, pis_data=p_data,
                         image_path=extracted_image_path,
                         seo_keywords=(p_data or {}).get('seo_data', {}).get('generated_keywords', ''),
-                        workflow_stage='marketing_draft'
+                        workflow_stage=Stage.MARKETING_DRAFT
                     )
                     db.session.add(new_product)
                     db.session.commit()
@@ -860,7 +861,7 @@ def import_proforma_bulk_extract():
                 pis_data=pis,
                 image_path=None,
                 seo_keywords='',
-                workflow_stage='marketing_draft',
+                workflow_stage=Stage.MARKETING_DRAFT,
             )
             db.session.add(new_product)
             db.session.flush()    # need .id for the history log below
@@ -1606,7 +1607,7 @@ def import_proforma_single_finalize():
                     image_path=selected_image,
                     additional_images=gallery_paths,
                     seo_keywords=(pis or {}).get('seo_data', {}).get('generated_keywords', ''),
-                    workflow_stage='marketing_draft',
+                    workflow_stage=Stage.MARKETING_DRAFT,
                 )
                 db.session.add(new_product)
                 db.session.commit()
@@ -1778,7 +1779,7 @@ def create_bulk():
                             model_name=display_name, pis_data=p_data,
                             image_path=extracted_image_path,
                             seo_keywords=p_data.get('seo_data', {}).get('generated_keywords', ''),
-                            workflow_stage='marketing_draft'
+                            workflow_stage=Stage.MARKETING_DRAFT
                         )
                         db.session.add(new_product)
                         db.session.commit()
@@ -1793,7 +1794,7 @@ def create_bulk():
                             fallback = Product(
                                 model_name=display_name, pis_data=p_data, image_path=None,
                                 seo_keywords=p_data.get('seo_data', {}).get('generated_keywords', ''),
-                                workflow_stage='marketing_draft'
+                                workflow_stage=Stage.MARKETING_DRAFT
                             )
                             db.session.add(fallback)
                             db.session.commit()
@@ -1864,7 +1865,7 @@ def review_pis_marketing(product_id):
 
         if action == 'submit_director':
             save_version_snapshot(product, label='Submitted for Director review', is_major=True)
-            product.workflow_stage = 'pending_director_pis'
+            product.workflow_stage = Stage.PENDING_DIRECTOR_PIS
             log_event(product.id, actor, 'Sent for Director Review',
                       'The product sheet has been sent to the Director for approval.', 'waiting')
             flash('Sent to the Director for review')
@@ -1875,8 +1876,8 @@ def review_pis_marketing(product_id):
             # review STAY in changes-requested while the marketing team
             # works on the revisions — saving a draft must not clear the
             # change-request status.
-            if product.workflow_stage == 'marketing_draft':
-                product.workflow_stage = 'marketing_in_progress'
+            if product.workflow_stage == Stage.MARKETING_DRAFT:
+                product.workflow_stage = Stage.MARKETING_IN_PROGRESS
             log_event(product.id, actor, 'Draft Updated',
                       'The marketing team updated and saved changes to the product sheet.', 'neutral')
             flash('Draft saved successfully')

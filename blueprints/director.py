@@ -18,6 +18,7 @@ from helpers import (
     append_director_comment,
 )
 from utils.decorators import require_role
+from utils.workflow import Stage
 from utils.history import log_event
 from utils.ai_generation import generate_ai_revision, generate_comprehensive_spec_data
 
@@ -29,14 +30,14 @@ director_bp = Blueprint('director', __name__)
 @director_bp.route('/dashboard/director')
 @require_role('director')
 def dashboard_director():
-    pending_pis  = Product.query.filter_by(workflow_stage='pending_director_pis').filter(Product.deleted_at.is_(None)).all()
-    pending_spec = Product.query.filter_by(workflow_stage='pending_director_spec').filter(Product.deleted_at.is_(None)).all()
+    pending_pis  = Product.query.filter_by(workflow_stage=Stage.PENDING_DIRECTOR_PIS).filter(Product.deleted_at.is_(None)).all()
+    pending_spec = Product.query.filter_by(workflow_stage=Stage.PENDING_DIRECTOR_SPEC).filter(Product.deleted_at.is_(None)).all()
 
     # Order by `last_edited_at` — bumped on every UPDATE so autosaves,
     # approvals, change-requests, category writes, and stage transitions
     # all surface the product to the top. Fallback to created_at for any
     # row where the column is NULL.
-    director_excluded = ['marketing_draft', 'marketing_in_progress']
+    director_excluded = [Stage.MARKETING_DRAFT, Stage.MARKETING_IN_PROGRESS]
     all_products = (
         Product.query
         .filter(~Product.workflow_stage.in_(director_excluded),
@@ -48,9 +49,9 @@ def dashboard_director():
     )
 
     total_products = len(all_products)
-    finalized_count = sum(1 for p in all_products if p.workflow_stage == 'finalized')
-    approved_stages = ['finalized', 'ready_for_web', 'specsheet_draft', 'pending_director_spec', 'web_changes_requested']
-    in_progress_count = sum(1 for p in all_products if p.workflow_stage not in (['pending_director_pis', 'pending_director_spec'] + approved_stages))
+    finalized_count = sum(1 for p in all_products if p.workflow_stage == Stage.FINALIZED)
+    approved_stages = [Stage.FINALIZED, Stage.READY_FOR_WEB, Stage.SPECSHEET_DRAFT, Stage.PENDING_DIRECTOR_SPEC, Stage.WEB_CHANGES_REQUESTED]
+    in_progress_count = sum(1 for p in all_products if p.workflow_stage not in ([Stage.PENDING_DIRECTOR_PIS, Stage.PENDING_DIRECTOR_SPEC] + approved_stages))
 
     metrics = {
         'total_products': total_products,
@@ -80,7 +81,7 @@ def dashboard_director():
 @director_bp.route('/dashboard/director/archive')
 @require_role('director')
 def director_archive():
-    approved_stages = ['finalized', 'ready_for_web', 'specsheet_draft', 'pending_director_spec', 'web_changes_requested']
+    approved_stages = [Stage.FINALIZED, Stage.READY_FOR_WEB, Stage.SPECSHEET_DRAFT, Stage.PENDING_DIRECTOR_SPEC, Stage.WEB_CHANGES_REQUESTED]
     archived_products = Product.query.filter(
         Product.workflow_stage.in_(approved_stages),
         Product.deleted_at.is_(None)
@@ -150,7 +151,7 @@ def review_director_pis(product_id):
 
             product.revision_data = new_revisions
             product.director_pis_comments = request.form.get('director_general_comments')
-            product.workflow_stage = 'marketing_changes_requested'
+            product.workflow_stage = Stage.MARKETING_CHANGES_REQUESTED
 
             section_labels = {
                 'header_info': 'Header Info', 'range_overview': 'Description',
@@ -233,7 +234,7 @@ def review_director_pis(product_id):
                 '_spec_generating': True
             }
             product.spec_data = initial_spec_data
-            product.workflow_stage = 'ready_for_web'
+            product.workflow_stage = Stage.READY_FOR_WEB
             product.revision_data = None
             product.image_path = preserved_image_path
             product.additional_images = preserved_additional_images
@@ -414,7 +415,7 @@ def review_director_spec(product_id):
 
             product.revision_data = new_revisions
             product.director_spec_comments = request.form.get('director_general_comments')
-            product.workflow_stage = 'web_changes_requested'
+            product.workflow_stage = Stage.WEB_CHANGES_REQUESTED
 
             section_labels = {
                 'seo_optimization': 'SEO', 'internal_web_keywords': 'Internal Keywords',
@@ -435,7 +436,7 @@ def review_director_spec(product_id):
             log_event(product.id, get_current_username(), 'SpecSheet Revisions Requested', log_desc, 'action')
 
         elif action == 'approve':
-            product.workflow_stage = 'finalized'
+            product.workflow_stage = Stage.FINALIZED
             product.revision_data = None
             save_version_snapshot(product, label='Final approved version', is_major=True)
             log_event(product.id, get_current_username(), 'SpecSheet Approved ✓',

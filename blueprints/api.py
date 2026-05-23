@@ -29,6 +29,7 @@ from helpers import (
     set_product_category,
 )
 from utils.decorators import require_role
+from utils.workflow import Stage
 from utils.history import log_event
 from utils.web_scraping import scrape_url_data, scrape_url_data_deep
 from utils.ai_generation import generate_pis_data, generate_bulk_pis_data, generate_proforma_data
@@ -170,7 +171,7 @@ def _pis_worker(app, job_id, model_name, supplier_url, ai_filepaths, contains_im
                 model_name=model_name, pis_data=ai_data,
                 image_path=extracted_image_path,
                 seo_keywords=ai_data.get('seo_data', {}).get('generated_keywords', ''),
-                workflow_stage='marketing_draft'
+                workflow_stage=Stage.MARKETING_DRAFT
             )
             db.session.add(new_product)
             db.session.commit()
@@ -260,7 +261,7 @@ def _bulk_pis_worker(app, job_id, supplier_url, ai_filepaths, contains_images, p
                         model_name=display_name, pis_data=p_data,
                         image_path=extracted_image_path,
                         seo_keywords=p_data.get('seo_data', {}).get('generated_keywords', ''),
-                        workflow_stage='marketing_draft'
+                        workflow_stage=Stage.MARKETING_DRAFT
                     )
                     db.session.add(new_product)
                     db.session.commit()
@@ -274,7 +275,7 @@ def _bulk_pis_worker(app, job_id, supplier_url, ai_filepaths, contains_images, p
                         fallback = Product(
                             model_name=display_name, pis_data=p_data, image_path=None,
                             seo_keywords=p_data.get('seo_data', {}).get('generated_keywords', ''),
-                            workflow_stage='marketing_draft'
+                            workflow_stage=Stage.MARKETING_DRAFT
                         )
                         db.session.add(fallback)
                         db.session.commit()
@@ -562,7 +563,7 @@ def _single_finalize_worker(app, job_id, token, model_name,
                 image_path=main_image,
                 additional_images=additional_images,
                 seo_keywords=(pis or {}).get('seo_data', {}).get('generated_keywords', ''),
-                workflow_stage='marketing_draft',
+                workflow_stage=Stage.MARKETING_DRAFT,
             )
             db.session.add(new_product)
             db.session.commit()
@@ -747,7 +748,7 @@ def _bulk_extract_worker(app, job_id, token, edited_groups, edited_items,
                         image_path=image_path,
                         additional_images=extras,
                         seo_keywords=seo_kw,
-                        workflow_stage='marketing_draft',
+                        workflow_stage=Stage.MARKETING_DRAFT,
                     )
                     db.session.add(new_product)
                     db.session.flush()
@@ -1938,7 +1939,7 @@ def api_split_variants(product_id):
                 pis_data=new_pis,
                 image_path=product.image_path,
                 seo_keywords=(new_pis.get('seo_data') or {}).get('generated_keywords', ''),
-                workflow_stage='marketing_draft',
+                workflow_stage=Stage.MARKETING_DRAFT,
             )
             db.session.add(new_product)
             db.session.commit()
@@ -2124,9 +2125,9 @@ def api_save_draft(product_id):
 
     if 'director_general_comments' in data:
         comments = data.get('director_general_comments')
-        if 'pending_director_pis' in product.workflow_stage or 'marketing_changes' in product.workflow_stage:
+        if Stage.PENDING_DIRECTOR_PIS in product.workflow_stage or 'marketing_changes' in product.workflow_stage:
             product.director_pis_comments = comments
-        elif 'pending_director_spec' in product.workflow_stage or 'web_changes' in product.workflow_stage:
+        elif Stage.PENDING_DIRECTOR_SPEC in product.workflow_stage or 'web_changes' in product.workflow_stage:
             product.director_spec_comments = comments
 
     accepted = data.get('accepted_revisions')
@@ -2394,8 +2395,8 @@ def _build_phase_diff(before_data, after_data, after_stage=None):
     _walk('spec_data', (before_data or {}).get('spec_data') or {}, (after_data or {}).get('spec_data') or {})
 
     SPEC_PHASE_STAGES = {
-        'ready_for_web', 'specsheet_draft', 'pending_director_spec',
-        'web_changes_requested', 'finalized',
+        Stage.READY_FOR_WEB, Stage.SPECSHEET_DRAFT, Stage.PENDING_DIRECTOR_SPEC,
+        Stage.WEB_CHANGES_REQUESTED, Stage.FINALIZED,
     }
     PIS_ALLOW_EXACT = {
         'pis_data.header_info.product_name',
@@ -2567,15 +2568,15 @@ def api_preview_version(product_id, version_id):
 _STAGE_SWIM_LANE = {
     None: 'proforma',
     '': 'proforma',
-    'marketing_draft': 'marketing',
-    'marketing_in_progress': 'marketing',
-    'marketing_changes_requested': 'marketing',
-    'pending_director_pis': 'director_pis',
-    'ready_for_web': 'web',
-    'specsheet_draft': 'web',
-    'web_changes_requested': 'web',
-    'pending_director_spec': 'director_spec',
-    'finalized': 'finalized',
+    Stage.MARKETING_DRAFT: 'marketing',
+    Stage.MARKETING_IN_PROGRESS: 'marketing',
+    Stage.MARKETING_CHANGES_REQUESTED: 'marketing',
+    Stage.PENDING_DIRECTOR_PIS: 'director_pis',
+    Stage.READY_FOR_WEB: 'web',
+    Stage.SPECSHEET_DRAFT: 'web',
+    Stage.WEB_CHANGES_REQUESTED: 'web',
+    Stage.PENDING_DIRECTOR_SPEC: 'director_spec',
+    Stage.FINALIZED: 'finalized',
 }
 
 
@@ -3199,7 +3200,7 @@ def api_proforma_commit(job_id):
                 pis_data=pis_data,
                 image_path=p_obj.get('_image_path'),
                 seo_keywords=(p_obj.get('ai_enriched_details') or {}).get('seo_data', {}).get('generated_keywords', ''),
-                workflow_stage='marketing_draft',
+                workflow_stage=Stage.MARKETING_DRAFT,
             )
             db.session.add(new_product)
             db.session.commit()

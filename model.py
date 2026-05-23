@@ -53,9 +53,11 @@ class Product(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     model_name = db.Column(db.String(100), nullable=False)
 
-    # Workflow Stage:
-    # 'marketing_draft', 'pending_director_pis', 'marketing_changes_requested',
-    # 'ready_for_web', 'specsheet_draft', 'pending_director_spec', 'web_changes_requested', 'finalized'
+    # Workflow Stage — see utils/workflow.py:Stage for the canonical list.
+    # Default kept as a literal (not Stage.MARKETING_DRAFT) to avoid a
+    # circular import: utils/__init__.py eagerly pulls in utils.history,
+    # which in turn imports from this module. The literal must match
+    # Stage.MARKETING_DRAFT exactly.
     workflow_stage = db.Column(db.String(50), default='marketing_draft', index=True)
 
     created_at = db.Column(db.DateTime, default=_utcnow_naive)

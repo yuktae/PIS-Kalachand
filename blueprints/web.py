@@ -35,6 +35,7 @@ def _format_hits_summary(hits):
     pairs = sorted(hits.items(), key=lambda kv: kv[1], reverse=True)
     return ', '.join(f'{w}×{c}' for w, c in pairs[:8])
 from utils.decorators import require_role
+from utils.workflow import Stage
 from utils.history import log_event
 from utils.ai_generation import generate_comprehensive_spec_data, regenerate_seo_only
 from extensions import limiter
@@ -54,8 +55,8 @@ def dashboard_web():
     tasks = (
         Product.query
         .filter(Product.workflow_stage.in_([
-            'ready_for_web', 'web_changes_requested',
-            'specsheet_draft', 'pending_director_spec', 'finalized'
+            Stage.READY_FOR_WEB, Stage.WEB_CHANGES_REQUESTED,
+            Stage.SPECSHEET_DRAFT, Stage.PENDING_DIRECTOR_SPEC, Stage.FINALIZED
         ]))
         .filter(Product.deleted_at.is_(None))
         .order_by(
@@ -77,11 +78,11 @@ def dashboard_web():
 
     metrics = {
         "total_tasks": len(tasks),
-        "new_specsheets":     sum(1 for p in tasks if p.workflow_stage == "ready_for_web"),
-        "changes_requested":  sum(1 for p in tasks if p.workflow_stage == "web_changes_requested"),
-        "need_review":        sum(1 for p in tasks if p.workflow_stage == "pending_director_spec"),
-        "approved":           sum(1 for p in tasks if p.workflow_stage == "finalized"),
-        "in_process":         sum(1 for p in tasks if p.workflow_stage == "specsheet_draft"),
+        "new_specsheets":     sum(1 for p in tasks if p.workflow_stage == Stage.READY_FOR_WEB),
+        "changes_requested":  sum(1 for p in tasks if p.workflow_stage == Stage.WEB_CHANGES_REQUESTED),
+        "need_review":        sum(1 for p in tasks if p.workflow_stage == Stage.PENDING_DIRECTOR_SPEC),
+        "approved":           sum(1 for p in tasks if p.workflow_stage == Stage.FINALIZED),
+        "in_process":         sum(1 for p in tasks if p.workflow_stage == Stage.SPECSHEET_DRAFT),
     }
 
     # Filter dropdown options — only categories actually present in the
@@ -101,7 +102,7 @@ def dashboard_web():
 @web_bp.route('/dashboard/web/archive')
 @require_role('web')
 def web_archive():
-    approved_stages = ['finalized', 'ready_for_web', 'specsheet_draft', 'pending_director_spec', 'web_changes_requested']
+    approved_stages = [Stage.FINALIZED, Stage.READY_FOR_WEB, Stage.SPECSHEET_DRAFT, Stage.PENDING_DIRECTOR_SPEC, Stage.WEB_CHANGES_REQUESTED]
     archived_products = Product.query.filter(
         Product.workflow_stage.in_(approved_stages),
         Product.deleted_at.is_(None)
@@ -203,13 +204,13 @@ def create_specsheet(product_id):
 
         is_major = action == 'submit_director'
         if action == 'submit_director':
-            product.workflow_stage = 'pending_director_spec'
+            product.workflow_stage = Stage.PENDING_DIRECTOR_SPEC
             save_version_snapshot(product, label='SpecSheet sent for review', is_major=True)
             log_event(product.id, get_current_username(), 'SpecSheet Sent for Review',
                       'The specsheet has been submitted to the Director for final review.', 'waiting')
         else:
-            if product.workflow_stage == 'ready_for_web':
-                product.workflow_stage = 'specsheet_draft'
+            if product.workflow_stage == Stage.READY_FOR_WEB:
+                product.workflow_stage = Stage.SPECSHEET_DRAFT
             save_version_snapshot(product, label='SpecSheet draft saved', is_major=False)
             log_event(product.id, get_current_username(), 'SpecSheet Draft Saved',
                       'Changes to the specsheet have been saved as a draft.', 'neutral')
@@ -487,7 +488,7 @@ def api_generate_specsheet(product_id):
                     yield json.dumps({"error": "Product not found"}) + "\n"
                     return
                 p.spec_data = spec_data
-                p.workflow_stage = 'specsheet_draft'
+                p.workflow_stage = Stage.SPECSHEET_DRAFT
                 flag_modified(p, 'spec_data')
                 # If the spec generator fell back to AI classification
                 # (product had no canonical category yet), promote that

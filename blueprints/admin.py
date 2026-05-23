@@ -7,6 +7,7 @@ from flask import Blueprint, session, redirect, url_for, render_template, reques
 
 from model import db, User, ProductVersion, FieldChangeLog, Product, ProductHistory, Job, ApiCallLog
 from utils.decorators import require_role
+from utils.workflow import Stage
 from utils.prompt_manager import (
     load_all_prompts, save_prompt as save_prompt_to_db,
     reset_prompt as reset_prompt_to_default, reset_all_prompts,
@@ -112,7 +113,7 @@ def admin_stats():
 
     # ── Section 1: Overview ───────────────────────────────────────────────
     total_products  = Product.query.filter(Product.deleted_at.is_(None)).count()
-    finalized_count = Product.query.filter(Product.workflow_stage == 'finalized',
+    finalized_count = Product.query.filter(Product.workflow_stage == Stage.FINALIZED,
                                            Product.deleted_at.is_(None)).count()
     in_progress     = total_products - finalized_count
     active_users    = User.query.filter_by(is_active=True).count()
@@ -134,7 +135,7 @@ def admin_stats():
 
     # Avg time draft → finalized: use the last "SpecSheet Approved" timestamp per product
     avg_finalize_days = 0.0
-    finalized_products = Product.query.filter(Product.workflow_stage == 'finalized',
+    finalized_products = Product.query.filter(Product.workflow_stage == Stage.FINALIZED,
                                               Product.deleted_at.is_(None)).all()
     if finalized_products:
         deltas = []
