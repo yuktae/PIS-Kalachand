@@ -20,6 +20,7 @@ from helpers import (
     proforma_to_pis_data, extract_raw_text_from_files,
     set_product_category, get_product_category_label, CATEGORY_UNCATEGORISED,
 )
+from utils.decorators import require_role, require_login
 from utils.history import log_event
 from utils.web_scraping import scrape_url_data, scrape_url_data_deep
 from utils.ai_generation import generate_pis_data, generate_bulk_pis_data, generate_proforma_data
@@ -40,10 +41,8 @@ marketing_bp = Blueprint('marketing', __name__)
 # ── DASHBOARDS ────────────────────────────────────────────────────────────────
 
 @marketing_bp.route('/dashboard/marketing')
+@require_role('marketing')
 def dashboard_marketing():
-    if session.get('role') != 'marketing':
-        return redirect(url_for('auth.login'))
-
     approved_stages = ['ready_for_web', 'specsheet_draft', 'pending_director_spec', 'web_changes_requested', 'finalized']
     marketing_stages = ['marketing_draft', 'marketing_in_progress', 'marketing_changes_requested', 'pending_director_pis'] + approved_stages
 
@@ -89,21 +88,18 @@ def dashboard_marketing():
 
 
 @marketing_bp.route('/product/<int:product_id>/history')
+@require_login
 def product_history_timeline(product_id):
     """Phase 6 — per-product audit timeline. Renders the new timeline_v2
     partial that consumes /api/product/<id>/timeline."""
-    if not session.get('role'):
-        return redirect(url_for('auth.login'))
     product = Product.query.get_or_404(product_id)
     return render_template('product_history.html', product=product)
 
 
 @marketing_bp.route('/dashboard/history')
 @marketing_bp.route('/dashboard/marketing/history')
+@require_login
 def history_marketing():
-    if not session.get('role'):
-        return redirect(url_for('auth.login'))
-
     all_products = Product.query.filter(Product.deleted_at.is_(None)).order_by(Product.created_at.desc()).all()
     product_ids = [p.id for p in all_products]
 
@@ -213,11 +209,10 @@ def history_marketing():
 
 
 @marketing_bp.route('/dashboard/marketing/archive')
+@require_role('marketing', 'admin')
 def marketing_archive():
     # Marketing + Admin can view the archive. Admin needs read access for
     # oversight; the archive itself is read-only so there's no risk.
-    if session.get('role') not in ('marketing', 'admin'):
-        return redirect(url_for('auth.login'))
     approved_stages = ['finalized', 'ready_for_web', 'specsheet_draft', 'pending_director_spec', 'web_changes_requested']
     archived_products = Product.query.filter(
         Product.workflow_stage.in_(approved_stages),
@@ -345,10 +340,8 @@ def create_pis():
 #
 @marketing_bp.route('/import_proforma', methods=['GET', 'POST'])
 @limiter.limit("10 per minute", methods=['POST'])
+@require_role('marketing')
 def import_proforma():
-    if session.get('role') != 'marketing':
-        return redirect(url_for('auth.login'))
-
     if request.method == 'GET':
         return render_template('import_proforma.html')
 
@@ -568,6 +561,7 @@ def import_proforma():
 
 @marketing_bp.route('/import_proforma/auto_detect', methods=['POST'])
 @limiter.limit("20 per minute")
+@require_role('marketing', api=True, status=401)
 def import_proforma_auto_detect():
     """Auto-Detect entry: one upload → classifier → routes to the right
     wizard with its session already primed.
@@ -586,9 +580,6 @@ def import_proforma_auto_detect():
     Returns ONE JSON object (not NDJSON — the front-end shows a single
     "Analyzing…" spinner and dispatches on the response).
     """
-    if session.get('role') != 'marketing':
-        return {"error": "unauthorized"}, 401
-
     ai_files = request.files.getlist('ai_document')
     upload_folder = current_app.config['UPLOAD_FOLDER']
     if not os.path.isabs(upload_folder):
@@ -695,6 +686,7 @@ def import_proforma_auto_detect():
 
 @marketing_bp.route('/import_proforma/bulk/triage', methods=['POST'])
 @limiter.limit("20 per minute")
+@require_role('marketing', ndjson=True, status=401)
 def import_proforma_bulk_triage():
     """Phase A — accept upload(s), persist them under upload_folder, run the
     bulk_triage_scan, and return a session token + preview JSON.
@@ -713,9 +705,6 @@ def import_proforma_bulk_triage():
     Response: NDJSON stream. Final payload includes `session_token`,
     `triage` (validated dict), `cluster_groups`, and `file_names`.
     """
-    if session.get('role') != 'marketing':
-        return Response('{"error":"unauthorized"}\n', status=401, mimetype='application/x-ndjson')
-
     ai_files = request.files.getlist('ai_document')
     upload_folder = current_app.config['UPLOAD_FOLDER']
 
@@ -807,6 +796,7 @@ def import_proforma_bulk_triage():
 
 @marketing_bp.route('/import_proforma/bulk/extract', methods=['POST'])
 @limiter.limit("10 per minute")
+@require_role('marketing', api=True, status=401)
 def import_proforma_bulk_extract():
     """Phase C — take the user-edited cluster preview and persist one draft
     Product per cluster (skipping flagged rows). No AI extraction is run
@@ -828,9 +818,6 @@ def import_proforma_bulk_extract():
 
     Returns: { batch_id, product_ids, count, redirect }.
     """
-    if session.get('role') != 'marketing':
-        return {"error": "unauthorized"}, 401
-
     payload = request.get_json(silent=True) or {}
     token = (payload.get('session_token') or '').strip()
     edited_groups = payload.get('cluster_groups') or []
@@ -905,6 +892,7 @@ def import_proforma_bulk_extract():
 
 @marketing_bp.route('/import_proforma/bulk/triage/rework', methods=['POST'])
 @limiter.limit("20 per minute")
+@require_role('marketing', ndjson=True, status=401)
 def import_proforma_bulk_triage_rework():
     """Phase B — re-run the triage scan against the session's existing
     file(s) with reviewer feedback prepended to the prompt. Used by the
@@ -916,9 +904,6 @@ def import_proforma_bulk_triage_rework():
         origin_hint:   str?,  # optional override; otherwise reuse session's
     }
     """
-    if session.get('role') != 'marketing':
-        return Response('{"error":"unauthorized"}\n', status=401, mimetype='application/x-ndjson')
-
     payload = request.get_json(silent=True) or {}
     token = (payload.get('session_token') or '').strip()
     feedback = (payload.get('feedback') or '').strip()
@@ -995,12 +980,10 @@ def import_proforma_bulk_triage_rework():
 
 @marketing_bp.route('/import_proforma/single/scan', methods=['POST'])
 @limiter.limit("20 per minute")
+@require_role('marketing', ndjson=True, status=401)
 def import_proforma_single_scan():
     """Step 1+2 — accept the upload(s), save them, run the lightweight
     Gemini name-scan, and return a session token + auto-filled fields."""
-    if session.get('role') != 'marketing':
-        return Response('{"error":"unauthorized"}\n', status=401, mimetype='application/x-ndjson')
-
     ai_files = request.files.getlist('ai_document')
     upload_folder = current_app.config['UPLOAD_FOLDER']
 
@@ -1079,12 +1062,10 @@ def import_proforma_single_scan():
 
 @marketing_bp.route('/import_proforma/single/find_url', methods=['POST'])
 @limiter.limit("30 per minute")
+@require_role('marketing', ndjson=True, status=401)
 def import_proforma_single_find_url():
     """Step 3 — given the (possibly user-edited) model name, search the web
     for the most likely supplier URL."""
-    if session.get('role') != 'marketing':
-        return Response('{"error":"unauthorized"}\n', status=401, mimetype='application/x-ndjson')
-
     payload = request.get_json(silent=True) or {}
     token = (payload.get('session_token') or '').strip()
     model_name = (payload.get('model_name') or '').strip()
@@ -1133,12 +1114,10 @@ def import_proforma_single_find_url():
 
 @marketing_bp.route('/import_proforma/single/extract_images', methods=['POST'])
 @limiter.limit("15 per minute")
+@require_role('marketing', ndjson=True, status=401)
 def import_proforma_single_extract_images():
     """Step 4 — try the doc first (no AI verify); on failure fall back to
     multi-result web screenshot crops. Returns up to 3 candidate paths."""
-    if session.get('role') != 'marketing':
-        return Response('{"error":"unauthorized"}\n', status=401, mimetype='application/x-ndjson')
-
     payload = request.get_json(silent=True) or {}
     token = (payload.get('session_token') or '').strip()
     # Allow the user to override the supplier URL on step 3 — the value
@@ -1326,6 +1305,7 @@ def import_proforma_single_extract_images():
 
 @marketing_bp.route('/import_proforma/single/crop', methods=['POST'])
 @limiter.limit("30 per minute")
+@require_role('marketing', api=True, status=401)
 def import_proforma_single_crop():
     """Phase 2.5 — manual crop endpoint for the wizard.
 
@@ -1337,9 +1317,6 @@ def import_proforma_single_crop():
     Path-traversal defense: realpath of `source_path` must live under
     UPLOAD_FOLDER. Any attempt to escape is rejected with 400.
     """
-    if session.get('role') != 'marketing':
-        return {"error": "unauthorized"}, 401
-
     payload = request.get_json(silent=True) or {}
     token = (payload.get('session_token') or '').strip()
     source_path = (payload.get('source_path') or '').strip()
@@ -1426,15 +1403,13 @@ def import_proforma_single_crop():
 
 @marketing_bp.route('/import_proforma/single/extract_from_url', methods=['POST'])
 @limiter.limit("15 per minute")
+@require_role('marketing', ndjson=True, status=401)
 def import_proforma_single_extract_from_url():
     """On-demand: user pastes a specific URL they want images extracted
     from (e.g. they found the exact product page themselves). We scrape
     + download up to 3 images and stream them back as new candidates,
     same shape as the auto-discovered web pipeline.
     """
-    if session.get('role') != 'marketing':
-        return Response('{"error":"unauthorized"}\n', status=401, mimetype='application/x-ndjson')
-
     payload = request.get_json(silent=True) or {}
     token = (payload.get('session_token') or '').strip()
     suggested_url = (payload.get('url') or '').strip()
@@ -1491,6 +1466,7 @@ def import_proforma_single_extract_from_url():
 
 @marketing_bp.route('/import_proforma/single/nano_isolate', methods=['POST'])
 @limiter.limit("10 per minute")
+@require_role('marketing', api=True, status=401)
 def import_proforma_single_nano_isolate():
     """On-demand nano-banana isolation. Runs Gemini's image-out model on
     the uploaded proforma (or first file) to produce a clean isolated
@@ -1498,9 +1474,6 @@ def import_proforma_single_nano_isolate():
     call per click, which is why it's user-triggered now instead of
     running automatically in Step 4.
     """
-    if session.get('role') != 'marketing':
-        return {"error": "unauthorized"}, 401
-
     payload = request.get_json(silent=True) or {}
     token = (payload.get('session_token') or '').strip()
 
@@ -1538,13 +1511,11 @@ def import_proforma_single_nano_isolate():
 
 @marketing_bp.route('/import_proforma/single/finalize', methods=['POST'])
 @limiter.limit("10 per minute")
+@require_role('marketing', ndjson=True, status=401)
 def import_proforma_single_finalize():
     """Step 5 — full proforma extraction + Product creation with the
     user-selected image. Reuses the existing single-mode logic from
     `import_proforma()` so content extraction stays untouched."""
-    if session.get('role') != 'marketing':
-        return Response('{"error":"unauthorized"}\n', status=401, mimetype='application/x-ndjson')
-
     payload = request.get_json(silent=True) or {}
     token = (payload.get('session_token') or '').strip()
     selected_image = (payload.get('selected_image') or '').strip() or None

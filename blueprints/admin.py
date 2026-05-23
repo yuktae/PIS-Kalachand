@@ -6,6 +6,7 @@ import json
 from flask import Blueprint, session, redirect, url_for, render_template, request, jsonify, flash, abort
 
 from model import db, User, ProductVersion, FieldChangeLog, Product, ProductHistory, Job, ApiCallLog
+from utils.decorators import require_role
 from utils.prompt_manager import (
     load_all_prompts, save_prompt as save_prompt_to_db,
     reset_prompt as reset_prompt_to_default, reset_all_prompts,
@@ -13,12 +14,6 @@ from utils.prompt_manager import (
 )
 
 admin_bp = Blueprint('admin', __name__)
-
-
-def _require_admin():
-    if session.get('role') != 'admin':
-        return jsonify({"error": "Unauthorized"}), 403
-    return None
 
 
 def _json_body() -> dict:
@@ -33,17 +28,15 @@ def _json_body() -> dict:
 # ── USER MANAGEMENT ───────────────────────────────────────────────────────────
 
 @admin_bp.route('/admin/users')
+@require_role('admin')
 def admin_users():
-    if session.get('role') != 'admin':
-        return redirect(url_for('auth.login'))
     users = User.query.order_by(User.created_at.desc()).all()
     return render_template('admin_users.html', users=users)
 
 
 @admin_bp.route('/api/admin/users', methods=['POST'])
+@require_role('admin', api=True)
 def api_create_user():
-    err = _require_admin()
-    if err: return err
     data = _json_body()
     username = data.get('username', '').strip().lower()
     email    = data.get('email', '').strip().lower()
@@ -63,9 +56,8 @@ def api_create_user():
 
 
 @admin_bp.route('/api/admin/users/<int:user_id>', methods=['PUT'])
+@require_role('admin', api=True)
 def api_update_user(user_id):
-    err = _require_admin()
-    if err: return err
     user = User.query.get_or_404(user_id)
     data = _json_body()
     if 'display_name' in data:
@@ -95,9 +87,8 @@ def api_update_user(user_id):
 
 
 @admin_bp.route('/api/admin/users/<int:user_id>', methods=['DELETE'])
+@require_role('admin', api=True)
 def api_delete_user(user_id):
-    err = _require_admin()
-    if err: return err
     user = User.query.get_or_404(user_id)
     if user.id == session.get('user_id'):
         return jsonify({"error": "Cannot delete your own account"}), 400
@@ -111,10 +102,8 @@ def api_delete_user(user_id):
 # ── STATS & ANALYTICS ─────────────────────────────────────────────────────────
 
 @admin_bp.route('/admin/stats')
+@require_role('admin')
 def admin_stats():
-    if session.get('role') != 'admin':
-        return redirect(url_for('auth.login'))
-
     from datetime import datetime, timedelta, timezone
     from sqlalchemy import func, or_
 
@@ -370,9 +359,8 @@ def admin_stats():
 # ── EXPORT USERS ──────────────────────────────────────────────────────────────
 
 @admin_bp.route('/api/admin/users/export', methods=['POST'])
+@require_role('admin', api=True)
 def api_export_users():
-    err = _require_admin()
-    if err: return err
     import io, csv
     from flask import Response
 
@@ -414,9 +402,8 @@ def datetime_safe_now():
 # ── PROMPT MANAGEMENT ─────────────────────────────────────────────────────────
 
 @admin_bp.route('/admin/prompts')
+@require_role('admin')
 def admin_prompts():
-    if session.get('role') != 'admin':
-        return redirect(url_for('auth.login'))
     prompts  = load_all_prompts()
     defaults = [{"id": d["id"], "prompt": d["prompt"]} for d in DEFAULT_PROMPTS]
     return render_template('admin_prompts.html',
@@ -426,9 +413,8 @@ def admin_prompts():
 
 
 @admin_bp.route('/api/admin/prompts/<string:prompt_id>', methods=['PUT'])
+@require_role('admin', api=True)
 def api_update_prompt(prompt_id):
-    err = _require_admin()
-    if err: return err
     data = _json_body()
     new_text = data.get('prompt', '').strip()
     if not new_text:
@@ -439,9 +425,8 @@ def api_update_prompt(prompt_id):
 
 
 @admin_bp.route('/api/admin/prompts/<string:prompt_id>/reset', methods=['POST'])
+@require_role('admin', api=True)
 def api_reset_prompt(prompt_id):
-    err = _require_admin()
-    if err: return err
     if reset_prompt_to_default(prompt_id):
         default_text = get_default_prompt(prompt_id)
         return jsonify({"ok": True, "prompt": default_text, "message": f"Prompt '{prompt_id}' reset to default"})
@@ -449,9 +434,8 @@ def api_reset_prompt(prompt_id):
 
 
 @admin_bp.route('/api/admin/prompts/reset-all', methods=['POST'])
+@require_role('admin', api=True)
 def api_reset_all_prompts():
-    err = _require_admin()
-    if err: return err
     if reset_all_prompts():
         return jsonify({"ok": True, "message": "All prompts reset to defaults"})
     return jsonify({"error": "Failed to reset prompts"}), 500
@@ -460,12 +444,10 @@ def api_reset_all_prompts():
 # ── PURGE ─────────────────────────────────────────────────────────────────────
 
 @admin_bp.route('/purge_all_data', methods=['POST'])
+@require_role('admin')
 def purge_all_data():
     import os, shutil
     from flask import current_app
-
-    if session.get('role') != 'admin':
-        return redirect(url_for('auth.login'))
 
     confirm_text = request.form.get('confirm_text', '').strip()
     if confirm_text != 'DELETE':
@@ -501,20 +483,18 @@ def purge_all_data():
 # ── PHASE 4: HISTORY CLEANUP ─────────────────────────────────────────────────
 
 @admin_bp.route('/api/admin/history_cleanup/status')
+@require_role('admin', api=True)
 def admin_history_cleanup_status():
     """Return the last-run summary for the cleanup job."""
-    if session.get('role') != 'admin':
-        return jsonify({"error": "Unauthorized"}), 403
     from utils.history_cleanup import read_cleanup_status
     return jsonify(read_cleanup_status())
 
 
 @admin_bp.route('/api/admin/history_cleanup/run', methods=['POST'])
+@require_role('admin', api=True)
 def admin_history_cleanup_run():
     """Run the 6-month cleanup. POST {"dry_run": true} to preview without
     deleting. Returns the counts of rows affected."""
-    if session.get('role') != 'admin':
-        return jsonify({"error": "Unauthorized"}), 403
     body = request.get_json(silent=True) or {}
     dry_run = bool(body.get('dry_run'))
     from utils.history_cleanup import cleanup_expired_history

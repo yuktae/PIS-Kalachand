@@ -34,6 +34,7 @@ def _format_hits_summary(hits):
         return ''
     pairs = sorted(hits.items(), key=lambda kv: kv[1], reverse=True)
     return ', '.join(f'{w}×{c}' for w, c in pairs[:8])
+from utils.decorators import require_role
 from utils.history import log_event
 from utils.ai_generation import generate_comprehensive_spec_data, regenerate_seo_only
 from extensions import limiter
@@ -44,10 +45,8 @@ web_bp = Blueprint('web', __name__)
 # ── DASHBOARDS ────────────────────────────────────────────────────────────────
 
 @web_bp.route('/dashboard/web')
+@require_role('web')
 def dashboard_web():
-    if session.get('role') != 'web':
-        return redirect(url_for('auth.login'))
-
     # Order by `last_edited_at` — bumped on every UPDATE so autosaves,
     # SpecSheet edits, director approvals, and stage transitions all
     # surface the task to the top. Fallback to created_at for any row
@@ -100,9 +99,8 @@ def dashboard_web():
 
 
 @web_bp.route('/dashboard/web/archive')
+@require_role('web')
 def web_archive():
-    if session.get('role') != 'web':
-        return redirect(url_for('auth.login'))
     approved_stages = ['finalized', 'ready_for_web', 'specsheet_draft', 'pending_director_spec', 'web_changes_requested']
     archived_products = Product.query.filter(
         Product.workflow_stage.in_(approved_stages),
@@ -112,9 +110,8 @@ def web_archive():
 
 
 @web_bp.route('/dashboard/web/forbidden-words')
+@require_role('web')
 def web_forbidden_words():
-    if session.get('role') != 'web':
-        return redirect(url_for('auth.login'))
     # The Magento category tree is fetched client-side via
     # /api/magento_categories so the page paints instantly and the user
     # sees a spinner in the categories area instead of a blank tab.
@@ -411,6 +408,7 @@ def download_specsheet_csv(product_id):
 
 @web_bp.route('/api/product/<int:product_id>/regenerate_seo', methods=['POST'])
 @limiter.limit("10 per minute")
+@require_role('web', api=True)
 def api_regenerate_seo(product_id):
     """Regenerate ONLY the SEO metadata (meta_title, meta_description, keywords)
     for an existing SpecSheet — leaves customer_friendly_description, key_features,
@@ -420,8 +418,6 @@ def api_regenerate_seo(product_id):
     straight into the form fields without a full page reload. The DB is also
     updated so the live-preview iframe picks up the change.
     """
-    if session.get('role') != 'web':
-        return jsonify({'error': 'unauthorized'}), 403
     product = Product.query.get_or_404(product_id)
 
     spec_data = product.spec_data or {}

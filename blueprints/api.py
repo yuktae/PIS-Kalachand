@@ -28,6 +28,7 @@ from helpers import (
     proforma_to_pis_data, extract_raw_text_from_files,
     set_product_category,
 )
+from utils.decorators import require_role
 from utils.history import log_event
 from utils.web_scraping import scrape_url_data, scrape_url_data_deep
 from utils.ai_generation import generate_pis_data, generate_bulk_pis_data, generate_proforma_data
@@ -809,11 +810,10 @@ def _bulk_extract_worker(app, job_id, token, edited_groups, edited_items,
 
 
 @api_bp.route('/api/proforma/single/finalize_async', methods=['POST'])
+@require_role('marketing', api=True, status=401)
 def api_single_finalize_async():
     """Enqueue the single-mode Generate PIS. Returns 202 + redirect_url so
     the frontend can navigate to /dashboard/marketing immediately."""
-    if session.get('role') != 'marketing':
-        return jsonify({"error": "unauthorized"}), 401
 
     payload = request.get_json(silent=True) or {}
     token = (payload.get('session_token') or '').strip()
@@ -865,10 +865,9 @@ def api_single_finalize_async():
 
 
 @api_bp.route('/api/proforma/bulk/extract_async', methods=['POST'])
+@require_role('marketing', api=True, status=401)
 def api_bulk_extract_async():
     """Enqueue the bulk-mode Generate N PIS. Returns 202 + redirect_url."""
-    if session.get('role') != 'marketing':
-        return jsonify({"error": "unauthorized"}), 401
 
     payload = request.get_json(silent=True) or {}
     token = (payload.get('session_token') or '').strip()
@@ -1199,11 +1198,10 @@ def _mirror_candidate_to_gallery(product, rel_path: str) -> None:
 
 
 @api_bp.route('/api/product/<int:product_id>/image/web', methods=['POST'])
+@require_role('marketing', 'admin', 'director', api=True, status=401)
 def api_product_image_web(product_id):
     """Search the supplier or general web for product images and append
     candidates to the gallery. Query arg `mode=supplier|general`."""
-    if session.get('role') not in ('marketing', 'admin', 'director'):
-        return {"error": "unauthorized"}, 401
     product = Product.query.get_or_404(product_id)
 
     mode = (request.args.get('mode') or 'general').strip().lower()
@@ -1260,10 +1258,9 @@ def api_product_image_web(product_id):
 
 @api_bp.route('/api/product/<int:product_id>/image/extract_from_url',
               methods=['POST'])
+@require_role('marketing', 'admin', 'director', api=True, status=401)
 def api_product_image_extract_from_url(product_id):
     """Pull up to 3 images from a user-supplied URL. Body: {"url": "..."}."""
-    if session.get('role') not in ('marketing', 'admin', 'director'):
-        return {"error": "unauthorized"}, 401
     product = Product.query.get_or_404(product_id)
 
     payload = request.get_json(silent=True) or {}
@@ -1326,10 +1323,9 @@ def api_product_image_extract_from_url(product_id):
 
 
 @api_bp.route('/api/product/<int:product_id>/image/ai', methods=['POST'])
+@require_role('marketing', 'admin', 'director', api=True, status=401)
 def api_product_image_ai(product_id):
     """Re-run nano-banana on the source proforma to isolate the product."""
-    if session.get('role') not in ('marketing', 'admin', 'director'):
-        return {"error": "unauthorized"}, 401
     product = Product.query.get_or_404(product_id)
 
     upload_folder = current_app.config['UPLOAD_FOLDER']
@@ -1377,12 +1373,11 @@ def api_product_image_ai(product_id):
 # buttons in the Edit PIS image dropdown.
 
 @api_bp.route('/api/product/<int:product_id>/image/enhance', methods=['POST'])
+@require_role('marketing', 'admin', 'director', api=True, status=401)
 def api_product_image_enhance(product_id):
     """Retouch an existing gallery image — clean background, fix artifacts,
     keep the product pixel-faithful. Body: {"source_path": "uploads/...",
     "user_note": "remove the white line"}."""
-    if session.get('role') not in ('marketing', 'admin', 'director'):
-        return {"error": "unauthorized"}, 401
     product = Product.query.get_or_404(product_id)
 
     payload = request.get_json(silent=True) or {}
@@ -1433,11 +1428,10 @@ def api_product_image_enhance(product_id):
 
 
 @api_bp.route('/api/product/<int:product_id>/image/generate', methods=['POST'])
+@require_role('marketing', 'admin', 'director', api=True, status=401)
 def api_product_image_generate(product_id):
     """Synthesize a brand-new product photo from the PIS description via
     Imagen 4. Body: {"user_note": "modern living room background"}."""
-    if session.get('role') not in ('marketing', 'admin', 'director'):
-        return {"error": "unauthorized"}, 401
     product = Product.query.get_or_404(product_id)
 
     payload = request.get_json(silent=True) or {}
@@ -1494,13 +1488,12 @@ def api_product_image_generate(product_id):
 
 @api_bp.route('/api/product/<int:product_id>/image/upload_to_gallery',
               methods=['POST'])
+@require_role('marketing', 'admin', 'director', api=True, status=401)
 def api_product_image_upload_to_gallery(product_id):
     """Per-product manual upload that records the candidate source as
     `upload` on `_bulk_image_candidates` (so the gallery's source badge
     is correct). Kept separate from the legacy `/images/upload` endpoint
     used by the marketing review form to avoid disturbing that path."""
-    if session.get('role') not in ('marketing', 'admin', 'director'):
-        return {"error": "unauthorized"}, 401
     product = Product.query.get_or_404(product_id)
 
     f = request.files.get('image')
@@ -1549,11 +1542,10 @@ def api_product_image_upload_to_gallery(product_id):
 
 @api_bp.route('/api/product/<int:product_id>/image/page_preview',
               methods=['GET'])
+@require_role('marketing', 'admin', 'director', api=True, status=401)
 def api_product_image_page_preview(product_id):
     """Render ONE page of the source proforma to a static-servable PNG so
     the crop modal has something to display. `?page=N` selects the page."""
-    if session.get('role') not in ('marketing', 'admin', 'director'):
-        return {"error": "unauthorized"}, 401
     product = Product.query.get_or_404(product_id)
     file_paths = _resolve_product_proforma_paths(product)
     if not file_paths:
@@ -1613,13 +1605,12 @@ def _is_safe_product_preview_path(rel_path: str, upload_folder: str) -> tuple[bo
 
 
 @api_bp.route('/api/product/<int:product_id>/image/crop', methods=['POST'])
+@require_role('marketing', 'admin', 'director', api=True, status=401)
 def api_product_image_crop(product_id):
     """Two-step manual crop. With `?preview=1` the crop is saved as a
     `prodpreview_*.jpg` and the path returned for the user to confirm.
     Without it, the crop is committed straight to the gallery (legacy).
     Body: {source_path, crop: {x,y,w,h in [0,1]}}."""
-    if session.get('role') not in ('marketing', 'admin', 'director'):
-        return {"error": "unauthorized"}, 401
     product = Product.query.get_or_404(product_id)
 
     payload = request.get_json(silent=True) or {}
@@ -1716,11 +1707,10 @@ def api_product_image_crop(product_id):
 
 @api_bp.route('/api/product/<int:product_id>/image/crop_commit',
               methods=['POST'])
+@require_role('marketing', 'admin', 'director', api=True, status=401)
 def api_product_image_crop_commit(product_id):
     """Promote a `prodpreview_*.jpg` from /image/crop?preview=1 into the
     permanent gallery. Body: {preview_path: "uploads/prodpreview_..."}."""
-    if session.get('role') not in ('marketing', 'admin', 'director'):
-        return {"error": "unauthorized"}, 401
     product = Product.query.get_or_404(product_id)
 
     upload_folder = current_app.config['UPLOAD_FOLDER']
@@ -1772,6 +1762,7 @@ def api_product_image_crop_commit(product_id):
 
 @api_bp.route('/api/product/<int:product_id>/image/reassign',
               methods=['POST'])
+@require_role('marketing', 'admin', 'director', api=True, status=401)
 def api_product_image_reassign(product_id):
     """Reassign a gallery image to a specific variant SKU.
     Body: {"path": "uploads/...", "variant_sku": "MODEL-SKU"}.
@@ -1780,8 +1771,6 @@ def api_product_image_reassign(product_id):
     • Strips `path` from every other variant's image_paths to avoid dupes
     • Prepends `path` to the target variant's image_paths
     """
-    if session.get('role') not in ('marketing', 'admin', 'director'):
-        return {"error": "unauthorized"}, 401
     product = Product.query.get_or_404(product_id)
 
     payload = request.get_json(silent=True) or {}
@@ -1834,10 +1823,9 @@ def api_product_image_reassign(product_id):
 
 @api_bp.route('/api/product/<int:product_id>/image/crop_discard',
               methods=['POST'])
+@require_role('marketing', 'admin', 'director', api=True, status=401)
 def api_product_image_crop_discard(product_id):
     """Throw away an unwanted crop preview. Body: {preview_path}."""
-    if session.get('role') not in ('marketing', 'admin', 'director'):
-        return {"error": "unauthorized"}, 401
     Product.query.get_or_404(product_id)
 
     upload_folder = current_app.config['UPLOAD_FOLDER']
@@ -1860,16 +1848,12 @@ def api_product_image_crop_discard(product_id):
 
 # ── PRODUCT DELETE (soft) ─────────────────────────────────────────────────────
 
-_DELETE_ROLES = ('admin', 'marketing', 'director')
-
-
 @api_bp.route('/api/product/<int:product_id>/delete', methods=['POST'])
+@require_role('admin', 'marketing', 'director', api=True)
 def api_delete_product(product_id):
     """Soft-delete a single product. The row stays in the DB with
     deleted_at set so it can be recovered later if needed; all dashboards
     already filter on deleted_at IS NULL."""
-    if session.get('role') not in _DELETE_ROLES:
-        return jsonify({"error": "Not authorized"}), 403
     product = Product.query.get_or_404(product_id)
     if product.deleted_at is not None:
         return jsonify({"ok": True, "id": product_id, "already_deleted": True})
@@ -1881,10 +1865,9 @@ def api_delete_product(product_id):
 
 
 @api_bp.route('/api/products/bulk_delete', methods=['POST'])
+@require_role('admin', 'marketing', 'director', api=True)
 def api_bulk_delete_products():
     """Soft-delete a list of products by id. Body: {"ids": [1, 2, 3]}."""
-    if session.get('role') not in _DELETE_ROLES:
-        return jsonify({"error": "Not authorized"}), 403
     body = request.get_json(silent=True) or {}
     raw_ids = body.get('ids')
     if not isinstance(raw_ids, list) or not raw_ids:
@@ -1903,10 +1886,8 @@ def api_bulk_delete_products():
 
 # ── PHASE 2.5: SPLIT VARIANTS / MERGE DRAFTS ─────────────────────────────
 
-_REVIEWER_ROLES = ('admin', 'marketing', 'director')
-
-
 @api_bp.route('/api/product/<int:product_id>/split_variants', methods=['POST'])
+@require_role('admin', 'marketing', 'director', api=True)
 def api_split_variants(product_id):
     """Phase 2.5: explode a draft whose `pis_data['variants']` list has more
     than one entry into N independent draft Products.
@@ -1915,8 +1896,6 @@ def api_split_variants(product_id):
     they're actually distinct products. One click → five drafts. The
     original product is soft-deleted so reviewers don't see duplicates.
     """
-    if session.get('role') not in _REVIEWER_ROLES:
-        return jsonify({"error": "Not authorized"}), 403
     product = Product.query.get_or_404(product_id)
     pis = product.pis_data or {}
     variants = pis.get('variants') or []
@@ -1983,6 +1962,7 @@ def api_split_variants(product_id):
 
 
 @api_bp.route('/api/products/merge', methods=['POST'])
+@require_role('admin', 'marketing', 'director', api=True)
 def api_merge_products():
     """Phase 2.5: merge multiple drafts into a single base product whose
     `variants` list captures the others.
@@ -1995,8 +1975,6 @@ def api_merge_products():
     Use case: AI created 3 separate drafts for "Black", "White", "Grey" of
     the same wardrobe. Reviewer ticks the 3 cards on the dashboard → Merge.
     """
-    if session.get('role') not in _REVIEWER_ROLES:
-        return jsonify({"error": "Not authorized"}), 403
 
     body = request.get_json(silent=True) or {}
     raw_primary = body.get('primary_id')
@@ -2063,11 +2041,10 @@ def api_merge_products():
 
 
 @api_bp.route('/api/products/clear_active', methods=['POST'])
+@require_role('admin', 'marketing', 'director', api=True)
 def api_clear_active_products():
     """Soft-delete every currently active product. Used by the dashboard
     'Clear All' button. Returns the count cleared."""
-    if session.get('role') not in _DELETE_ROLES:
-        return jsonify({"error": "Not authorized"}), 403
     now = datetime.now(timezone.utc).replace(tzinfo=None)
     affected = Product.query.filter(Product.deleted_at.is_(None)).update(
         {'deleted_at': now}, synchronize_session=False

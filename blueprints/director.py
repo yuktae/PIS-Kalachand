@@ -17,6 +17,7 @@ from helpers import (
     get_product_category_label, CATEGORY_UNCATEGORISED,
     append_director_comment,
 )
+from utils.decorators import require_role
 from utils.history import log_event
 from utils.ai_generation import generate_ai_revision, generate_comprehensive_spec_data
 
@@ -26,10 +27,8 @@ director_bp = Blueprint('director', __name__)
 # ── DASHBOARDS ────────────────────────────────────────────────────────────────
 
 @director_bp.route('/dashboard/director')
+@require_role('director')
 def dashboard_director():
-    if session.get('role') != 'director':
-        return redirect(url_for('auth.login'))
-
     pending_pis  = Product.query.filter_by(workflow_stage='pending_director_pis').filter(Product.deleted_at.is_(None)).all()
     pending_spec = Product.query.filter_by(workflow_stage='pending_director_spec').filter(Product.deleted_at.is_(None)).all()
 
@@ -79,9 +78,8 @@ def dashboard_director():
 
 
 @director_bp.route('/dashboard/director/archive')
+@require_role('director')
 def director_archive():
-    if session.get('role') != 'director':
-        return redirect(url_for('auth.login'))
     approved_stages = ['finalized', 'ready_for_web', 'specsheet_draft', 'pending_director_spec', 'web_changes_requested']
     archived_products = Product.query.filter(
         Product.workflow_stage.in_(approved_stages),

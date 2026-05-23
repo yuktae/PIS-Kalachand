@@ -15,12 +15,13 @@ import io
 from datetime import datetime
 
 from flask import (
-    Blueprint, session, redirect, url_for, render_template,
+    Blueprint, url_for, render_template,
     request, jsonify, send_file
 )
 
 from model import db, Product
 from helpers import get_product_category, get_product_category_label, CATEGORY_UNCATEGORISED
+from utils.decorators import require_login
 from utils.storage import get_image_url
 from utils.compare import align_specs, build_xlsx, build_csv, build_pdf
 from extensions import limiter
@@ -51,20 +52,11 @@ def _resolve_image_url(path: str) -> str:
     return url_for('static', filename=resolved.lstrip('/'))
 
 
-def _require_login():
-    if not session.get('role'):
-        return redirect(url_for('auth.login'))
-    return None
-
-
 # ── SELECTOR PAGE ────────────────────────────────────────────────────────────
 
 @compare_bp.route('/compare')
+@require_login
 def compare_select():
-    guard = _require_login()
-    if guard:
-        return guard
-
     products = (
         Product.query
         .filter(Product.deleted_at.is_(None))
@@ -107,11 +99,8 @@ def compare_select():
 
 @compare_bp.route('/compare/generate', methods=['POST'])
 @limiter.limit('5 per minute')
+@require_login
 def compare_generate():
-    guard = _require_login()
-    if guard:
-        return guard
-
     payload = request.get_json(silent=True) or {}
     ids = payload.get('product_ids') or []
     if not isinstance(ids, list):
@@ -187,10 +176,8 @@ def _filename(ext: str) -> str:
 
 @compare_bp.route('/compare/export/xlsx', methods=['POST'])
 @limiter.limit('10 per minute')
+@require_login
 def compare_export_xlsx():
-    guard = _require_login()
-    if guard:
-        return guard
     payload, err = _validate_export_payload(request.get_json(silent=True))
     if err:
         return jsonify({'error': err[0]}), err[1]
@@ -209,10 +196,8 @@ def compare_export_xlsx():
 
 @compare_bp.route('/compare/export/csv', methods=['POST'])
 @limiter.limit('10 per minute')
+@require_login
 def compare_export_csv():
-    guard = _require_login()
-    if guard:
-        return guard
     payload, err = _validate_export_payload(request.get_json(silent=True))
     if err:
         return jsonify({'error': err[0]}), err[1]
@@ -227,10 +212,8 @@ def compare_export_csv():
 
 @compare_bp.route('/compare/export/pdf', methods=['POST'])
 @limiter.limit('10 per minute')
+@require_login
 def compare_export_pdf():
-    guard = _require_login()
-    if guard:
-        return guard
     payload, err = _validate_export_payload(request.get_json(silent=True))
     if err:
         return jsonify({'error': err[0]}), err[1]
