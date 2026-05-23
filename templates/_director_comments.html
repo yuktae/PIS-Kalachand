@@ -16,6 +16,73 @@
    so a marketing-bound comment doesn't leak into the web editor (and
    vice versa). Untagged entries (legacy, written before the audience
    split) are treated as 'marketing' so they don't disappear silently. #}
+{# Inline always-visible banner showing the director's previous feedback
+   on a section, scoped by audience. Use this in addition to (or instead of)
+   the corner popover when the director needs constant visibility of past
+   comments — e.g. the SpecSheet review where the director is checking
+   whether the web team actually acted on the previous round's requests.
+
+   Renders nothing when the section has no archived comments for this
+   audience. Otherwise: amber banner with a one-line summary (count +
+   most-recent comment text), collapsed by default, expandable to show
+   the full chronological thread.
+
+   Audience scoping is identical to director_comments_icon below — pass
+   'web' on the SpecSheet review, 'marketing' on the PIS review. #}
+{% macro director_comments_inline(product, section_key, audience='marketing') %}
+    {% set raw = (product.director_section_comments or {}).get(section_key, []) if product and product.director_section_comments else [] %}
+    {% set comments = [] %}
+    {% for entry in raw %}
+        {% set entry_audience = entry.get('audience') or 'marketing' %}
+        {% if entry_audience == audience %}
+            {% set _ = comments.append(entry) %}
+        {% endif %}
+    {% endfor %}
+    {% if comments %}
+    {% set latest = comments[-1] %}
+    <div class="mb-5 bg-amber-50/60 border border-amber-200 rounded-xl overflow-hidden"
+         x-data="{ expanded: false }">
+        <div class="px-4 py-3 flex items-center justify-between gap-3">
+            <div class="flex items-center gap-2 min-w-0">
+                <svg class="w-4 h-4 text-amber-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                </svg>
+                <span class="text-[10px] font-bold text-amber-800 uppercase tracking-widest shrink-0">
+                    Previous Feedback
+                </span>
+                <span class="text-[10px] font-bold bg-white text-amber-700 border border-amber-200 rounded-full px-1.5 py-0.5 shrink-0">
+                    {{ comments|length }}
+                </span>
+                <span class="text-xs text-amber-900/80 truncate" x-show="!expanded">
+                    "{{ latest.comment | truncate(90, True, '…') }}"
+                </span>
+            </div>
+            <button type="button" @click="expanded = !expanded"
+                class="text-[10px] font-bold text-amber-700 hover:text-amber-900 underline shrink-0">
+                <span x-show="!expanded">Show details</span>
+                <span x-show="expanded" x-cloak>Hide</span>
+            </button>
+        </div>
+        <div x-show="expanded" x-cloak class="border-t border-amber-200 bg-white px-4 py-3 space-y-2 max-h-64 overflow-y-auto">
+            {% for entry in comments %}
+            <div class="bg-amber-50/40 border border-amber-100 rounded-lg px-3 py-2">
+                <div class="text-sm text-slate-800 leading-relaxed">
+                    "{{ entry.comment }}"
+                </div>
+                <div class="mt-1.5 flex items-center gap-1.5 text-[10px] text-slate-500 font-medium">
+                    <span class="font-bold">{{ entry.actor }}</span>
+                    <span>·</span>
+                    <span>{{ entry.timestamp | comment_ts }}</span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+{% endmacro %}
+
+
 {% macro director_comments_icon(product, section_key, audience='marketing') %}
     {% set raw = (product.director_section_comments or {}).get(section_key, []) if product and product.director_section_comments else [] %}
     {% set comments = [] %}

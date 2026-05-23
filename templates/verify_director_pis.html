@@ -1,4 +1,8 @@
 {% extends "base.html" %}
+{# Inline-only — the corner popover overlapped action buttons on
+   action-rich sections (Sales / Specs "Add" buttons). The inline
+   banner above the comment box covers the same traceability need. #}
+{% from '_director_comments.html' import director_comments_inline %}
 
 {% block content %}
 {# Source files (proforma uploads) attached to this PIS — surfaced in the
@@ -129,6 +133,7 @@
                 <div class="bg-white rounded-3xl border border-gray-200 p-8 shadow-sm scroll-mt-48" id="header"
                     data-section="header_info">
                     <h3 class="font-bold text-lg mb-4 text-gray-900">Header Information</h3>
+                    {{ director_comments_inline(product, 'header_info', 'marketing') }}
                     {{ comment_box('header_info', 'Fix naming, brand, or formatting') }}
 
                     <div class="grid grid-cols-2 gap-4 text-sm">
@@ -160,6 +165,7 @@
                 <div class="bg-white rounded-3xl border border-gray-200 p-8 shadow-sm scroll-mt-48" id="overview"
                     data-section="range_overview">
                     <h3 class="font-bold text-lg mb-4 text-gray-900">Description</h3>
+                    {{ director_comments_inline(product, 'range_overview', 'marketing') }}
                     {{ comment_box('range_overview', 'Clarify or shorten description') }}
                     <textarea name="range_overview" rows="4"
                         class="w-full p-5 bg-gray-50 rounded-xl text-sm text-gray-700 leading-relaxed border border-gray-100 focus:ring-2 focus:ring-blue-200 focus:outline-none resize-none">{{ data.range_overview }}</textarea>
@@ -179,6 +185,7 @@
                             Add Argument
                         </button>
                     </div>
+                    {{ director_comments_inline(product, 'sales_arguments', 'marketing') }}
                     {{ comment_box('sales_arguments', 'Add or revise selling points') }}
                     <div id="salesArgumentsContainer" class="space-y-3">
                         {% for arg in data.sales_arguments %}
@@ -216,6 +223,7 @@
                                 Add Spec
                             </button>
                         </div>
+                        {{ director_comments_inline(product, 'technical_specifications', 'marketing') }}
                         {{ comment_box('technical_specifications', 'Fix incorrect specifications') }}
                     </div>
                     <table class="w-full text-sm">
@@ -249,6 +257,7 @@
                 <div class="bg-white rounded-3xl border border-gray-200 p-8 shadow-sm scroll-mt-48" id="warranty"
                     data-section="warranty_service">
                     <h3 class="font-bold text-lg mb-4 text-gray-900">Warranty & Service</h3>
+                    {{ director_comments_inline(product, 'warranty_service', 'marketing') }}
                     {{ comment_box('warranty_service', 'Confirm warranty details') }}
                     <div class="grid grid-cols-2 gap-4 text-sm">
                         <div class="bg-gray-50 p-4 rounded-xl border border-gray-100">

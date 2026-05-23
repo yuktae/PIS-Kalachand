@@ -1,7 +1,17 @@
 {% extends "base.html" %}
+{# director_comments_inline only — the corner popover icon overlapped
+   action buttons (e.g. Key Features' "+ Add Feature") and duplicated
+   the same info the inline banner now shows. #}
+{% from '_director_comments.html' import director_comments_inline %}
+
+{# `_source_files` carries the original proforma path(s) the marketing
+   team uploaded. The Director's SpecSheet review reuses them in the
+   Source tab so the reviewer can sanity-check the spec sheet against
+   the original document without leaving the page. #}
+{% set _source_files = (product.pis_data.get('_source_files') if product.pis_data else None) or [] %}
 
 {% block content %}
-<div class="max-w-7xl mx-auto pb-32 bg-gray-50 min-h-screen">
+<div class="max-w-screen-2xl mx-auto pb-32">
     <form id="verifyForm" method="POST">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
@@ -9,94 +19,88 @@
         <input type="hidden" name="director_action" id="director_action_input">
         <input type="hidden" name="director_general_comments">
 
-        <!-- ================= HEADER ================= -->
-        <div
-            class="sticky top-0 z-40 bg-white/80 backdrop-blur-md shadow-sm border-b border-gray-100 -mx-8 px-8 py-4 mb-10 transition-all">
-            <div class="flex items-center justify-between mb-4 flex-wrap gap-4">
+        <!-- ================= HEADER (mirrors verify_marketing.html for visual parity) ================= -->
+        <div class="sticky top-0 z-50 backdrop-blur-md bg-gradient-to-br from-white/95 via-white/90 to-red-50/60 border-b border-gray-100 transition-all">
+            {# Red dot texture so the sticky header reads as part of the
+               red-themed family — same accent as the Marketing review. #}
+            <div class="absolute inset-0 bg-[radial-gradient(#fee2e2_1px,transparent_1px)] [background-size:18px_18px] opacity-30 pointer-events-none"></div>
+
+            <div class="relative z-10 px-8 py-4 flex items-center justify-between flex-wrap gap-4">
                 <div>
-                    <h2 class="text-2xl font-extrabold text-gray-900">Review SpecSheet</h2>
-                    <div class="text-sm text-gray-500 flex items-center gap-2 flex-wrap">
-                        <span>{{ product.model_name }}</span>
-                        <span>•</span>
+                    <p class="text-[10px] font-bold text-red-600 uppercase tracking-widest mb-0.5">Review SpecSheet</p>
+                    <div class="flex items-center gap-3 flex-wrap">
+                        <h2 class="text-xl font-extrabold text-slate-900 tracking-tight">{{ product.model_name }}</h2>
+                    </div>
+                    <div class="flex items-center gap-2 text-xs text-gray-500 mt-1 flex-wrap">
                         {% if product.workflow_stage == 'ready_for_web' %}
-                        <span
-                            class="px-2 py-0.5 rounded text-[10px] font-bold bg-green-50 text-green-700 border border-green-100 whitespace-nowrap">Draft SpecSheet</span>
+                        <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-green-50 text-green-700 border border-green-100 whitespace-nowrap">Draft SpecSheet</span>
                         {% elif product.workflow_stage == 'specsheet_draft' %}
-                        <span
-                            class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-100 whitespace-nowrap">In Process</span>
+                        <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-100 whitespace-nowrap">In Process</span>
                         {% elif product.workflow_stage == 'web_changes_requested' %}
-                        <span
-                            class="px-2 py-0.5 rounded text-[10px] font-bold bg-red-50 text-red-700 border border-red-100 whitespace-nowrap">Change Requested</span>
+                        <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-red-50 text-red-700 border border-red-100 whitespace-nowrap">Change Requested</span>
                         {% elif product.workflow_stage == 'pending_director_spec' %}
-                        <span
-                            class="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-100 whitespace-nowrap">Need Review</span>
+                        <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-100 whitespace-nowrap">Need Review</span>
                         {% elif product.workflow_stage == 'finalized' %}
-                        <span
-                            class="px-2 py-0.5 rounded text-[10px] font-bold bg-green-50 text-green-700 border border-green-100 whitespace-nowrap">SpecSheet Approved</span>
+                        <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-green-50 text-green-700 border border-green-100 whitespace-nowrap">SpecSheet Approved</span>
                         {% else %}
-                        <span
-                            class="px-2 py-0.5 rounded text-[10px] font-bold bg-gray-50 text-gray-700 border border-gray-100">{{
-                            product.workflow_stage|replace('_', ' ') }}</span>
+                        <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-gray-50 text-gray-700 border border-gray-100">{{ product.workflow_stage|replace('_', ' ') }}</span>
                         {% endif %}
                     </div>
                 </div>
 
-                <div class="flex gap-3 flex-wrap">
-                    <a href="{{ url_for('director.dashboard_director') }}"
-                        class="px-5 py-2.5 bg-white border border-gray-300 text-gray-600 font-bold rounded-2xl hover:bg-gray-50 transition-colors">
-                        Cancel
-                    </a>
-
-                    <a href="{{ url_for('web.download_specsheet', product_id=product.id) }}" target="_blank"
-                        class="px-5 py-2.5 bg-white border border-gray-300 text-gray-700 font-bold rounded-2xl hover:bg-gray-50 transition-colors flex items-center gap-2">
-                        <svg class="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                        </svg>
-                        Preview PDF
-                    </a>
-
+                <div class="flex items-center gap-3 flex-wrap">
                     <div id="saveStatus"
                         class="flex items-center gap-2 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all duration-300 opacity-0 bg-gray-50 text-gray-400">
                         <div class="status-dot w-1.5 h-1.5 rounded-full bg-gray-300"></div>
-                        <span class="status-text">Saved </span>
+                        <span class="status-text">Saved</span>
                     </div>
 
-                    <button type="button" onclick="openReviewModal()"
-                        class="px-5 py-2.5 bg-white border border-gray-300 text-red-600 font-bold rounded-2xl hover:bg-red-50 transition-colors flex items-center gap-2">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                        </svg>
-                        Need Review
-                    </button>
+                    {# Action cluster — Cancel / Preview / Need Review / Approve.
+                       Approve is the Director-specific terminal action; the
+                       Marketing page doesn't have it. Tighter gap-2 grouping
+                       matches the Marketing header's visual rhythm. #}
+                    <div class="flex items-center gap-2">
+                        <a href="{{ url_for('director.dashboard_director') }}"
+                            class="px-4 py-2 rounded-lg bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm font-semibold shadow-sm transition-colors inline-flex items-center gap-1.5 group">
+                            <svg class="w-4 h-4 transition-transform group-hover:-translate-x-0.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+                            </svg>
+                            Cancel
+                        </a>
 
-                    <button type="button" onclick="openApproveModal()" id="headerApproveBtn"
-                        class="px-5 py-2.5 bg-black text-white font-bold rounded-2xl hover:bg-gray-800 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-black">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                        </svg>
-                        Approve
-                    </button>
+                        {# Preview PDF button removed — the Live Preview iframe
+                           in the right sidebar already renders the spec sheet
+                           inline, and the Download button on that panel does
+                           the same job for a PDF copy. #}
+
+                        <button type="button" onclick="openReviewModal()"
+                            class="px-4 py-2 rounded-lg bg-white border border-gray-300 hover:bg-red-50 text-red-600 text-sm font-semibold shadow-sm transition-colors inline-flex items-center gap-1.5">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                            Need Review
+                        </button>
+
+                        <button type="button" onclick="openApproveModal()" id="headerApproveBtn"
+                            class="px-5 py-2 rounded-lg bg-black text-white text-sm font-semibold shadow-sm hover:bg-gray-800 transition-colors inline-flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-black">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                            </svg>
+                            Approve
+                        </button>
+                    </div>
                 </div>
             </div>
 
-            <div class="flex justify-between items-center gap-8">
+            <div class="px-8 pb-3 flex justify-between items-center gap-8">
                 <nav class="flex gap-1 bg-gray-100/50 p-1 rounded-xl overflow-x-auto whitespace-nowrap scrollbar-thin">
-                    <a href="#header"
-                        class="nav-link px-4 py-1.5 rounded-lg text-xs font-bold text-gray-500 hover:text-gray-900 transition-all">Header</a>
-                    <a href="#content"
-                        class="nav-link px-4 py-1.5 rounded-lg text-xs font-bold text-gray-500 hover:text-gray-900 transition-all">Short Description</a>
-                    <a href="#features"
-                        class="nav-link px-4 py-1.5 rounded-lg text-xs font-bold text-gray-500 hover:text-gray-900 transition-all">Key Features</a>
-                    <a href="#seo"
-                        class="nav-link px-4 py-1.5 rounded-lg text-xs font-bold text-gray-500 hover:text-gray-900 transition-all">SEO</a>
-                    <a href="#categories"
-                        class="nav-link px-4 py-1.5 rounded-lg text-xs font-bold text-gray-500 hover:text-gray-900 transition-all">Classification</a>
-                    <a href="#tech_specs"
-                        class="nav-link px-4 py-1.5 rounded-lg text-xs font-bold text-gray-500 hover:text-gray-900 transition-all">Specs</a>
-                    <a href="#warranty"
-                        class="nav-link px-4 py-1.5 rounded-lg text-xs font-bold text-gray-500 hover:text-gray-900 transition-all">Warranty</a>
+                    <a href="#header" class="nav-link px-4 py-1.5 rounded-lg text-xs font-bold text-gray-500 hover:text-gray-900 transition-all">Header</a>
+                    <a href="#content" class="nav-link px-4 py-1.5 rounded-lg text-xs font-bold text-gray-500 hover:text-gray-900 transition-all">Short Description</a>
+                    <a href="#features" class="nav-link px-4 py-1.5 rounded-lg text-xs font-bold text-gray-500 hover:text-gray-900 transition-all">Key Features</a>
+                    <a href="#seo" class="nav-link px-4 py-1.5 rounded-lg text-xs font-bold text-gray-500 hover:text-gray-900 transition-all">SEO</a>
+                    <a href="#categories" class="nav-link px-4 py-1.5 rounded-lg text-xs font-bold text-gray-500 hover:text-gray-900 transition-all">Classification</a>
+                    <a href="#tech_specs" class="nav-link px-4 py-1.5 rounded-lg text-xs font-bold text-gray-500 hover:text-gray-900 transition-all">Specs</a>
+                    <a href="#warranty" class="nav-link px-4 py-1.5 rounded-lg text-xs font-bold text-gray-500 hover:text-gray-900 transition-all">Warranty</a>
                 </nav>
 
                 <div class="flex-1 h-1 bg-gray-100 rounded-full overflow-hidden shadow-inner relative">
@@ -107,11 +111,11 @@
             </div>
         </div>
 
-        <!-- ================= MAIN GRID ================= -->
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-10">
+        <!-- ================= MAIN GRID (6/6 mirrors verify_marketing.html) ================= -->
+        <div class="mt-8 px-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
 
             <!-- ================= LEFT CONTENT ================= -->
-            <div class="lg:col-span-9 space-y-10">
+            <div class="lg:col-span-6 space-y-10">
 
                 {% macro comment_box(section, placeholder) %}
                 <div id="box-{{ section }}"
@@ -132,6 +136,7 @@
                 <div class="bg-white rounded-3xl border border-gray-200 p-8 shadow-sm scroll-mt-48" id="header"
                     data-section="header_info">
                     <h3 class="font-bold text-lg mb-4 text-gray-900">Header Information</h3>
+                    {{ director_comments_inline(product, 'header_info', 'web') }}
                     {{ comment_box('header_info', 'Fix naming, brand, or formatting') }}
 
                     <div class="grid grid-cols-2 gap-4 text-sm">
@@ -165,6 +170,7 @@
                 <div class="bg-white rounded-3xl border border-gray-200 p-8 shadow-sm scroll-mt-48" id="content"
                     data-section="range_overview">
                     <h3 class="font-bold text-lg mb-4 text-gray-900">Short Description</h3>
+                    {{ director_comments_inline(product, 'range_overview', 'web') }}
                     {{ comment_box('range_overview', 'Clarify or shorten description') }}
                     <textarea name="range_overview" rows="4"
                         class="w-full p-5 bg-gray-50 rounded-xl text-sm text-gray-700 leading-relaxed border border-gray-100 focus:ring-2 focus:ring-blue-200 focus:outline-none resize-none">{{ product.pis_data.range_overview }}</textarea>
@@ -184,6 +190,7 @@
                             Add Feature
                         </button>
                     </div>
+                    {{ director_comments_inline(product, 'sales_arguments', 'web') }}
                     {{ comment_box('sales_arguments', 'Add or revise selling points') }}
                     <div id="salesArgumentsContainer" class="space-y-3">
                         {% set features = spec_data.key_features if spec_data.key_features else
@@ -224,8 +231,47 @@
                         </div>
                     </div>
 
+                    {{ director_comments_inline(product, 'seo_optimization', 'web') }}
+                    {{ director_comments_inline(product, 'internal_web_keywords', 'web') }}
                     {{ comment_box('seo_optimization', 'Feedback on PDF description or keywords...') }}
                     {{ comment_box('internal_web_keywords', 'Feedback on site search keywords...') }}
+
+                    {# ── GOOGLE SERP PREVIEW (read-only) ─────────────────────
+                       Shows how the spec sheet would appear as a search-engine
+                       result. Pulls from spec_data.seo (set by the Web team's
+                       editor) with sensible fallbacks so the preview still
+                       renders before the Web team has filled them in. The
+                       Director can spot length/clarity issues here and write a
+                       comment back to the Web team via the section's comment
+                       button rather than silently approving a bad SERP. #}
+                    {% set _seo = (spec_data.seo if spec_data and spec_data.seo else {}) or {} %}
+                    {% set _meta_title = _seo.get('meta_title') or product.pis_data.header_info.product_name or product.model_name %}
+                    {% set _meta_desc = _seo.get('meta_description') or spec_data.refined_description or product.pis_data.range_overview or '' %}
+                    {% set _brand = product.pis_data.header_info.brand if product.pis_data and product.pis_data.header_info else '' %}
+                    <div class="mb-6 border border-gray-200 rounded-2xl overflow-hidden bg-white">
+                        <div class="px-4 py-2 bg-gradient-to-r from-slate-50 to-white border-b border-gray-100 flex items-center justify-between">
+                            <span class="text-[10px] font-bold uppercase tracking-widest text-slate-500">Google SERP preview</span>
+                            <span class="text-[10px] text-slate-400">Read-only · reflects last saved state</span>
+                        </div>
+                        <div class="px-5 py-4">
+                            <div class="text-[11px] text-emerald-700 mb-0.5">
+                                kalachand.com{% if _brand %} › {{ _brand|lower }}{% endif %} › {{ (_meta_title or '')|lower|replace(' ', '-')|truncate(48, True, '') }}
+                            </div>
+                            <div class="text-[18px] leading-snug text-[#1a0dab] hover:underline cursor-pointer font-normal mb-1">
+                                {{ _meta_title }}
+                            </div>
+                            <div class="text-[13px] text-slate-700 leading-snug">
+                                {{ _meta_desc|truncate(160, True, '…') }}
+                            </div>
+                            <div class="mt-3 flex flex-wrap gap-2 text-[10px] text-slate-400">
+                                <span>Title: <strong class="{% if _meta_title|length > 60 %}text-amber-600{% else %}text-slate-600{% endif %}">{{ _meta_title|length }}</strong> chars</span>
+                                <span>·</span>
+                                <span>Description: <strong class="{% if _meta_desc|length > 160 %}text-amber-600{% elif _meta_desc|length < 120 %}text-amber-600{% else %}text-emerald-600{% endif %}">{{ _meta_desc|length }}</strong> chars</span>
+                                <span class="text-slate-300">·</span>
+                                <span class="text-slate-400">Optimal: title ≤60, description 120–160</span>
+                            </div>
+                        </div>
+                    </div>
 
                     <div class="space-y-6">
                         <div>
@@ -278,6 +324,7 @@
                         </div>
                     </div>
 
+                    {{ director_comments_inline(product, 'product_classification', 'web') }}
                     {{ comment_box('product_classification', 'Suggest different category or provide feedback...') }}
 
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -326,6 +373,7 @@
                                 Add Spec
                             </button>
                         </div>
+                        {{ director_comments_inline(product, 'technical_specifications', 'web') }}
                         {{ comment_box('technical_specifications', 'Fix incorrect specifications') }}
                     </div>
                     <table class="w-full text-sm">
@@ -361,6 +409,7 @@
                 <div class="bg-white rounded-3xl border border-gray-200 p-8 shadow-sm scroll-mt-48" id="warranty"
                     data-section="warranty_service">
                     <h3 class="font-bold text-lg mb-4 text-gray-900">Warranty & Service</h3>
+                    {{ director_comments_inline(product, 'warranty_service', 'web') }}
                     {{ comment_box('warranty_service', 'Confirm warranty details') }}
                     <div class="grid grid-cols-2 gap-4 text-sm">
                         <div class="bg-gray-50 p-4 rounded-xl border border-gray-100">
@@ -379,11 +428,125 @@
                 </div>
             </div>
 
-            <!-- ================= RIGHT SIDEBAR ================= -->
-            <div class="lg:col-span-3 sticky top-28 space-y-6">
+            <!-- ================= RIGHT SIDEBAR (col-span-6 mirrors verify_marketing.html) ================= -->
+            <div class="lg:col-span-6 space-y-6"
+                 x-data="{ sidebarTab: 'preview', activeSrc: 0, previewBust: Date.now(), refreshPreview() { this.previewBust = Date.now(); } }"
+                 x-init="window.__refreshSpecPreview = () => refreshPreview();">
+
+                {# Sticky tabbed panel — fixed viewport-anchored height so the
+                   iframe gets a tall, full-width canvas (≈ half the page) which
+                   matches the A4 PDF preview's natural proportions. The 9rem
+                   subtraction accounts for the sticky page header above. #}
+                <div class="sticky top-28 z-[60] bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden flex flex-col"
+                     style="height: calc(100vh - 9rem);">
+
+                    {# Tab strip — same Live Preview / Gallery / Source treatment
+                       as the Marketing review's right panel so the Director sees
+                       a familiar control row. Source is conditional on the
+                       product having an original proforma upload. #}
+                    <div class="border-b border-gray-100 flex bg-gradient-to-r from-slate-50 to-gray-50 shrink-0">
+                        <button type="button" @click="sidebarTab = 'preview'"
+                            :class="sidebarTab === 'preview' ? 'border-red-500 text-red-700 bg-white' : 'border-transparent text-slate-500 hover:text-slate-800'"
+                            class="flex-1 px-3 py-3 text-[11px] font-bold uppercase tracking-wider border-b-2 transition-colors flex items-center justify-center gap-1.5">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                            Live Preview
+                        </button>
+                        <button type="button" @click="sidebarTab = 'gallery'"
+                            :class="sidebarTab === 'gallery' ? 'border-red-500 text-red-700 bg-white' : 'border-transparent text-slate-500 hover:text-slate-800'"
+                            class="flex-1 px-3 py-3 text-[11px] font-bold uppercase tracking-wider border-b-2 transition-colors flex items-center justify-center gap-1.5">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                            Gallery
+                        </button>
+                        {% if _source_files %}
+                        <button type="button" @click="sidebarTab = 'source'"
+                            :class="sidebarTab === 'source' ? 'border-red-500 text-red-700 bg-white' : 'border-transparent text-slate-500 hover:text-slate-800'"
+                            class="flex-1 px-3 py-3 text-[11px] font-bold uppercase tracking-wider border-b-2 transition-colors flex items-center justify-center gap-1.5">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                            Source
+                        </button>
+                        {% endif %}
+                    </div>
+
+                    {# ── LIVE PREVIEW TAB ────────────────────────────────
+                       Iframe points at /preview_specsheet_html (web.py).
+                       Cache-buster on previewBust busts the iframe whenever
+                       refreshPreview() is called. flex-1 makes it consume
+                       the full remaining height of the sticky panel. Header
+                       has the same Refresh + Download cluster as the
+                       Marketing review's Live Preview. #}
+                    <div x-show="sidebarTab === 'preview'" x-cloak class="flex-1 flex flex-col overflow-hidden">
+                        <div class="border-b border-gray-100 px-3 py-2 flex items-center justify-between bg-slate-50/50 shrink-0">
+                            <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Reflects last saved state</p>
+                            <div class="flex items-center gap-2">
+                                <button type="button" @click="refreshPreview()"
+                                    class="px-2.5 py-1 rounded-lg text-[10px] font-bold text-slate-600 hover:text-slate-900 hover:bg-white border border-slate-200 transition-colors flex items-center gap-1"
+                                    title="Re-render the preview from the latest saved state">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                                    Refresh
+                                </button>
+                                <a href="{{ url_for('web.download_specsheet', product_id=product.id) }}"
+                                    class="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-red-600 hover:bg-red-700 text-white transition-colors flex items-center gap-1"
+                                    title="Download the current saved state as a PDF">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                                    Download
+                                </a>
+                            </div>
+                        </div>
+                        <div class="flex-1 overflow-hidden bg-gray-100">
+                            <iframe :src="`{{ url_for('web.preview_specsheet_html', product_id=product.id) }}?t=${previewBust}`"
+                                    class="w-full h-full bg-white" frameborder="0"
+                                    title="Live SpecSheet Preview"></iframe>
+                        </div>
+                    </div>
+
+                    {# ── SOURCE TAB ──────────────────────────────────────
+                       Shows the original proforma upload(s) inline so the
+                       Director can sanity-check the spec sheet against the
+                       source. Same renderer as the Marketing review:
+                       iframe for PDFs, <img> for raster, fallback link for
+                       anything else. Cache-buster (?v=last_edited) mandatory
+                       because app.py sets a 1-year static cache. #}
+                    {% if _source_files %}
+                    <div x-show="sidebarTab === 'source'" x-cloak class="flex-1 flex flex-col overflow-hidden">
+                        {% if _source_files | length > 1 %}
+                        <div class="border-b border-gray-100 flex overflow-x-auto bg-slate-50/50 shrink-0">
+                            {% for src in _source_files %}
+                            <button type="button" @click="activeSrc = {{ loop.index0 }}"
+                                class="px-3 py-2 text-[10px] font-semibold border-b-2 whitespace-nowrap transition-colors"
+                                :class="activeSrc === {{ loop.index0 }} ? 'border-red-500 text-red-700 bg-white' : 'border-transparent text-slate-500 hover:text-slate-800'">
+                                {{ loop.index }}. {{ src.split('/')[-1] | truncate(20, True, '…') }}
+                            </button>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        <div class="flex-1 overflow-hidden bg-gray-100">
+                            {% for src in _source_files %}
+                            {% set _ext = src.rsplit('.', 1)[-1] | lower %}
+                            <div x-show="activeSrc === {{ loop.index0 }}" class="h-full">
+                                {% if _ext == 'pdf' %}
+                                <iframe src="{{ url_for('static', filename=src) }}?v={{ product.last_edited_at.timestamp() | int if product.last_edited_at else product.id }}#view=FitH"
+                                        class="w-full h-full" frameborder="0"></iframe>
+                                {% elif _ext in ['jpg','jpeg','png','webp','gif','bmp'] %}
+                                <div class="h-full overflow-auto p-3 flex items-start justify-center bg-[#F8F9FC]">
+                                    <img src="{{ url_for('static', filename=src) }}?v={{ product.last_edited_at.timestamp() | int if product.last_edited_at else product.id }}" class="max-w-full rounded-lg shadow border border-slate-200">
+                                </div>
+                                {% else %}
+                                <div class="h-full flex flex-col items-center justify-center p-6 text-center">
+                                    <p class="text-xs text-slate-500 mb-3">Inline preview not supported.</p>
+                                    <a href="{{ url_for('static', filename=src) }}" target="_blank" class="text-xs font-bold text-red-600 hover:text-red-800 underline">Open in new tab →</a>
+                                </div>
+                                {% endif %}
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {# ── GALLERY TAB ────────────────────────────────────── #}
+                    <div x-show="sidebarTab === 'gallery'" x-cloak class="flex-1 overflow-y-auto">
 
                 {# Visual Reference Card — Marketing-style Gallery #}
-                <div class="section-card overflow-hidden !p-0">
+                <div class="overflow-hidden">
                     <!-- Gallery Header -->
                     <div class="bg-gradient-to-r from-slate-50 to-gray-50 px-5 py-4 border-b border-gray-100">
                         <div class="flex items-center justify-between">
@@ -485,8 +648,10 @@
                         {% endif %}
                     </div>
                 </div>
+                    </div>{# /gallery tab content #}
+                </div>{# /tab card wrapper #}
 
-            </div>
+            </div>{# /sticky right sidebar #}
         </div>
 
 
