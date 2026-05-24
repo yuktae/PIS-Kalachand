@@ -29,7 +29,7 @@ from helpers import (
     set_product_category,
 )
 from utils.decorators import require_role
-from utils.workflow import Stage
+from utils.workflow import Stage, can_delete, deletable_stages
 from utils.history import log_event
 from utils.web_scraping import scrape_url_data, scrape_url_data_deep
 from utils.ai_generation import generate_pis_data, generate_bulk_pis_data, generate_proforma_data
@@ -1850,14 +1850,21 @@ def api_product_image_crop_discard(product_id):
 # ── PRODUCT DELETE (soft) ─────────────────────────────────────────────────────
 
 @api_bp.route('/api/product/<int:product_id>/delete', methods=['POST'])
-@require_role('admin', 'marketing', 'director', api=True)
+@require_role('admin', 'marketing', 'director', 'web', api=True)
 def api_delete_product(product_id):
     """Soft-delete a single product. The row stays in the DB with
     deleted_at set so it can be recovered later if needed; all dashboards
-    already filter on deleted_at IS NULL."""
+    already filter on deleted_at IS NULL.
+
+    Stage gating: callers can only delete products in stages their role
+    owns (see utils.workflow.DELETE_PERMISSIONS). Bypassing the UI to hit
+    this endpoint with an off-limits stage returns 403."""
     product = Product.query.get_or_404(product_id)
     if product.deleted_at is not None:
         return jsonify({"ok": True, "id": product_id, "already_deleted": True})
+    role = session.get('role')
+    if not can_delete(role, product.workflow_stage):
+        return jsonify({"error": "Your role can't delete products in this stage."}), 403
     product.deleted_at = datetime.now(timezone.utc).replace(tzinfo=None)
     db.session.commit()
     log_event(product.id, get_current_username(), 'Product Deleted',
@@ -1866,9 +1873,14 @@ def api_delete_product(product_id):
 
 
 @api_bp.route('/api/products/bulk_delete', methods=['POST'])
-@require_role('admin', 'marketing', 'director', api=True)
+@require_role('admin', 'marketing', 'director', 'web', api=True)
 def api_bulk_delete_products():
-    """Soft-delete a list of products by id. Body: {"ids": [1, 2, 3]}."""
+    """Soft-delete a list of products by id. Body: {"ids": [1, 2, 3]}.
+
+    Stage gating: ineligible ids are silently skipped (not rejected) so a
+    multi-select containing a mix of stages still deletes what the caller
+    is allowed to delete. Response carries both counts so the UI can
+    surface "deleted N of M" to the user."""
     body = request.get_json(silent=True) or {}
     raw_ids = body.get('ids')
     if not isinstance(raw_ids, list) or not raw_ids:
@@ -1877,12 +1889,25 @@ def api_bulk_delete_products():
         ids = [int(x) for x in raw_ids]
     except (TypeError, ValueError):
         return jsonify({"error": "ids must be integers"}), 400
-    affected = Product.query.filter(
-        Product.id.in_(ids),
-        Product.deleted_at.is_(None),
-    ).update({'deleted_at': datetime.now(timezone.utc).replace(tzinfo=None)}, synchronize_session=False)
+
+    role = session.get('role')
+    allowed_stages = deletable_stages(role)   # None for admin (no filter)
+
+    q = Product.query.filter(Product.id.in_(ids), Product.deleted_at.is_(None))
+    if allowed_stages is not None:
+        q = q.filter(Product.workflow_stage.in_(allowed_stages))
+    affected = q.update(
+        {'deleted_at': datetime.now(timezone.utc).replace(tzinfo=None)},
+        synchronize_session=False,
+    )
     db.session.commit()
-    return jsonify({"ok": True, "deleted_count": affected})
+    skipped = len(set(ids)) - affected
+    return jsonify({
+        "ok": True,
+        "deleted_count": affected,
+        "skipped_count": max(skipped, 0),
+        "requested_count": len(set(ids)),
+    })
 
 
 # ── PHASE 2.5: SPLIT VARIANTS / MERGE DRAFTS ─────────────────────────────
@@ -2042,14 +2067,23 @@ def api_merge_products():
 
 
 @api_bp.route('/api/products/clear_active', methods=['POST'])
-@require_role('admin', 'marketing', 'director', api=True)
+@require_role('admin', 'marketing', 'director', 'web', api=True)
 def api_clear_active_products():
-    """Soft-delete every currently active product. Used by the dashboard
-    'Clear All' button. Returns the count cleared."""
+    """Soft-delete every currently active product the caller's role is
+    allowed to delete. Used by the dashboard 'Clear All' button.
+
+    Stage gating means each role's Clear All now clears only their own
+    deletable stages: marketing wipes only drafts, director wipes only
+    review/approved/finalized, web wipes only finalized. Admin still
+    clears everything. Returns the count cleared."""
     now = datetime.now(timezone.utc).replace(tzinfo=None)
-    affected = Product.query.filter(Product.deleted_at.is_(None)).update(
-        {'deleted_at': now}, synchronize_session=False
-    )
+    role = session.get('role')
+    allowed_stages = deletable_stages(role)
+
+    q = Product.query.filter(Product.deleted_at.is_(None))
+    if allowed_stages is not None:
+        q = q.filter(Product.workflow_stage.in_(allowed_stages))
+    affected = q.update({'deleted_at': now}, synchronize_session=False)
     db.session.commit()
     return jsonify({"ok": True, "deleted_count": affected})
 

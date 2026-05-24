@@ -5,8 +5,10 @@
 <div x-data="versionPanel()" x-cloak>
 
     <!-- Floating Toggle Button -->
+    <!-- z-[70] keeps the button above any page-chrome sticky preview pane
+         (some Edit pages use z-[60] to lift the preview over the page header). -->
     <button type="button" @click="open = true; loadData()"
-        class="fixed bottom-6 right-6 z-40 w-14 h-14 bg-slate-900 text-white rounded-2xl shadow-2xl shadow-slate-400/30 hover:bg-slate-800 hover:scale-105 transition-all flex items-center justify-center group">
+        class="fixed bottom-6 right-6 z-[70] w-14 h-14 bg-slate-900 text-white rounded-2xl shadow-2xl shadow-slate-400/30 hover:bg-slate-800 hover:scale-105 transition-all flex items-center justify-center group">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
@@ -16,17 +18,20 @@
     </button>
 
     <!-- Backdrop -->
-    <div x-show="open" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0" 
+    <!-- z-[100] sits above any sticky page chrome (preview pane z-[60], page
+         header z-50, sticky action bar z-[55]) so the slide-out always covers
+         the page uniformly across marketing / director / web edit screens. -->
+    <div x-show="open" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0"
         x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-200"
         x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
-        @click="open = false" class="fixed inset-0 bg-black/30 backdrop-blur-sm z-50"></div>
+        @click="open = false" class="fixed inset-0 bg-black/30 backdrop-blur-sm z-[100]"></div>
 
     <!-- Slide-Out Panel -->
-    <div x-show="open" x-transition:enter="transition ease-out duration-300" 
+    <div x-show="open" x-transition:enter="transition ease-out duration-300"
         x-transition:enter-start="translate-x-full" x-transition:enter-end="translate-x-0"
         x-transition:leave="transition ease-in duration-200" x-transition:leave-start="translate-x-0"
         x-transition:leave-end="translate-x-full"
-        class="fixed right-0 top-0 h-full w-full max-w-lg bg-white shadow-2xl z-50 flex flex-col overflow-hidden">
+        class="fixed right-0 top-0 h-full w-full max-w-lg bg-white shadow-2xl z-[100] flex flex-col overflow-hidden">
 
         <!-- Panel Header -->
         <div class="px-6 py-5 border-b border-gray-100 bg-white flex-shrink-0">
@@ -133,7 +138,8 @@
     </div>
 
     <!-- VERSION CHANGES MODAL -->
-    <div x-show="showChangesModal" x-transition class="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm">
+    <!-- z-[110] keeps this nested modal above the slide-out panel (z-[100]). -->
+    <div x-show="showChangesModal" x-transition class="fixed inset-0 z-[110] flex items-center justify-center bg-black/50 backdrop-blur-sm">
         <div class="bg-white rounded-2xl w-full max-w-3xl mx-4 shadow-2xl flex flex-col max-h-[85vh] overflow-hidden" @click.away="showChangesModal = false">
             <!-- Modal header -->
             <div class="px-6 py-4 border-b border-gray-100 flex-shrink-0 bg-gradient-to-r from-slate-50 to-white">
@@ -241,7 +247,7 @@
     </div>
 
     <!-- Restore Confirmation Modal -->
-    <div x-show="showRestoreModal" x-transition class="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm">
+    <div x-show="showRestoreModal" x-transition class="fixed inset-0 z-[110] flex items-center justify-center bg-black/50 backdrop-blur-sm">
         <div class="bg-white rounded-3xl w-full max-w-sm p-8 shadow-2xl text-center">
             <div class="w-14 h-14 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
                 <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">

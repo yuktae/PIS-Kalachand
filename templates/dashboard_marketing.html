@@ -16,6 +16,7 @@
             image: `{{ url_for('static', filename=p.image_path) if p.image_path else '' }}`,
             date: `{{ p.created_at.strftime('%d %b') }}`,
             stage: `{{ p.workflow_stage }}`,
+            can_delete: {{ 'true' if can_delete_stage(session.get('role'), p.workflow_stage) else 'false' }},
             category: `{{ product_category_label(p) }}`,
             stage_display: (function(s) {
                 if (s === 'marketing_draft') return 'AI Generated PIS';
@@ -106,7 +107,9 @@
         }
     },
     selectAllVisible() {
-        this.selectedIds = this.filteredProducts.map(p => p.id);
+        // Only deletable products can be selected — multi-select drives bulk
+        // delete, and the backend would skip the rest anyway.
+        this.selectedIds = this.filteredProducts.filter(p => p.can_delete).map(p => p.id);
     },
     clearSelection() { this.selectedIds = []; },
 
@@ -125,12 +128,24 @@
                 if (window.bgProcess) bgProcess.error(data.error || 'Bulk delete failed');
                 return;
             }
+            // Backend may have skipped ids in stages this role can't delete.
+            // Only drop the ones we know it accepted (selected ∩ can_delete).
             const idSet = new Set(ids);
-            this.products = this.products.filter(x => !idSet.has(x.id));
+            const accepted = this.products.filter(x => idSet.has(x.id) && x.can_delete).map(x => x.id);
+            const dropSet = new Set(accepted);
+            this.products = this.products.filter(x => !dropSet.has(x.id));
             this.selectedIds = [];
             this.showBulkDeleteModal = false;
-            const n = data.deleted_count || ids.length;
-            if (window.bgProcess) bgProcess.success('Deleted ' + n + ' product' + (n === 1 ? '' : 's'));
+            const deleted = data.deleted_count || 0;
+            const skipped = data.skipped_count || 0;
+            if (window.bgProcess) {
+                if (skipped > 0) {
+                    bgProcess.success('Deleted ' + deleted + ' of ' + (deleted + skipped) +
+                        ' — the rest are in stages you can\'t delete');
+                } else {
+                    bgProcess.success('Deleted ' + deleted + ' product' + (deleted === 1 ? '' : 's'));
+                }
+            }
         } catch (err) {
             if (window.bgProcess) bgProcess.error('Network error during bulk delete');
         } finally {
@@ -619,8 +634,9 @@
                                     :class="p.status_bg + ' ' + p.status_text" x-text="p.stage_display">
                                 </div>
 
-                                <!-- Delete Button Overlay -->
+                                <!-- Delete Button Overlay (only on stages this role can delete) -->
                                 <button type="button" @click.stop="requestDeleteProduct(p)"
+                                    x-show="p.can_delete"
                                     :disabled="deletingId === p.id"
                                     title="Delete product"
                                     class="absolute top-2 right-2 w-7 h-7 rounded-md bg-white/90 backdrop-blur-md border border-white/60 text-slate-400 hover:text-red-600 hover:bg-white shadow-sm opacity-0 group-hover:opacity-100 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center">
@@ -630,8 +646,9 @@
                                     </svg>
                                 </button>
 
-                                <!-- Selection Checkbox Overlay -->
+                                <!-- Selection Checkbox Overlay (only on deletable stages — multi-select drives bulk delete) -->
                                 <button type="button" @click.stop="toggleSelect(p.id)"
+                                    x-show="p.can_delete"
                                     title="Select product"
                                     class="absolute bottom-2 left-2 w-6 h-6 rounded-md backdrop-blur-md border-2 shadow-sm transition-all flex items-center justify-center"
                                     :class="isSelected(p.id) ? 'bg-red-600 border-red-600 opacity-100' : 'bg-white/85 border-white/70 opacity-0 group-hover:opacity-100 hover:border-red-300'">
@@ -674,9 +691,9 @@
                             <tr>
                                 <th class="px-4 py-4 pl-6 w-10">
                                     <input type="checkbox"
-                                        :checked="filteredProducts.length > 0 && selectedIds.length === filteredProducts.length"
+                                        :checked="selectedIds.length > 0 && selectedIds.length === filteredProducts.filter(p => p.can_delete).length"
                                         @change="$event.target.checked ? selectAllVisible() : clearSelection()"
-                                        title="Select all visible"
+                                        title="Select all deletable visible"
                                         class="w-4 h-4 rounded text-red-600 border-slate-300 focus:ring-red-400 cursor-pointer">
                                 </th>
                                 <th class="px-6 py-4">Product Details</th>
@@ -692,6 +709,7 @@
                                     :class="isSelected(p.id) ? 'bg-red-50/40' : ''">
                                     <td class="px-4 py-3 pl-6">
                                         <input type="checkbox"
+                                            x-show="p.can_delete"
                                             :checked="isSelected(p.id)"
                                             @change="toggleSelect(p.id)"
                                             class="w-4 h-4 rounded text-red-600 border-slate-300 focus:ring-red-400 cursor-pointer">
@@ -733,6 +751,7 @@
                                                 </svg>
                                             </a>
                                             <button type="button" @click="requestDeleteProduct(p)"
+                                                x-show="p.can_delete"
                                                 :disabled="deletingId === p.id"
                                                 title="Delete product"
                                                 class="w-8 h-8 rounded-lg bg-gray-50 border border-gray-100 text-slate-400 hover:text-red-600 hover:bg-red-50 hover:border-red-200 transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed">

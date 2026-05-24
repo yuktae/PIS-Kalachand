@@ -44,3 +44,62 @@ class Stage:
 
     # Complete, published
     FINALIZED = 'finalized'
+
+
+# ── DELETE PERMISSIONS ────────────────────────────────────────────────────────
+#
+# Single source of truth for which role can soft-delete a product in which
+# stage. Used by both the backend (api.py delete endpoints) and the frontend
+# (dashboards hide the trash icon on rows the caller can't delete).
+#
+# Rules:
+#   - Marketing deletes their own early-stage drafts only. Once a PIS has
+#     been submitted to a director (pending_director_pis) or sent back with
+#     change requests (marketing_changes_requested), it carries director
+#     history and stays in the audit trail.
+#   - Director deletes only things they have already approved
+#     (ready_for_web + finalized). Items awaiting their review
+#     (pending_director_pis, pending_director_spec) cannot be deleted —
+#     a director should approve or request changes, not silently drop
+#     work submitted to them.
+#   - Web deletes only finalized specsheets — clean-up of completed work.
+#   - Admin can delete any stage (escape hatch; matches today's behavior).
+#
+# `_ANY` is a sentinel set membership check delegates to.
+class _AnyStage:
+    def __contains__(self, _stage):
+        return True
+
+
+_ANY = _AnyStage()
+
+DELETE_PERMISSIONS = {
+    'marketing': {Stage.MARKETING_DRAFT, Stage.MARKETING_IN_PROGRESS},
+    'director':  {Stage.READY_FOR_WEB, Stage.FINALIZED},
+    'web':       {Stage.FINALIZED},
+    'admin':     _ANY,
+}
+
+
+def can_delete(role, stage):
+    """True iff `role` is allowed to soft-delete a product in `stage`.
+
+    Roles outside the four known names (None, '', stray values) always
+    return False — fail-closed so a misconfigured session can't delete.
+    """
+    allowed = DELETE_PERMISSIONS.get(role)
+    if allowed is None:
+        return False
+    return stage in allowed
+
+
+def deletable_stages(role):
+    """Return the concrete set of stages `role` may delete, or None for
+    admin (meaning "any stage"). Used by clear_active / bulk_delete to
+    build a SQL WHERE clause without enumerating cases per role."""
+    allowed = DELETE_PERMISSIONS.get(role)
+    if allowed is None:
+        return frozenset()      # unknown role → nothing deletable
+    if isinstance(allowed, _AnyStage):
+        return None             # admin → no stage filter
+    return frozenset(allowed)

@@ -116,6 +116,7 @@ def create_app() -> Flask:
 
     # ── TEMPLATE GLOBALS ────────────────────────────────────────────────────
     from utils.storage import get_image_url
+    from utils.workflow import can_delete as _can_delete_stage
     from helpers import (
         get_product_category, get_product_category_label,
         format_comment_timestamp,
@@ -125,6 +126,7 @@ def create_app() -> Flask:
     application.jinja_env.globals['get_image_url'] = get_image_url  # type: ignore[assignment]
     application.jinja_env.globals['product_category'] = get_product_category  # type: ignore[assignment]
     application.jinja_env.globals['product_category_label'] = get_product_category_label  # type: ignore[assignment]
+    application.jinja_env.globals['can_delete_stage'] = _can_delete_stage  # type: ignore[assignment]
     application.jinja_env.filters['comment_ts'] = format_comment_timestamp  # type: ignore[assignment]
 
     # ── BLUEPRINTS ───────────────────────────────────────────────────────────
