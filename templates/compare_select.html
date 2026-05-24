@@ -200,7 +200,7 @@
             <template x-for="p in filteredProducts()" :key="p.id">
                 <button type="button" @click="toggle(p.id)"
                         :class="isSelected(p.id) ? 'is-selected bg-red-50/40 border-red-200' : 'bg-white border-gray-100 hover:border-gray-200'"
-                        class="compare-card-tile relative text-left rounded-2xl border shadow-sm overflow-hidden flex flex-col">
+                        class="compare-card-tile relative text-left rounded-2xl border shadow-sm overflow-hidden flex flex-col h-full">
                     <div class="absolute top-3 right-3 z-10">
                         <div :class="isSelected(p.id) ? 'bg-red-600 border-red-600' : 'bg-white/80 border-gray-200'"
                              class="w-6 h-6 rounded-md border-2 flex items-center justify-center transition-colors">
@@ -209,14 +209,14 @@
                             </svg>
                         </div>
                     </div>
-                    <div class="compare-thumb aspect-[4/3] flex items-center justify-center">
+                    <div class="compare-thumb aspect-[4/3] flex items-center justify-center overflow-hidden">
                         <img :src="p.image_url" x-show="p.image_url" class="w-full h-full object-contain p-3" :alt="p.name">
                         <svg x-show="!p.image_url" class="w-12 h-12 text-slate-300" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                         </svg>
                     </div>
                     <div class="p-4 flex-1 flex flex-col gap-1">
-                        <p class="text-sm font-extrabold text-slate-900 line-clamp-2" x-text="p.name"></p>
+                        <p class="text-sm font-extrabold text-slate-900 line-clamp-2 h-10" x-text="p.name"></p>
                         <p class="text-[11px] text-slate-500 line-clamp-1">
                             <span x-text="p.brand || 'Unknown brand'"></span>
                             <template x-if="p.model_number">

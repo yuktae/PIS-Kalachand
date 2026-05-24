@@ -614,12 +614,13 @@
 
                             <!-- Image Area -->
                             <div
-                                class="aspect-[4/3] bg-gray-50 rounded-lg mb-3 relative overflow-hidden flex items-center justify-center border border-gray-100">
+                                class="aspect-[4/3] bg-gray-50 rounded-lg mb-3 relative overflow-hidden flex items-center justify-center border border-gray-100"
+                                :class="p.image ? 'cursor-zoom-in' : ''"
+                                @click="p.image && openLightbox(p.image)">
                                 <template x-if="p.image">
                                     <img :src="p.image"
-                                        class="w-full h-full object-contain mix-blend-multiply p-4 transition-transform duration-500 group-hover:scale-105 gallery-clickable"
-                                        @click.stop="openLightbox(p.image)"
-                                        @error="$el.style.display='none'; $el.nextElementSibling && ($el.nextElementSibling.style.display='flex')">
+                                        class="w-full h-full object-contain mix-blend-multiply p-4 transition-transform duration-500 group-hover:scale-105"
+                                        @error="$el.style.display='none'">
                                 </template>
                                 <template x-if="!p.image">
                                     <div class="text-gray-300 flex flex-col items-center">
@@ -691,7 +692,7 @@
                 </div>
 
                 <!-- LIST VIEW -->
-                <div x-show="view === 'list'" class="w-full overflow-x-auto">
+                <div x-show="view === 'list'" x-cloak class="w-full overflow-x-auto">
                     <table class="w-full text-left text-sm text-slate-600">
                         <thead
                             class="bg-gray-50/50 text-xs uppercase font-semibold text-slate-500 border-b border-gray-100">

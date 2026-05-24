@@ -79,7 +79,6 @@
     selectedIds: [],
     showBulkDeleteModal: false,
     bulkDeleting: false,
-    merging: false,
 
     readNotifs: JSON.parse(localStorage.getItem('marketing_read_notifs') || '[]'),
     notifKey(p) {
@@ -110,41 +109,6 @@
         this.selectedIds = this.filteredProducts.map(p => p.id);
     },
     clearSelection() { this.selectedIds = []; },
-
-    /* Phase 2.5 — Merge selected drafts into one with variants.
-       Convention: the FIRST selected id stays as the primary product;
-       the rest get absorbed as variants and soft-deleted. */
-    async confirmMerge() {
-        if (this.merging || this.selectedIds.length < 2) return;
-        const ids = this.selectedIds.slice();
-        const primary_id = ids[0];
-        const secondary_ids = ids.slice(1);
-        const ok = confirm(
-            `Merge ${ids.length} drafts into one?\n\n` +
-            `Product #${primary_id} will be kept as the base; ` +
-            `the other ${secondary_ids.length} will be absorbed as variants and archived. ` +
-            `You'll land on the merged product's review page.`
-        );
-        if (!ok) return;
-        this.merging = true;
-        try {
-            const res = await fetch('/api/products/merge', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ primary_id, secondary_ids }),
-            });
-            const data = await res.json().catch(() => ({}));
-            if (!res.ok) {
-                alert('Merge failed: ' + (data.error || 'unknown'));
-                return;
-            }
-            window.location.href = data.redirect_url || `/review/marketing/${primary_id}`;
-        } catch (err) {
-            alert('Network error during merge: ' + err.message);
-        } finally {
-            this.merging = false;
-        }
-    },
 
     async confirmBulkDelete() {
         if (this.bulkDeleting || this.selectedIds.length === 0) return;
@@ -632,12 +596,13 @@
 
                             <!-- Image Area -->
                             <div
-                                class="aspect-[4/3] bg-gray-50 rounded-lg mb-3 relative overflow-hidden flex items-center justify-center border border-gray-100">
+                                class="aspect-[4/3] bg-gray-50 rounded-lg mb-3 relative overflow-hidden flex items-center justify-center border border-gray-100"
+                                :class="p.image ? 'cursor-zoom-in' : ''"
+                                @click="p.image && openLightbox(p.image)">
                                 <template x-if="p.image">
                                     <img :src="p.image"
-                                        class="w-full h-full object-contain mix-blend-multiply p-4 transition-transform duration-500 group-hover:scale-105 gallery-clickable"
-                                        @click.stop="openLightbox(p.image)"
-                                        @error="$el.style.display='none'; $el.nextElementSibling && ($el.nextElementSibling.style.display='flex')">
+                                        class="w-full h-full object-contain mix-blend-multiply p-4 transition-transform duration-500 group-hover:scale-105"
+                                        @error="$el.style.display='none'">
                                 </template>
                                 <template x-if="!p.image">
                                     <div class="text-gray-300 flex flex-col items-center">
@@ -702,7 +667,7 @@
                 </div>
 
                 <!-- LIST VIEW -->
-                <div x-show="view === 'list'" class="w-full overflow-x-auto">
+                <div x-show="view === 'list'" x-cloak class="w-full overflow-x-auto">
                     <table class="w-full text-left text-sm text-slate-600">
                         <thead
                             class="bg-gray-50/50 text-xs uppercase font-semibold text-slate-500 border-b border-gray-100">
@@ -827,18 +792,6 @@
             <button type="button" @click="clearSelection()"
                 class="px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors">
                 Clear
-            </button>
-            <button type="button"
-                @click="selectedIds.length >= 2 ? confirmMerge() : null"
-                :disabled="selectedIds.length < 2 || merging"
-                :class="selectedIds.length >= 2 ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-slate-700 cursor-not-allowed opacity-50'"
-                class="ml-2 px-4 py-2 text-xs font-bold text-white rounded-xl flex items-center gap-2 transition-colors"
-                title="Merge the selected drafts into one — first selected becomes the base, the rest become variants. Pick at least 2.">
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M9 19v-2a4 4 0 014-4h4M7 12l-4-4m0 0l4-4M3 8h18" />
-                </svg>
-                <span x-text="merging ? 'Merging…' : ('Merge ' + selectedIds.length)"></span>
             </button>
             <button type="button" @click="showBulkDeleteModal = true"
                 class="ml-2 px-4 py-2 text-xs font-bold bg-red-600 hover:bg-red-700 text-white rounded-xl flex items-center gap-2 transition-colors">

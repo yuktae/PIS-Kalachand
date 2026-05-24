@@ -58,7 +58,7 @@
          file is saved ONCE here and the target wizard's session is primed
          server-side, so there is no re-upload after the route decision.
          ════════════════════════════════════════════════════════════════════ -->
-    <div x-show="mode === 'auto'" x-transition
+    <div x-show="mode === 'auto'" x-cloak x-transition
         class="bg-white rounded-[2.5rem] shadow-2xl shadow-slate-200/60 border border-slate-100 overflow-hidden relative animate-slide-up">
 
         <div class="p-10 space-y-6">
@@ -120,7 +120,7 @@
     <!-- ════════════════════════════════════════════════════════════════════
          MULTIPLE — bulk import wizard (Phase A: upload + triage + preview)
          ════════════════════════════════════════════════════════════════════ -->
-    <div x-show="mode === 'multiple'" x-transition
+    <div x-show="mode === 'multiple'" x-cloak x-transition
         class="bg-white rounded-[2.5rem] shadow-2xl shadow-slate-200/60 border border-slate-100 overflow-hidden relative animate-slide-up">
 
         <div class="p-10 space-y-10">
@@ -403,7 +403,7 @@
     <!-- ════════════════════════════════════════════════════════════════════
          SINGLE — single-page cascading flow
          ════════════════════════════════════════════════════════════════════ -->
-    <div x-show="mode === 'single'" x-transition
+    <div x-show="mode === 'single'" x-cloak x-transition
         class="bg-white rounded-[2.5rem] shadow-2xl shadow-slate-200/60 border border-slate-100 overflow-hidden relative animate-slide-up">
 
         <div class="p-10 space-y-10">
