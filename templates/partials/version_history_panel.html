@@ -115,18 +115,15 @@
                                         </div>
                                     </div>
                                 </div>
-                                <!-- Action buttons -->
+                                <!-- Action buttons — Restore was removed per
+                                     product decision; the backend route
+                                     /api/product/<id>/versions/<vid>/restore is
+                                     left in place but has no UI entry point. -->
                                 <div class="flex items-center gap-2 mt-3 pt-3 border-t border-gray-50">
                                     <button type="button" @click="openChangesModal(v.version_num, v.label)"
                                         class="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-gray-50 text-slate-700 rounded-lg text-[10px] font-bold hover:bg-gray-100 transition-colors">
                                         <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
                                         <span x-text="'View Changes (' + getVersionChangesCount(v.version_num) + ')'"></span>
-                                    </button>
-                                    <button type="button" @click="restoreVersion(v.id, v.version_num)" 
-                                        x-show="i > 0"
-                                        class="flex items-center justify-center gap-1 px-3 py-2 bg-indigo-50 text-indigo-700 rounded-lg text-[10px] font-bold hover:bg-indigo-100 transition-colors">
-                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
-                                        Restore
                                     </button>
                                 </div>
                             </div>
@@ -246,27 +243,6 @@
         </div>
     </div>
 
-    <!-- Restore Confirmation Modal -->
-    <div x-show="showRestoreModal" x-transition class="fixed inset-0 z-[110] flex items-center justify-center bg-black/50 backdrop-blur-sm">
-        <div class="bg-white rounded-3xl w-full max-w-sm p-8 shadow-2xl text-center">
-            <div class="w-14 h-14 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                </svg>
-            </div>
-            <h3 class="text-lg font-bold text-slate-900 mb-2">Restore Version?</h3>
-            <p class="text-sm text-gray-500 mb-6">
-                This will revert the product data to <strong x-text="'version ' + restoreVersionNum"></strong>. 
-                Your current state will be saved as a new version before restoring.
-            </p>
-            <div class="flex gap-3">
-                <button type="button" @click="showRestoreModal = false" class="flex-1 py-3 bg-gray-100 text-gray-700 rounded-xl font-bold hover:bg-gray-200 transition-colors text-sm">Cancel</button>
-                <button type="button" @click="confirmRestore()" class="flex-1 py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-colors text-sm shadow-lg shadow-indigo-200">
-                    Restore
-                </button>
-            </div>
-        </div>
-    </div>
 </div>
 
 <style>
@@ -324,11 +300,6 @@ function versionPanel() {
         loading: false,
         versions: [],
         changelog: [],
-        
-        // Restore modal
-        showRestoreModal: false,
-        restoreVersionId: null,
-        restoreVersionNum: null,
 
         // Changes modal
         showChangesModal: false,
@@ -384,29 +355,6 @@ function versionPanel() {
             }
             this.loading = false;
         },
-        
-        restoreVersion(versionId, versionNum) {
-            this.restoreVersionId = versionId;
-            this.restoreVersionNum = versionNum;
-            this.showRestoreModal = true;
-        },
-        
-        async confirmRestore() {
-            try {
-                const res = await fetch('/api/product/' + productId + '/versions/' + this.restoreVersionId + '/restore', {
-                    method: 'POST'
-                });
-                const data = await res.json();
-                if (data.ok) {
-                    this.showRestoreModal = false;
-                    window.location.reload();
-                } else {
-                    alert(data.error || 'Failed to restore');
-                }
-            } catch (e) {
-                alert('Network error. Please try again.');
-            }
-        }
     };
 }
 </script>

@@ -986,3 +986,106 @@ def generate_ai_revision(section_name, original_content, director_comment):
     except Exception as e:
         print(f"AI Revision Error [{section_name}]: {e}")
         return original_content
+
+
+# ── SURGICAL FORBIDDEN-WORDS REWRITE ─────────────────────────────────────────
+#
+# Used by the "Regenerate" button on the web Edit SpecSheet page. Rather than
+# regenerating the whole SpecSheet (which costs tokens and wipes the user's
+# manual edits — that's what `?rework=1` on /api/generate_specsheet does), this
+# rewrites ONLY the sentences that contain a forbidden word. Caller passes a
+# list of items, each item being one sentence + which forbidden words appear
+# in it; we return AI-rewritten replacements in the same order.
+#
+# Batched in a single Gemini call to amortize round-trip cost. The model is
+# asked to return JSON keyed by the caller-supplied `id` so the frontend can
+# map proposed rewrites back to the exact field+sentence the user clicked.
+
+
+def rewrite_sentences_avoiding_forbidden(items):
+    """Rewrite each sentence to avoid its listed forbidden words.
+
+    Args:
+        items: list of dicts in the shape:
+            [{
+                "id": <opaque id from caller, returned as-is>,
+                "field_label": "Short Description",       # optional, used for context only
+                "sentence": "This iron is cheap and effective.",
+                "forbidden_words": [
+                    {"word": "cheap", "replace_with": "affordable"},
+                    ...
+                ]
+            }, ...]
+
+    Returns:
+        list of dicts: [{"id": ..., "proposed": "..."}]
+        Items the AI couldn't rewrite are omitted; caller should treat them
+        as "no proposal available" and surface that to the user.
+    """
+    if not items:
+        return []
+
+    # Compact serialization — the model doesn't need our internal field_label
+    # for routing, only for tone context if present.
+    payload = []
+    for it in items:
+        payload.append({
+            "id": it.get("id"),
+            "field_label": it.get("field_label") or "",
+            "sentence": (it.get("sentence") or "").strip(),
+            "forbidden_words": [
+                {"word": (w.get("word") or "").strip(),
+                 "replace_with": (w.get("replace_with") or "").strip()}
+                for w in (it.get("forbidden_words") or [])
+                if (w.get("word") or "").strip()
+            ],
+        })
+
+    prompt = (
+        "You rewrite individual sentences from product spec content so they "
+        "avoid specific forbidden words. For each item below:\n"
+        "  1. Do NOT use any of the listed forbidden words, nor their plural "
+        "or inflected forms (cheap → cheaper, cheapest, cheaply are all out).\n"
+        "  2. If a `replace_with` is provided and reads naturally in context, "
+        "prefer it. Otherwise rephrase smoothly.\n"
+        "  3. Preserve the original meaning, factual claims, tone, and "
+        "approximate length.\n"
+        "  4. Do NOT invent new product features, specs, or claims.\n"
+        "  5. The `field_label` is only context for tone (e.g. \"Meta Title\" "
+        "should stay short and punchy).\n\n"
+        "Return ONLY a JSON object in this exact shape (no markdown, no "
+        "preamble):\n"
+        '{ "rewrites": [{"id": <id>, "proposed": "<rewritten sentence>"}, ...] }\n\n'
+        "Items:\n"
+        + json.dumps(payload, ensure_ascii=False)
+    )
+
+    try:
+        from .api_metering import gemini_call
+        response = gemini_call(
+            prompt_id='forbidden_words_rewrite',
+            model=_MODEL,
+            client=_get_client(),
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
+                temperature=0.2,  # low — we want deterministic, faithful rewrites
+            ),
+        )
+        parsed = safe_json_loads(response.text, fallback={})
+        rewrites = parsed.get("rewrites") if isinstance(parsed, dict) else None
+        if not isinstance(rewrites, list):
+            return []
+        # Filter out malformed entries; keep ones with a non-empty proposed string.
+        out = []
+        for r in rewrites:
+            if not isinstance(r, dict):
+                continue
+            proposed = (r.get("proposed") or "").strip()
+            if not proposed:
+                continue
+            out.append({"id": r.get("id"), "proposed": proposed})
+        return out
+    except Exception:
+        logger.exception("forbidden_words_rewrite failed — returning empty list")
+        return []

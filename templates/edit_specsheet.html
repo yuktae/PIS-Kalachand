@@ -141,9 +141,36 @@
                                 </svg>
                             </a>
 
+                            {# Regenerate — surgical AI rewrite of just the sentences
+                               that contain forbidden words. Reads the linter's
+                               current hits, sends them to the new
+                               /api/.../forbidden_words/rewrite endpoint, and opens
+                               a review modal with before/after diffs. Sits
+                               alongside (not replacing) the heavier "Rework" which
+                               regenerates the entire SpecSheet. #}
+                            <template x-if="!regenScanning && !regenAiBusy">
+                                <button type="button" @click="startRegenerate()"
+                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-[11px] font-bold transition-all shadow-sm shadow-red-100">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+                                    </svg>
+                                    Regenerate
+                                </button>
+                            </template>
+                            <template x-if="regenScanning || regenAiBusy">
+                                <div class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-50 border border-red-200 rounded-lg">
+                                    <svg class="w-3 h-3 text-red-500 animate-spin" fill="none" viewBox="0 0 24 24">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    <span class="text-[10px] font-bold text-red-700" x-text="regenScanning ? 'Scanning...' : 'AI rewriting...'"></span>
+                                </div>
+                            </template>
+
                             {# Rework — secondary action: white bg with amber accent so
                                it stays visually distinct from Manage All without
-                               shouting. #}
+                               shouting. Slated for removal once client confirms
+                               Regenerate is the better workflow. #}
                             <template x-if="!reworking && !reworkConfirm">
                                 <button type="button" @click="reworkConfirm = true"
                                     class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-amber-50 border border-amber-200 hover:border-amber-300 text-amber-700 hover:text-amber-800 rounded-lg text-[11px] font-bold transition-all">
@@ -262,6 +289,184 @@
                                     class="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-[11px] font-bold transition-colors">
                                     Confirm Rework
                                 </button>
+                            </div>
+                        </div>
+                    </template>
+
+                    {# ═══════════════════════════════════════════════════════
+                       REGENERATE — Review Modal
+                       ═══════════════════════════════════════════════════════
+                       Surgical alternative to Rework. The modal lists every
+                       sentence that currently contains a forbidden word, side
+                       by side with the AI's proposed rewrite (word-level diff
+                       in green). User accepts / skips / re-asks per sentence,
+                       then "Apply" patches the selected sentences back into
+                       the form fields without touching anything else. #}
+                    <template x-teleport="body">
+                        <div x-show="regenModalOpen" x-cloak
+                             x-transition:enter="transition ease-out duration-200"
+                             x-transition:enter-start="opacity-0"
+                             x-transition:enter-end="opacity-100"
+                             x-transition:leave="transition ease-in duration-150"
+                             x-transition:leave-start="opacity-100"
+                             x-transition:leave-end="opacity-0"
+                             class="fixed inset-0 z-[120] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md"
+                             @keydown.escape.window="closeRegenModal()">
+
+                            <div x-show="regenModalOpen"
+                                 x-transition:enter="transition ease-out duration-250"
+                                 x-transition:enter-start="opacity-0 scale-95 translate-y-4"
+                                 x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+                                 x-transition:leave="transition ease-in duration-150"
+                                 x-transition:leave-start="opacity-100 scale-100"
+                                 x-transition:leave-end="opacity-0 scale-95"
+                                 @click.outside="closeRegenModal()"
+                                 class="bg-white rounded-3xl w-full max-w-4xl max-h-[85vh] shadow-2xl flex flex-col overflow-hidden">
+
+                                {# Header — red themed, identity + close #}
+                                <div class="px-6 py-5 bg-gradient-to-br from-red-50 via-white to-red-50/40 border-b border-red-100/80 flex items-center justify-between gap-4 shrink-0">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-10 h-10 rounded-xl bg-red-600 text-white flex items-center justify-center shadow-sm shadow-red-200">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+                                            </svg>
+                                        </div>
+                                        <div class="leading-tight">
+                                            <h3 class="text-base font-extrabold text-slate-900">Regenerate forbidden words</h3>
+                                            <p class="text-[11px] text-slate-500 font-medium mt-0.5">
+                                                Review the AI's proposed rewrites — accept what works, skip or regenerate the rest.
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <button type="button" @click="closeRegenModal()"
+                                        class="w-8 h-8 rounded-lg bg-white hover:bg-gray-100 border border-gray-200 flex items-center justify-center text-gray-500 transition-colors shrink-0">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                        </svg>
+                                    </button>
+                                </div>
+
+                                {# Body — scrollable list of sentence rows grouped by field #}
+                                <div class="flex-1 overflow-y-auto px-6 py-4 bg-slate-50/40">
+
+                                    {# Empty state — should never show in normal flow because
+                                       the button checks before opening, but covers the case
+                                       where every row is skipped or regenerated to empty. #}
+                                    <template x-if="regenItems.length === 0">
+                                        <div class="py-16 text-center">
+                                            <div class="w-14 h-14 mx-auto mb-3 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center">
+                                                <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                                </svg>
+                                            </div>
+                                            <p class="text-sm font-bold text-slate-700">No sentences need rewriting</p>
+                                            <p class="text-[11px] text-slate-400 mt-1">All clear.</p>
+                                        </div>
+                                    </template>
+
+                                    {# One section per field — items grouped by field_label #}
+                                    <template x-for="(group, gi) in regenGroupedItems()" :key="'group-' + gi">
+                                        <div class="mb-5 last:mb-0">
+                                            <div class="flex items-center gap-2 mb-2">
+                                                <span class="px-2.5 py-1 rounded-md bg-red-50 text-red-700 text-[10px] font-extrabold uppercase tracking-widest border border-red-100"
+                                                      x-text="group.field_label"></span>
+                                                <span class="text-[10px] text-slate-400 font-bold"
+                                                      x-text="group.items.length + ' sentence' + (group.items.length === 1 ? '' : 's')"></span>
+                                            </div>
+
+                                            <div class="space-y-2">
+                                                <template x-for="item in group.items" :key="item.id">
+                                                    <div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden"
+                                                         :class="item.accepted ? 'ring-1 ring-red-200' : 'opacity-95'">
+                                                        {# Original — red highlights on forbidden words #}
+                                                        <div class="px-4 py-3 border-b border-gray-50">
+                                                            <p class="text-[9px] font-bold text-red-500 uppercase tracking-widest mb-1">Original</p>
+                                                            <p class="text-[13px] text-slate-700 leading-relaxed" x-html="regenHighlightForbidden(item.sentence, item.forbidden_words)"></p>
+                                                        </div>
+                                                        {# Proposed — green word-level diff #}
+                                                        <div class="px-4 py-3 bg-gradient-to-br from-emerald-50/40 to-white">
+                                                            <div class="flex items-center justify-between mb-1">
+                                                                <p class="text-[9px] font-bold text-emerald-600 uppercase tracking-widest">Proposed</p>
+                                                                <template x-if="item.proposed && regenStillForbidden(item)">
+                                                                    <span class="text-[9px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded uppercase tracking-wider border border-amber-100">
+                                                                        Still contains a forbidden word
+                                                                    </span>
+                                                                </template>
+                                                            </div>
+                                                            <template x-if="item.regenerating">
+                                                                <div class="flex items-center gap-2 py-1">
+                                                                    <svg class="w-3.5 h-3.5 text-red-500 animate-spin" fill="none" viewBox="0 0 24 24">
+                                                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                                    </svg>
+                                                                    <span class="text-[11px] text-slate-500 italic">Rewriting...</span>
+                                                                </div>
+                                                            </template>
+                                                            <template x-if="!item.regenerating && item.proposed">
+                                                                <p class="text-[13px] text-slate-800 leading-relaxed" x-html="regenDiffNew(item.sentence, item.proposed)"></p>
+                                                            </template>
+                                                            <template x-if="!item.regenerating && !item.proposed">
+                                                                <p class="text-[12px] text-slate-400 italic">AI couldn't propose a rewrite. Try Regenerate or skip.</p>
+                                                            </template>
+                                                        </div>
+                                                        {# Per-row actions #}
+                                                        <div class="px-4 py-2.5 border-t border-gray-50 bg-slate-50/40 flex items-center justify-end gap-1.5">
+                                                            <button type="button" @click="regenRegenerateItem(item.id)"
+                                                                :disabled="item.regenerating"
+                                                                class="inline-flex items-center gap-1 px-2.5 py-1 text-[10px] font-bold text-slate-600 hover:text-red-700 hover:bg-red-50 rounded-md transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+                                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                                                                </svg>
+                                                                Regenerate
+                                                            </button>
+                                                            <button type="button" @click="item.accepted = false"
+                                                                :class="!item.accepted ? 'bg-slate-200 text-slate-700' : 'text-slate-500 hover:bg-slate-100'"
+                                                                class="inline-flex items-center gap-1 px-2.5 py-1 text-[10px] font-bold rounded-md transition-colors">
+                                                                Skip
+                                                            </button>
+                                                            <button type="button" @click="item.accepted = true"
+                                                                :disabled="!item.proposed || item.regenerating"
+                                                                :class="item.accepted ? 'bg-red-600 text-white shadow-sm shadow-red-100' : 'bg-white border border-red-200 text-red-700 hover:bg-red-50'"
+                                                                class="inline-flex items-center gap-1 px-3 py-1 text-[10px] font-bold rounded-md transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+                                                                <svg x-show="item.accepted" class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
+                                                                </svg>
+                                                                Accept
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </template>
+                                            </div>
+                                        </div>
+                                    </template>
+                                </div>
+
+                                {# Footer — Cancel + Apply N changes #}
+                                <div class="px-6 py-4 bg-white border-t border-gray-100 flex items-center justify-between gap-3 shrink-0">
+                                    <p class="text-[11px] text-slate-500">
+                                        <span class="font-bold text-slate-700" x-text="regenAcceptedCount()"></span>
+                                        of <span class="font-bold text-slate-700" x-text="regenItems.length"></span>
+                                        change<span x-show="regenItems.length !== 1">s</span> selected
+                                    </p>
+                                    <div class="flex items-center gap-2">
+                                        <button type="button" @click="closeRegenModal()"
+                                            class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold transition-colors">
+                                            Cancel
+                                        </button>
+                                        <button type="button" @click="applyRegen()"
+                                            :disabled="regenAcceptedCount() === 0 || regenApplying"
+                                            class="inline-flex items-center gap-1.5 px-5 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-bold transition-all shadow-sm shadow-red-100 disabled:opacity-40 disabled:cursor-not-allowed">
+                                            <svg x-show="!regenApplying" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
+                                            </svg>
+                                            <svg x-show="regenApplying" class="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                            </svg>
+                                            <span x-text="regenApplying ? 'Applying...' : ('Apply ' + regenAcceptedCount() + ' change' + (regenAcceptedCount() === 1 ? '' : 's'))"></span>
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </template>
@@ -1912,6 +2117,31 @@
         overflow-wrap: break-word;
         word-break: break-word;
     }
+
+    /* Regenerate-modal word-level diff highlights — red strike for removed
+       forbidden tokens, green underline for newly-introduced words. Tone is
+       calmer than the diff styling in the version-history panel so it
+       doesn't dominate the sentence body. */
+    .regen-diff-del {
+        background: rgba(239, 68, 68, 0.16);
+        color: #b91c1c;
+        text-decoration: line-through;
+        text-decoration-color: rgba(185, 28, 28, 0.55);
+        border-radius: 3px;
+        padding: 0 3px;
+        font-weight: 600;
+    }
+    .regen-diff-add {
+        background: rgba(16, 185, 129, 0.16);
+        color: #047857;
+        text-decoration: underline;
+        text-decoration-color: rgba(4, 120, 87, 0.55);
+        text-decoration-thickness: 2px;
+        text-underline-offset: 2px;
+        border-radius: 3px;
+        padding: 0 3px;
+        font-weight: 600;
+    }
 </style>
 
 {# Build the gallery URL list in HTML scope so the JS body stays
@@ -2423,6 +2653,17 @@
         form.submit();
     }
 
+    // Shared suffix list — single source of truth for the live linter's regex
+    // (`_rebuildCompiledRules`) AND the Regenerate modal's "Original" sentence
+    // highlight (`regenHighlightForbidden`). Mirrors the Python scrubber so
+    // server and client agree on what counts as a match. Order matters because
+    // the regex engine tries alternatives left-to-right; longest first prevents
+    // "ment" from greedily matching when "ments" is the actual suffix.
+    const FW_SUFFIXES = [
+        'ments', 'ment', 'able', 'ings', 'ing', 'iest', 'ies', 'ied',
+        'ers', 'est', 'ed', 'es', 'er', 'ly', 's',
+    ];
+
     function forbiddenQuickAdd() {
         return {
             selectedCategory: '',
@@ -2441,6 +2682,18 @@
             reworkProgress: 0,
             reworkMessage: 'Preparing...',
 
+            // ── REGENERATE STATE — surgical sentence-level forbidden-word fixer ──
+            regenScanning: false,   // collecting forbidden sentences from the page
+            regenAiBusy:   false,   // batched AI rewrite call in flight
+            regenApplying: false,   // applying accepted rewrites back into fields
+            regenModalOpen: false,
+            // regenItems entries:
+            //   { id, el (DOM ref), field_name, field_label, sentence,
+            //     forbidden_words: [{word, replace_with}],
+            //     proposed: string|null, accepted: bool, regenerating: bool }
+            regenItems: [],
+            _regenNextId: 1,
+
             // Toggle the category dropdown. When opening, snap the panel to
             // the trigger button's bounding rect (position: fixed) so the
             // overflow-hidden card can't clip it.
@@ -2455,6 +2708,292 @@
                     }
                 }
                 this.catDropOpen = !this.catDropOpen;
+            },
+
+            // ── REGENERATE FLOW ────────────────────────────────────────────
+            //
+            // 1) Scan every [data-fw-lint] element on the page
+            // 2) Split each value into sentences, keep only those with a hit
+            // 3) Batch-call /api/product/<id>/forbidden_words/rewrite for proposals
+            // 4) Open the review modal — user accepts/skips/regenerates per row
+            // 5) On Apply, substring-replace accepted sentences back into the
+            //    field's value and dispatch `input` so x-model + the live linter
+            //    pick up the change.
+
+            // Sentence-split a string. We split on terminal punctuation but
+            // keep the punctuation attached to the preceding sentence so that
+            // "He left. She stayed." → ["He left.", "She stayed."]. Values
+            // with no terminal punctuation become a single sentence.
+            _splitSentences(text) {
+                if (!text) return [];
+                const parts = String(text).match(/[^.!?\n]+[.!?]?[\s]*/g);
+                if (!parts) return [text];
+                return parts.map(s => s).filter(s => s.trim().length > 0);
+            },
+
+            // Human-friendly label for a linted field. Tries the field's
+            // <label> sibling, then falls back to a Title-Cased field name.
+            _labelForField(el) {
+                const name = el.name || el.id || 'field';
+                // Look for a <label> in the field's container (up to 4 levels)
+                let node = el.parentElement;
+                for (let i = 0; i < 4 && node; i++) {
+                    const lbl = node.querySelector('label');
+                    if (lbl && lbl.textContent.trim()) {
+                        return lbl.textContent.trim().split('(')[0].trim();
+                    }
+                    node = node.parentElement;
+                }
+                return name.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+            },
+
+            // Collect every sentence with a forbidden-word hit across the page.
+            // Returns [{id, el, field_name, field_label, sentence, forbidden_words}].
+            collectForbiddenSentences() {
+                const out = [];
+                document.querySelectorAll('[data-fw-lint]').forEach(el => {
+                    const value = el.value || el.textContent || '';
+                    if (!value.trim()) return;
+                    const fieldHits = this.lintText(value);
+                    if (!fieldHits.length) return;
+                    // For each sentence in the value, see which (if any) forbidden
+                    // words from the field-level hits appear inside it. We
+                    // re-test with the compiled regexes for precision.
+                    const sentences = this._splitSentences(value);
+                    sentences.forEach(sent => {
+                        const matchingHits = [];
+                        this._compiledRules.forEach(({ entry, re }) => {
+                            re.lastIndex = 0;
+                            if (re.test(sent)) {
+                                matchingHits.push({
+                                    word: entry.word,
+                                    replace_with: entry.replace_with || '',
+                                });
+                            }
+                        });
+                        if (matchingHits.length) {
+                            out.push({
+                                id: this._regenNextId++,
+                                el: el,
+                                field_name: el.name || el.id || '',
+                                field_label: this._labelForField(el),
+                                sentence: sent,
+                                forbidden_words: matchingHits,
+                                proposed: null,
+                                accepted: false,
+                                regenerating: false,
+                            });
+                        }
+                    });
+                });
+                return out;
+            },
+
+            // Entry point — wired to the Regenerate button.
+            async startRegenerate() {
+                if (this.regenScanning || this.regenAiBusy) return;
+                this.regenScanning = true;
+                // Yield to the browser so the spinner can paint before the
+                // (synchronous, can scan dozens of fields) scan starts.
+                await new Promise(r => setTimeout(r, 50));
+                const items = this.collectForbiddenSentences();
+                this.regenScanning = false;
+                if (items.length === 0) {
+                    if (window.bgProcess) bgProcess.success('No forbidden words detected');
+                    return;
+                }
+                this.regenItems = items;
+                this.regenAiBusy = true;
+                try {
+                    const productId = JSON.parse(`{{ product.id | tojson }}`);
+                    const res = await fetch(`/api/product/${productId}/forbidden_words/rewrite`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            items: items.map(it => ({
+                                id: it.id,
+                                field_label: it.field_label,
+                                sentence: it.sentence,
+                                forbidden_words: it.forbidden_words,
+                            })),
+                        }),
+                    });
+                    const data = await res.json().catch(() => ({}));
+                    if (!res.ok) {
+                        if (window.bgProcess) bgProcess.error(data.error || 'Regenerate failed');
+                        return;
+                    }
+                    // Merge proposals back by id. Items without a proposal stay
+                    // visible in the modal so the user can hit Regenerate on them.
+                    const propMap = {};
+                    (data.rewrites || []).forEach(r => { propMap[r.id] = r.proposed; });
+                    this.regenItems.forEach(it => {
+                        const p = propMap[it.id] || null;
+                        it.proposed = p;
+                        it.accepted = !!p; // default-accepted if AI gave us something
+                    });
+                    this.regenModalOpen = true;
+                } catch (e) {
+                    if (window.bgProcess) bgProcess.error('Network error during regenerate');
+                } finally {
+                    this.regenAiBusy = false;
+                }
+            },
+
+            // Re-ask the AI for a different rewrite of a single item. Useful
+            // when the first proposal didn't quite work for the user.
+            async regenRegenerateItem(itemId) {
+                const item = this.regenItems.find(x => x.id === itemId);
+                if (!item || item.regenerating) return;
+                item.regenerating = true;
+                item.proposed = null;
+                item.accepted = false;
+                try {
+                    const productId = JSON.parse(`{{ product.id | tojson }}`);
+                    const res = await fetch(`/api/product/${productId}/forbidden_words/rewrite`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            items: [{
+                                id: item.id,
+                                field_label: item.field_label,
+                                sentence: item.sentence,
+                                forbidden_words: item.forbidden_words,
+                            }],
+                        }),
+                    });
+                    const data = await res.json().catch(() => ({}));
+                    const rewrites = (data && data.rewrites) || [];
+                    const proposed = rewrites.length && rewrites[0].proposed ? rewrites[0].proposed : null;
+                    item.proposed = proposed;
+                    item.accepted = !!proposed;
+                } catch (e) {
+                    if (window.bgProcess) bgProcess.error('Network error');
+                } finally {
+                    item.regenerating = false;
+                }
+            },
+
+            // Apply every accepted rewrite back into its original field. Uses
+            // substring replacement so other content in the field is preserved.
+            // After mutating value, we dispatch an `input` event so Alpine
+            // x-model bindings AND the live linter both pick up the change.
+            applyRegen() {
+                if (this.regenApplying) return;
+                const accepted = this.regenItems.filter(it => it.accepted && it.proposed);
+                if (accepted.length === 0) return;
+                this.regenApplying = true;
+                try {
+                    let appliedCount = 0;
+                    const touchedFields = new Set();
+                    accepted.forEach(it => {
+                        if (!it.el || !document.body.contains(it.el)) return;
+                        const cur = it.el.value || '';
+                        if (!cur.includes(it.sentence)) return; // user changed the field after we scanned
+                        it.el.value = cur.replace(it.sentence, it.proposed);
+                        it.el.dispatchEvent(new Event('input', { bubbles: true }));
+                        touchedFields.add(it.field_label);
+                        appliedCount++;
+                    });
+                    if (window.bgProcess) {
+                        bgProcess.success(`Applied ${appliedCount} change${appliedCount === 1 ? '' : 's'} across ${touchedFields.size} field${touchedFields.size === 1 ? '' : 's'}`);
+                    }
+                    this.closeRegenModal();
+                } finally {
+                    this.regenApplying = false;
+                }
+            },
+
+            closeRegenModal() {
+                this.regenModalOpen = false;
+                this.regenItems = [];
+            },
+
+            regenAcceptedCount() {
+                return this.regenItems.filter(it => it.accepted && it.proposed).length;
+            },
+
+            // Group items by field_label for the modal sections.
+            regenGroupedItems() {
+                const groups = {};
+                this.regenItems.forEach(it => {
+                    if (!groups[it.field_label]) groups[it.field_label] = { field_label: it.field_label, items: [] };
+                    groups[it.field_label].items.push(it);
+                });
+                return Object.values(groups);
+            },
+
+            // Re-lint a proposed rewrite to flag cases where the AI couldn't
+            // avoid every forbidden word — the modal shows a warning ribbon
+            // when this returns true.
+            regenStillForbidden(item) {
+                if (!item.proposed) return false;
+                return this.lintText(item.proposed).length > 0;
+            },
+
+            // ── Word-level diff (LCS) for the modal's Proposed view ────────
+            // Same algorithm as version_history_panel.html but inlined here
+            // so it lives in this component's scope. Returns HTML.
+            _regenTokenize(s) {
+                if (!s) return [];
+                return s.match(/\S+|\s+/g) || [];
+            },
+            _regenEsc(s) {
+                const d = document.createElement('span');
+                d.textContent = s == null ? '' : String(s);
+                return d.innerHTML;
+            },
+            _regenLcs(a, b) {
+                const m = a.length, n = b.length;
+                const dp = Array.from({ length: m + 1 }, () => new Uint16Array(n + 1));
+                for (let i = 1; i <= m; i++) {
+                    for (let j = 1; j <= n; j++) {
+                        dp[i][j] = a[i-1] === b[j-1] ? dp[i-1][j-1] + 1 : Math.max(dp[i-1][j], dp[i][j-1]);
+                    }
+                }
+                const matchA = new Set(), matchB = new Set();
+                let i = m, j = n;
+                while (i > 0 && j > 0) {
+                    if (a[i-1] === b[j-1]) { matchA.add(i-1); matchB.add(j-1); i--; j--; }
+                    else if (dp[i-1][j] > dp[i][j-1]) i--;
+                    else j--;
+                }
+                return { matchA, matchB };
+            },
+
+            // Render the proposed sentence with words new vs the original
+            // wrapped in a green pill.
+            regenDiffNew(oldVal, newVal) {
+                if (!newVal) return '';
+                if (!oldVal) return this._regenEsc(newVal);
+                const a = this._regenTokenize(oldVal);
+                const b = this._regenTokenize(newVal);
+                const { matchB } = this._regenLcs(a, b);
+                return b.map((tok, idx) => {
+                    if (/^\s+$/.test(tok)) return tok;
+                    return matchB.has(idx)
+                        ? this._regenEsc(tok)
+                        : '<span class="regen-diff-add">' + this._regenEsc(tok) + '</span>';
+                }).join('');
+            },
+
+            // Render the original sentence with each forbidden word highlighted
+            // in red so the user sees exactly what triggered the rewrite.
+            regenHighlightForbidden(sentence, forbidden) {
+                if (!sentence) return '';
+                let html = this._regenEsc(sentence);
+                if (!forbidden || !forbidden.length) return html;
+                // Build a single regex from the forbidden words (with the same
+                // suffix tolerance the linter uses) and wrap each match. We
+                // operate on the already-escaped HTML so the wrap tags don't
+                // collide with user-supplied angle brackets.
+                const escapeRe = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                forbidden.forEach(({ word }) => {
+                    if (!word) return;
+                    const re = new RegExp('\\b' + escapeRe(word) + '(?:' + FW_SUFFIXES.join('|') + ')?\\b', 'gi');
+                    html = html.replace(re, m => '<span class="regen-diff-del">' + m + '</span>');
+                });
+                return html;
             },
 
             // Compiled linter cache: rebuilt whenever `words` or `productCategory`
@@ -2549,12 +3088,13 @@
 
             _rebuildCompiledRules() {
                 // Mirror the Python scrubber's suffix list for client-side parity.
-                const SUFFIXES = ['ments','ment','able','ings','ing','ies','ied',
-                                  'ers','ed','es','er','ly','s'];
+                // Uses the shared FW_SUFFIXES constant so the live linter, the
+                // regenerate-modal highlight, and any future consumer all agree
+                // on what counts as a match.
                 const escape = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
                 this._compiledRules = this.effectiveRules.map(e => ({
                     entry: e,
-                    re: new RegExp('\\b' + escape(e.word) + '(?:' + SUFFIXES.join('|') + ')?\\b', 'gi'),
+                    re: new RegExp('\\b' + escape(e.word) + '(?:' + FW_SUFFIXES.join('|') + ')?\\b', 'gi'),
                 }));
             },
 
@@ -2596,9 +3136,16 @@
                         }
                         const blocks = hits.filter(h => h.severity === 'block');
                         const warns  = hits.filter(h => h.severity === 'warn');
+                        // Sum the per-word `count` so the badge reflects total
+                        // OCCURRENCES rather than distinct words. e.g. a field
+                        // saying "cheap cheap" now shows "2 blocked" rather
+                        // than "1 blocked" — which matches what a user
+                        // intuitively expects (and matches the ×N in the tooltip).
+                        const blockCount = blocks.reduce((s, h) => s + (h.count || 0), 0);
+                        const warnCount  = warns.reduce((s, h) => s + (h.count || 0), 0);
                         const parts = [];
-                        if (blocks.length) parts.push(`⛔ ${blocks.length} blocked`);
-                        if (warns.length)  parts.push(`⚠ ${warns.length} cautioned`);
+                        if (blockCount) parts.push(`⛔ ${blockCount} blocked`);
+                        if (warnCount)  parts.push(`⚠ ${warnCount} cautioned`);
                         badge.textContent = parts.join(' · ');
                         badge.title = hits
                             .map(h => `${h.word}×${h.count}` + (h.replace_with ? ` → "${h.replace_with}"` : ''))

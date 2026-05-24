@@ -32,7 +32,10 @@ from utils.decorators import require_role
 from utils.workflow import Stage, can_delete, deletable_stages
 from utils.history import log_event
 from utils.web_scraping import scrape_url_data, scrape_url_data_deep
-from utils.ai_generation import generate_pis_data, generate_bulk_pis_data, generate_proforma_data
+from utils.ai_generation import (
+    generate_pis_data, generate_bulk_pis_data, generate_proforma_data,
+    rewrite_sentences_avoiding_forbidden,
+)
 from utils.pdf_processing import extract_specific_image, clear_pdf_cache
 from utils.image_processing import (
     find_and_validate_image, find_image_simple, download_web_image,
@@ -2315,6 +2318,54 @@ def api_remove_forbidden_word():
     save_forbidden_words(data)
     fresh = load_forbidden_words()
     return _fw_json({'ok': True, 'words': fresh.get(category, [])})
+
+
+# ── SURGICAL FORBIDDEN-WORDS REWRITE ─────────────────────────────────────────
+#
+# Powers the "Regenerate" button on the web Edit SpecSheet page. The frontend
+# scans every linted field, splits the value into sentences, and sends each
+# sentence containing a forbidden word here for AI rewriting. We return only
+# the AI's proposals — the user reviews them in a modal and confirms/skips
+# each one client-side before they hit the actual form fields.
+#
+# Separate from /api/generate_specsheet?rework=1 because that path nukes the
+# entire SpecSheet and re-asks the AI from scratch — costly and destructive
+# of the user's manual edits. This path touches only the offending sentences.
+
+@api_bp.route('/api/product/<int:product_id>/forbidden_words/rewrite', methods=['POST'])
+@require_role('admin', 'web', api=True)
+def api_forbidden_words_rewrite(product_id):
+    """Rewrite a list of sentences to avoid forbidden words. The product_id
+    is in the URL for future per-product context (e.g. brand voice) but the
+    current implementation only uses the items sent in the body.
+
+    Body:
+        {
+          "items": [
+            { "id": <opaque id>,
+              "field_label": "Short Description",
+              "sentence": "This iron is cheap.",
+              "forbidden_words": [{"word": "cheap", "replace_with": "affordable"}]
+            }, ...
+          ]
+        }
+
+    Response:
+        { "rewrites": [{"id": <id>, "proposed": "<rewritten sentence>"}, ...] }
+    """
+    # Touching product_id ensures the URL is valid even if the body is malformed.
+    Product.query.get_or_404(product_id)
+    body = request.get_json(silent=True) or {}
+    items = body.get('items')
+    if not isinstance(items, list) or not items:
+        return jsonify({"error": "items must be a non-empty list"}), 400
+    # Cap the batch size — runaway inputs (e.g. a script POSTing 500 sentences)
+    # would blow past the Gemini context window. 50 is generous for a single
+    # SpecSheet's linted fields.
+    if len(items) > 50:
+        return jsonify({"error": "too many items (max 50 per call)"}), 400
+    rewrites = rewrite_sentences_avoiding_forbidden(items)
+    return jsonify({"ok": True, "rewrites": rewrites})
 
 
 # ── VERSION HISTORY ───────────────────────────────────────────────────────────
