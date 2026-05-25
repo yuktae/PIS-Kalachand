@@ -129,6 +129,11 @@ def create_app() -> Flask:
     application.jinja_env.globals['product_category_label'] = get_product_category_label  # type: ignore[assignment]
     application.jinja_env.globals['can_delete_stage'] = _can_delete_stage  # type: ignore[assignment]
     application.jinja_env.filters['comment_ts'] = format_comment_timestamp  # type: ignore[assignment]
+    # Inline XLSX preview helper — used by the Source tab on the verify
+    # / edit screens so .xlsx proforma uploads render as a real table
+    # instead of the "Inline preview not supported" fallback.
+    from utils.bulk_wizard import xlsx_to_html_table
+    application.jinja_env.globals['render_xlsx_preview'] = xlsx_to_html_table  # type: ignore[assignment]
 
     # ── BLUEPRINTS ───────────────────────────────────────────────────────────
     from blueprints.auth      import auth_bp

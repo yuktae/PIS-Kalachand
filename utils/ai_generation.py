@@ -94,20 +94,11 @@ def generate_pis_data(file_paths, model_name, url_data) -> dict[str, Any]:
         model_name: The product model name.
         url_data: Scraped website data dict.
     """
-    # Normalize file_paths
-    if file_paths is None:
-        file_paths = []
-    elif isinstance(file_paths, str):
-        file_paths = [file_paths]
-    
-    # 1. Upload files to Gemini (if any)
-    uploaded_files = []
-    for fp in file_paths:
-        if fp:
-            uf = _get_client().files.upload(file=fp)
-            uf = _wait_for_file_upload(uf)
-            uploaded_files.append(uf)
-    
+    # Upload non-spreadsheet files to Gemini; spreadsheets get inlined
+    # as text via the helper since Gemini doesn't ingest XLSX reliably.
+    uploaded_files, xlsx_blocks = _upload_files_to_gemini(file_paths)
+    total_doc_count = len(uploaded_files) + len(xlsx_blocks)
+
     # Context Construction
     web_context = ""
     image_candidates_str = ""
@@ -117,10 +108,10 @@ def generate_pis_data(file_paths, model_name, url_data) -> dict[str, Any]:
         image_candidates_str = "IMAGE CANDIDATES (Ranked by crawler):\n" + "\n".join([f"- {url}" for url in candidates])
 
     # Build source description based on what's available
-    if uploaded_files and web_context:
-        source_instruction = f"Analyze ALL {len(uploaded_files)} uploaded document(s) (Proforma Invoices/Spec Sheets) AND the provided Website Context. Cross-reference information across all sources."
-    elif uploaded_files:
-        source_instruction = f"Analyze ALL {len(uploaded_files)} uploaded document(s) (Proforma Invoices/Spec Sheets) thoroughly."
+    if total_doc_count and web_context:
+        source_instruction = f"Analyze ALL {total_doc_count} uploaded document(s) (Proforma Invoices/Spec Sheets) AND the provided Website Context. Cross-reference information across all sources."
+    elif total_doc_count:
+        source_instruction = f"Analyze ALL {total_doc_count} uploaded document(s) (Proforma Invoices/Spec Sheets) thoroughly."
     else:
         source_instruction = "Analyze the provided Website Context thoroughly. Extract all product details from the website data."
 
@@ -132,7 +123,8 @@ def generate_pis_data(file_paths, model_name, url_data) -> dict[str, Any]:
         image_candidates_str=image_candidates_str,
         web_context=web_context
     )
-    
+    prompt += _format_xlsx_block(xlsx_blocks)
+
     # Build content list: prompt + any uploaded files
     content_parts = [prompt] + uploaded_files
 
@@ -679,18 +671,54 @@ _MODE_INSTRUCTIONS = {
 
 
 def _upload_files_to_gemini(file_paths):
+    """Push every uploadable file at `file_paths` through Gemini's Files
+    API. XLSX/XLSM files are NOT uploaded — Gemini doesn't ingest
+    spreadsheets reliably; we render them to text and return them as
+    a separate list of prompt-ready blocks so the caller can append
+    them inline.
+
+    Returns `(uploaded_files, xlsx_blocks)`:
+        - uploaded_files : list of File handles ready to drop into a
+                           `contents=[prompt, *files]` call.
+        - xlsx_blocks    : list of text strings, one per spreadsheet,
+                           each prefixed with the filename. Empty list
+                           when no spreadsheets were passed in.
+    """
     if file_paths is None:
         file_paths = []
     elif isinstance(file_paths, str):
         file_paths = [file_paths]
+
+    from .bulk_wizard import _is_xlsx_path, _xlsx_to_text
     uploaded = []
+    xlsx_blocks: list[str] = []
     for fp in file_paths:
         if not fp:
+            continue
+        if _is_xlsx_path(fp):
+            xlsx_blocks.append(
+                f"--- {os.path.basename(fp)} (Excel) ---\n"
+                + _xlsx_to_text(fp)
+            )
             continue
         uf = _get_client().files.upload(file=fp)
         uf = _wait_for_file_upload(uf)
         uploaded.append(uf)
-    return uploaded
+    return uploaded, xlsx_blocks
+
+
+def _format_xlsx_block(blocks):
+    """Wrap a list of XLSX text blocks into the standard prompt-injection
+    section used everywhere we inline spreadsheet content. Returns empty
+    string when the list is empty so callers can `prompt += _format(...)`
+    without a guard."""
+    if not blocks:
+        return ''
+    return (
+        "\n\nDOCUMENT CONTENT (Excel proforma — extracted as text, "
+        "[Row N] = 1-indexed spreadsheet row, cell separator ' | '):\n"
+        + "\n\n".join(blocks)
+    )
 
 
 def _build_url_context(url_data):
@@ -753,7 +781,7 @@ def generate_proforma_data(
         prior_data: Previous extraction (for the rework flow).
         feedback:   Reviewer feedback text (triggers the rework prompt).
     """
-    uploaded_files = _upload_files_to_gemini(file_paths)
+    uploaded_files, xlsx_blocks = _upload_files_to_gemini(file_paths)
     web_context, image_candidates_str = _build_url_context(url_data or {})
     mode = (extraction_mode or "auto").lower()
     if mode not in _MODE_INSTRUCTIONS:
@@ -777,6 +805,7 @@ def generate_proforma_data(
         fmt_kwargs["feedback"] = feedback
 
     prompt = prompt_template.format(**fmt_kwargs)
+    prompt += _format_xlsx_block(xlsx_blocks)
     content_parts = [prompt] + uploaded_files
 
     from .api_metering import gemini_call
@@ -810,20 +839,10 @@ def generate_bulk_pis_data(file_paths, url_data, product_filter="") -> list[dict
         url_data: Scraped website data dict.
         product_filter: Optional newline-separated string of specific product names/models to extract.
     """
-    # Normalize file_paths
-    if file_paths is None:
-        file_paths = []
-    elif isinstance(file_paths, str):
-        file_paths = [file_paths]
-    
-    # Upload all files to Gemini
-    uploaded_files = []
-    for fp in file_paths:
-        if fp:
-            uploaded_file = _get_client().files.upload(file=fp)
-            uploaded_file = _wait_for_file_upload(uploaded_file)
-            uploaded_files.append(uploaded_file)
-    
+    # Spreadsheets get rendered to inline text; everything else uploads
+    # to Gemini's Files API (see _upload_files_to_gemini docstring).
+    uploaded_files, xlsx_blocks = _upload_files_to_gemini(file_paths)
+
     web_context = ""
     image_candidates_str = ""
     if url_data.get('text'):
@@ -853,7 +872,8 @@ def generate_bulk_pis_data(file_paths, url_data, product_filter="") -> list[dict
         image_candidates_str=image_candidates_str,
         web_context=web_context
     )
-    
+    prompt += _format_xlsx_block(xlsx_blocks)
+
     content_parts = [prompt] + uploaded_files
 
     from .api_metering import gemini_call

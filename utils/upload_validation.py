@@ -30,11 +30,12 @@ _SIGNATURES: Final[dict[str, _SignatureParts]] = {
     "PNG":  ((0, b"\x89PNG\r\n\x1a\n"),),
     # RIFF<4-byte little-endian size>WEBP
     "WEBP": ((0, b"RIFF"), (8, b"WEBP")),
-    # DOCX (and the rest of the Office Open XML family) is a ZIP container.
-    # The first four bytes are the standard ZIP local-file-header. We accept
-    # the whole family because the deployed extract_raw_text_from_files
-    # pipeline reads any Office doc, and we don't want to false-reject a
-    # legitimate `.docx` over container-vs-extension nuance.
+    # DOCX / XLSX (and the rest of the Office Open XML family) are ZIP
+    # containers. The first four bytes are the standard ZIP local-file-
+    # header. We accept the whole family because the deployed
+    # extract_raw_text_from_files and bulk-import pipelines both handle
+    # Office docs (DOCX text, XLSX tabular), and we don't want to false-
+    # reject a legitimate `.xlsx` over container-vs-extension nuance.
     "DOCX": ((0, b"PK\x03\x04"),),
 }
 
@@ -45,7 +46,7 @@ _PEEK_BYTES: Final[int] = max(
     for off, sig in parts
 )
 
-_SUPPORTED_LABEL: Final[str] = "PDF, JPEG, PNG, WEBP, or DOCX"
+_SUPPORTED_LABEL: Final[str] = "PDF, JPEG, PNG, WEBP, DOCX, or XLSX"
 
 
 def validate_upload(filepath: str) -> tuple[bool, str | None]:

@@ -767,12 +767,36 @@ def import_proforma_bulk_triage():
         groups = bw.derive_cluster_groups(triage.get('items') or [])
         yield bw.log_ok(f"Grouped into {len(groups)} cluster(s).")
 
+        # XLSX-only — pull any embedded images out of the workbook so
+        # the per-cluster stubs can attach them as `_bulk_image_candidates`
+        # (positional matching, see build_stub_pis_from_cluster). For
+        # non-spreadsheet uploads this returns an empty list.
+        import uuid as _uuid
+        xlsx_pool: list[dict] = []
+        for sp in saved_paths:
+            if not bw._is_xlsx_path(sp):
+                continue
+            extracted = bw._xlsx_extract_images(
+                sp, upload_folder, prefix=_uuid.uuid4().hex[:8]
+            )
+            for img in extracted:
+                xlsx_pool.append({
+                    'path':  f"uploads/{img['name']}",  # relative-from-static
+                    'name':  img['name'],
+                    'row':   img['row'],
+                    'col':   img['col'],
+                    'sheet': img['sheet'],
+                })
+        if xlsx_pool:
+            yield bw.log_ok(f"Extracted {len(xlsx_pool)} embedded image(s) from Excel.")
+
         token = bw.create_session({
             'file_paths':      saved_paths,
             'file_names':      saved_names,
             'origin_hint':     origin_hint,
             'triage':          triage,
             'cluster_groups':  groups,
+            'xlsx_image_pool': xlsx_pool,
         })
 
         yield bw.log_progress(45, "Triage complete — review the preview.")
@@ -833,6 +857,7 @@ def import_proforma_bulk_extract():
     origin_hint = sess.get('origin_hint') or 'unknown'
     source_filenames = sess.get('file_names') or []
     triage_summary = (sess.get('triage') or {}).get('summary') or {}
+    xlsx_image_pool = sess.get('xlsx_image_pool') or []
 
     import uuid as _uuid
     batch_id = _uuid.uuid4().hex
@@ -846,6 +871,7 @@ def import_proforma_bulk_extract():
                 cluster_index=cluster_idx,
                 source_filenames=source_filenames,
                 triage_summary=triage_summary,
+                xlsx_image_pool=xlsx_image_pool,
             )
             if not pis:
                 # All items in this cluster were skipped — drop it silently.

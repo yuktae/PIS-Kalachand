@@ -316,6 +316,374 @@ def _build_feedback_section(feedback: str | None) -> str:
     )
 
 
+_XLSX_EXTENSIONS = ('.xlsx', '.xlsm')
+
+
+def _is_xlsx_path(path: str) -> bool:
+    """True for any spreadsheet format we render to text instead of
+    handing to Gemini's Files API. Kept narrow on purpose — `.xls`
+    (legacy binary) is NOT included; openpyxl can't read it and we
+    surface a clear rejection at upload time rather than silently
+    treating it as an unknown blob."""
+    return bool(path) and path.lower().endswith(_XLSX_EXTENSIONS)
+
+
+def _xlsx_to_text(xlsx_path: str) -> str:
+    """Render a workbook into a structured text snapshot that we can
+    pass to Gemini in place of an uploaded file.
+
+    Each row is prefixed with `[Row N]` (1-indexed) so the triage prompt
+    can refer back to specific rows when the wizard later matches
+    extracted images to items. Multi-sheet workbooks are concatenated
+    with `=== Sheet: X ===` dividers so the model sees the full doc.
+
+    Cells are joined with ' | ' — a separator that's effectively never
+    used inside proforma text — so Gemini can parse columns cleanly.
+    Empty rows are skipped to keep the text under Gemini's context
+    budget; this matters for big workbooks with formatting padding.
+
+    Returns a best-effort string; never raises. If openpyxl can't load
+    the file the wrapper returns a short error marker instead so the
+    triage prompt fails loudly rather than silently dropping the doc.
+    """
+    try:
+        from openpyxl import load_workbook
+    except Exception as e:
+        return f"(openpyxl not available: {e})"
+
+    try:
+        wb = load_workbook(xlsx_path, data_only=True)
+    except Exception as e:
+        return f"(could not read workbook {os.path.basename(xlsx_path)}: {e})"
+
+    lines: list[str] = []
+    for sheet in wb.worksheets:
+        lines.append(f"=== Sheet: {sheet.title} ===")
+        for row_idx, row in enumerate(sheet.iter_rows(values_only=True), start=1):
+            if not any(c is not None and str(c).strip() != '' for c in row):
+                continue
+            cells = []
+            for c in row:
+                if c is None:
+                    cells.append('')
+                else:
+                    cells.append(str(c).replace('\n', ' ').replace('|', '/').strip())
+            line = ' | '.join(cells).rstrip(' |')
+            lines.append(f"[Row {row_idx}] {line}")
+        lines.append('')
+    return '\n'.join(lines)
+
+
+def _xlsx_extract_images(xlsx_path: str, out_dir: str,
+                         prefix: str) -> list[dict]:
+    """Extract embedded images from an XLSX, save each to `out_dir`, and
+    return their anchor metadata.
+
+    Returned shape per image:
+        {
+            'path':   absolute filesystem path of the saved image,
+            'name':   basename of the saved file,
+            'row':    0-indexed anchor row (top-left of the image),
+            'col':    0-indexed anchor col,
+            'sheet':  sheet title,
+        }
+
+    Anchor row is what lets us pair each image with the correct product
+    line later — most supplier proformas place the photo on the same
+    spreadsheet row as the item description. Cluster-level photos
+    (logos in the header rows) sort to the top automatically.
+
+    Best-effort: any image whose bytes we can't recover is skipped. The
+    function never raises so a malformed picture in one row doesn't fail
+    the whole triage.
+    """
+    try:
+        from openpyxl import load_workbook
+    except Exception:
+        return []
+
+    try:
+        wb = load_workbook(xlsx_path)
+    except Exception as e:
+        print(f"⚠ _xlsx_extract_images: load failed: {e}")
+        return []
+
+    results: list[dict] = []
+    img_idx = 0
+    for sheet in wb.worksheets:
+        sheet_images = getattr(sheet, '_images', None) or []
+        for img in sheet_images:
+            # Anchor row/col. openpyxl normalises both OneCellAnchor and
+            # TwoCellAnchor to expose `._from`; the field is sometimes
+            # absent on legacy/exotic anchors so default to 0,0.
+            row = col = 0
+            anchor = getattr(img, 'anchor', None)
+            cell_from = getattr(anchor, '_from', None) if anchor is not None else None
+            if cell_from is not None:
+                row = int(getattr(cell_from, 'row', 0) or 0)
+                col = int(getattr(cell_from, 'col', 0) or 0)
+
+            # Read bytes. openpyxl's reading API has shifted across
+            # versions: `_data` was a callable on older builds, raw bytes
+            # on others; `ref` shows up on some image objects too. Walk
+            # the known options and stop at the first that yields bytes.
+            data: bytes | None = None
+            for attr in ('_data', 'ref', 'path'):
+                v = getattr(img, attr, None)
+                if v is None:
+                    continue
+                if callable(v):
+                    try:
+                        out = v()
+                        if isinstance(out, (bytes, bytearray)):
+                            data = bytes(out)
+                            break
+                    except Exception:
+                        continue
+                elif isinstance(v, (bytes, bytearray)):
+                    data = bytes(v)
+                    break
+            if not data:
+                continue
+
+            # Sniff format from the leading bytes so we save with the
+            # right extension. Saves us forcing a re-encode that could
+            # quietly degrade quality.
+            ext = '.png'
+            if data[:3] == b'\xff\xd8\xff':
+                ext = '.jpg'
+            elif data[:4] == b'\x89PNG':
+                ext = '.png'
+            elif data[:6] in (b'GIF87a', b'GIF89a'):
+                ext = '.gif'
+            elif data[:4] == b'RIFF' and data[8:12] == b'WEBP':
+                ext = '.webp'
+
+            out_name = f'{prefix}_xlsx_img_{img_idx}{ext}'
+            out_path = os.path.join(out_dir, out_name)
+            try:
+                with open(out_path, 'wb') as fh:
+                    fh.write(data)
+            except OSError as e:
+                print(f"⚠ _xlsx_extract_images: save failed: {e}")
+                continue
+
+            results.append({
+                'path':  out_path,
+                'name':  out_name,
+                'row':   row,
+                'col':   col,
+                'sheet': sheet.title,
+            })
+            img_idx += 1
+
+    # Sort by (sheet, row, col) so callers can match items to images in
+    # natural reading order — typically image[0] belongs to the row that
+    # the first item lives on.
+    results.sort(key=lambda r: (r['sheet'], r['row'], r['col']))
+    return results
+
+
+def xlsx_to_html_table(static_relpath: str, max_rows: int = 300) -> str:
+    """Render a workbook as a sanitized HTML table for inline preview in
+    the Source tab. `static_relpath` is a path under Flask's `static/`
+    folder (e.g. 'uploads/PI_Foo.xlsx') — same convention used elsewhere
+    in the audit-trail / proforma viewer.
+
+    Layout strategy:
+      • First pass collects every non-empty row, tracks which columns
+        carry data anywhere in the sheet, and measures each column's
+        widest cell so the second pass can size columns naturally.
+      • Globally-empty columns (often Excel "spacer" columns) are
+        dropped so the table doesn't waste horizontal real estate.
+      • Merged cells round-trip as HTML `colspan` / `rowspan` so
+        proforma header rows ("FOR & ON BEHALF OF BUYER" etc.) span
+        their original width instead of squeezing into one narrow cell.
+      • Long text is allowed to wrap (whitespace-pre-wrap) but each
+        column gets enough room based on its widest entry, so short
+        labels don't get word-wrapped just because they share a row
+        with a paragraph.
+
+    Output is a small chunk of HTML (one `<table>` per sheet) intended
+    to live inside a scrollable container. Caps at `max_rows` per sheet
+    so a 10k-row workbook can't tank the page. Never raises — returns
+    an inline error block instead so the template keeps rendering.
+
+    Exposed as a Jinja global named `render_xlsx_preview` so templates
+    can write `{{ render_xlsx_preview(src) | safe }}` directly.
+    """
+    from flask import current_app
+    from markupsafe import escape
+
+    if not static_relpath:
+        return '<p class="text-xs text-slate-400 italic p-4">No file.</p>'
+
+    # Resolve under static/ — refuse anything escaping that root so
+    # template input can't be coerced into reading arbitrary disk paths.
+    static_root = os.path.join(current_app.root_path, 'static')
+    abs_path = os.path.normpath(os.path.join(static_root, static_relpath))
+    if not abs_path.startswith(static_root):
+        return '<p class="text-xs text-red-500 p-4">Invalid file path.</p>'
+    if not os.path.exists(abs_path):
+        return f'<p class="text-xs text-red-500 p-4">File not found: {escape(static_relpath)}</p>'
+
+    try:
+        from openpyxl import load_workbook
+    except Exception:
+        return '<p class="text-xs text-red-500 p-4">openpyxl is required to preview Excel files.</p>'
+
+    try:
+        wb = load_workbook(abs_path, data_only=True)
+    except Exception as e:
+        return f'<p class="text-xs text-red-500 p-4">Cannot read workbook: {escape(str(e))}</p>'
+
+    # Per-column width budget in pixels, derived from `len(content)`.
+    # 6.5px/char fits the 11px font with breathing room. Floor/ceiling
+    # keep columns from collapsing (numeric columns with short labels)
+    # or running away (one giant paragraph cell that would force the
+    # whole sheet wider than the Source pane).
+    def _col_width_px(max_chars: int) -> int:
+        return max(56, min(260, int(max_chars * 6.5) + 14))
+
+    parts: list[str] = []
+    for sheet in wb.worksheets:
+        # ── Merged cells: map every covered position to its anchor and
+        # record the colspan / rowspan to apply on that anchor cell.
+        merge_anchor_of: dict[tuple[int, int], tuple[int, int]] = {}
+        merge_span_of:   dict[tuple[int, int], tuple[int, int]] = {}
+        for rng in sheet.merged_cells.ranges:
+            top, left = rng.min_row, rng.min_col          # 1-indexed
+            bot, right = rng.max_row, rng.max_col
+            anchor = (top, left)
+            merge_span_of[anchor] = (bot - top + 1, right - left + 1)
+            for r in range(top, bot + 1):
+                for c in range(left, right + 1):
+                    merge_anchor_of[(r, c)] = anchor
+
+        # ── First pass: collect rows + column stats ─────────────────
+        # Keep absolute row index (1-indexed, openpyxl's native) so the
+        # merge map can be consulted during render.
+        collected: list[tuple[int, list[tuple[str, int]]]] = []  # (row_idx, [(text, col_idx_1based), ...])
+        col_max_chars: dict[int, int] = {}
+        row_seen = 0
+        truncated = False
+        for row_idx, row in enumerate(sheet.iter_rows(values_only=True), start=1):
+            if row_seen >= max_rows:
+                truncated = True
+                break
+            if not any(c is not None and str(c).strip() != '' for c in row):
+                continue
+            row_seen += 1
+            cells: list[tuple[str, int]] = []
+            for offset, cell in enumerate(row):
+                col_idx = offset + 1  # 1-indexed to match openpyxl conventions
+                if cell is None:
+                    text = ''
+                else:
+                    text = str(cell)
+                cells.append((text, col_idx))
+                if text.strip():
+                    # Treat embedded newlines as separate "lines" — the
+                    # column needs to be as wide as its longest LINE, not
+                    # the whole multi-line cell, otherwise headers like
+                    # "Buyer's\nItem No." would inflate the column.
+                    line_width = max(len(seg) for seg in text.split('\n'))
+                    col_max_chars[col_idx] = max(col_max_chars.get(col_idx, 0), line_width)
+            collected.append((row_idx, cells))
+
+        if not col_max_chars:
+            # Sheet is entirely blank — skip the header too.
+            continue
+
+        # Visible column indexes, sorted left-to-right.
+        visible_cols = sorted(col_max_chars.keys())
+
+        # ── Render ─────────────────────────────────────────────────
+        parts.append('<div class="mb-6">')
+        # Sheet title scrolls with the content. The Source tab's
+        # wrapper supplies its own sticky top bar (with the Download
+        # button) so the user always has the action handy.
+        parts.append(
+            f'<h4 class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-2 py-1.5 border-b border-slate-100">{escape(sheet.title)}</h4>'
+        )
+        parts.append(
+            '<table class="text-[11px] border-collapse" style="border: 1px solid rgb(241 245 249); table-layout: fixed;">'
+        )
+        # <colgroup> with per-column widths.
+        parts.append('<colgroup>')
+        parts.append('<col style="width: 34px">')   # row-number gutter
+        for col_idx in visible_cols:
+            w = _col_width_px(col_max_chars.get(col_idx, 5))
+            parts.append(f'<col style="width: {w}px">')
+        parts.append('</colgroup>')
+
+        # Track which (row, col) anchor cells we've already rendered so
+        # the same merged content doesn't show up twice when its anchor
+        # row hasn't reached the cells yet.
+        rendered_anchors: set[tuple[int, int]] = set()
+
+        display_row = 0
+        for row_idx, cells in collected:
+            display_row += 1
+            parts.append(
+                '<tr class="border-b border-slate-100 hover:bg-slate-50/60">'
+            )
+            parts.append(
+                f'<td class="px-1 py-1 text-slate-300 text-[9px] align-top tabular-nums select-none border-r border-slate-100">{display_row}</td>'
+            )
+            # Map from col_idx → cell text for fast lookup.
+            cell_text_by_col = {c_idx: text for text, c_idx in cells}
+
+            skip_until_col: int | None = None  # used inside a horizontal merge
+            for col_idx in visible_cols:
+                # If this position is inside a merge and not the anchor,
+                # the anchor handles it — render nothing for the slave.
+                anchor = merge_anchor_of.get((row_idx, col_idx))
+                if anchor is not None and anchor != (row_idx, col_idx):
+                    continue
+
+                attrs = ''
+                if anchor == (row_idx, col_idx):
+                    rowspan, colspan = merge_span_of[anchor]
+                    if rowspan > 1:
+                        attrs += f' rowspan="{rowspan}"'
+                    if colspan > 1:
+                        attrs += f' colspan="{colspan}"'
+
+                text = cell_text_by_col.get(col_idx, '')
+                # Preserve intentional newlines from the cell content;
+                # let CSS handle wrap-by-space for very long lines.
+                if text:
+                    safe_text = escape(text).replace('\n', Markup_BR)
+                else:
+                    safe_text = ''
+                parts.append(
+                    f'<td{attrs} class="px-2 py-1 align-top text-slate-700 border-l border-slate-50" style="white-space: pre-wrap; word-break: break-word;">{safe_text}</td>'
+                )
+            parts.append('</tr>')
+
+        parts.append('</table>')
+        if truncated:
+            remaining = max(0, sheet.max_row - row_seen)
+            parts.append(
+                f'<p class="text-[10px] italic text-slate-400 mt-2">'
+                f'… preview truncated at {row_seen} rows (~{remaining} more in the sheet).'
+                f'</p>'
+            )
+        parts.append('</div>')
+
+    if not parts:
+        return '<p class="text-xs text-slate-400 italic p-4">Empty workbook.</p>'
+    return '\n'.join(parts)
+
+
+# Pre-built Markup snippet for newline→<br> conversion inside escaped
+# cell text. Stored as a constant so we don't import markupsafe at
+# every cell render and don't risk the escape() output being re-escaped.
+from markupsafe import Markup as _Markup
+Markup_BR = _Markup('<br>')
+
+
 def triage_scan(file_paths: list[str], origin_hint: str | None = None,
                 feedback: str | None = None) -> dict:
     """One fast Gemini Flash call. Uploads the FIRST file, asks for the
@@ -343,24 +711,41 @@ def triage_scan(file_paths: list[str], origin_hint: str | None = None,
     )
 
     try:
-        uploaded = _get_client().files.upload(file=fp)
-        # Wait up to ~15s for processing. The SDK marks state/name as Optional;
-        # if either is missing we treat the upload as already-ready (best effort).
-        for _ in range(30):
-            state = getattr(uploaded, 'state', None)
-            state_name = getattr(state, 'name', None) if state is not None else None
-            file_name = getattr(uploaded, 'name', None)
-            if state_name != "PROCESSING" or not file_name:
-                break
-            time.sleep(0.5)
-            uploaded = _get_client().files.get(name=file_name)
+        # XLSX path — Gemini's Files API doesn't ingest spreadsheets
+        # reliably, and the tabular content is much cleaner as a row-
+        # labelled text dump anyway. We send the workbook contents
+        # inline in the prompt and skip the Files API upload entirely.
+        if _is_xlsx_path(fp):
+            xlsx_text = _xlsx_to_text(fp)
+            full_prompt = (
+                prompt
+                + "\n\nDOCUMENT (Excel proforma — extracted as text):\n"
+                + "Each line is prefixed with [Row N] giving its 1-indexed\n"
+                + "spreadsheet row. Cell separator is ' | '.\n\n"
+                + xlsx_text
+            )
+            contents = [full_prompt]
+        else:
+            uploaded = _get_client().files.upload(file=fp)
+            # Wait up to ~15s for processing. The SDK marks state/name as
+            # Optional; if either is missing we treat the upload as
+            # already-ready (best effort).
+            for _ in range(30):
+                state = getattr(uploaded, 'state', None)
+                state_name = getattr(state, 'name', None) if state is not None else None
+                file_name = getattr(uploaded, 'name', None)
+                if state_name != "PROCESSING" or not file_name:
+                    break
+                time.sleep(0.5)
+                uploaded = _get_client().files.get(name=file_name)
+            contents = [prompt, uploaded]
 
         from .api_metering import gemini_call
         response = gemini_call(
             prompt_id='bulk_triage_scan',
             model=_MODEL,
             client=_get_client(),
-            contents=[prompt, uploaded],
+            contents=contents,
             config=types.GenerateContentConfig(response_mime_type="application/json"),
         )
         parsed = json.loads(response.text or "{}")
@@ -380,7 +765,8 @@ def build_stub_pis_from_cluster(cluster: dict, items: list[dict],
                                 batch_id: str, origin_hint: str,
                                 cluster_index: int = 0,
                                 source_filenames: list[str] | None = None,
-                                triage_summary: dict | None = None) -> dict | None:
+                                triage_summary: dict | None = None,
+                                xlsx_image_pool: list[dict] | None = None) -> dict | None:
     """Phase C — produce a minimal pis_data dict for ONE cluster from the
     triage items it covers. Skipped items are excluded. Returns None when
     every item in the cluster is skipped.
@@ -508,6 +894,52 @@ def build_stub_pis_from_cluster(cluster: dict, items: list[dict],
                   or header['model_number']
                   or f"Item {cluster_index + 1}")
     pis['_bulk_model_name'] = model_name
+
+    # XLSX-embedded images, when present, slot directly into
+    # `_bulk_image_candidates` so the Edit-PIS gallery shows them as
+    # source-tagged candidates exactly like PDF-extracted ones.
+    # Positional matching: items[] is in spreadsheet order, the image
+    # pool is sorted by anchor row, so the Nth image of the workbook
+    # is presumed to belong to the Nth item. If counts diverge we still
+    # attach the available images at the equivalent positions and let
+    # the user re-assign through the gallery — better than dropping
+    # them silently.
+    if xlsx_image_pool:
+        cluster_candidates: list[dict] = []
+        seen_paths: set[str] = set()
+        for active_pos, item_idx in enumerate(active_indexes):
+            # Prefer matching the global item_idx (covers the case where
+            # earlier clusters didn't consume their slot — e.g. items
+            # marked `skip`). Fall back to active_pos so a small workbook
+            # with images on every active item still pairs correctly.
+            picks = []
+            if item_idx < len(xlsx_image_pool):
+                picks.append(xlsx_image_pool[item_idx])
+            if active_pos < len(xlsx_image_pool) and active_pos != item_idx:
+                picks.append(xlsx_image_pool[active_pos])
+
+            variant_sku = ''
+            if is_variant_cluster and active_pos < len(variants):
+                variant_sku = (variants[active_pos].get('model_number') or '').strip()
+
+            for img in picks:
+                p = img.get('path') or ''
+                if not p or p in seen_paths:
+                    continue
+                seen_paths.add(p)
+                cluster_candidates.append({
+                    'path':        p,
+                    'source':      'xlsx_embedded',
+                    'variant_sku': variant_sku,
+                })
+        if cluster_candidates:
+            pis['_bulk_image_candidates'] = cluster_candidates
+            # Default the hero thumbnail to the first candidate so the
+            # workspace card has a picture immediately, no enrichment
+            # needed. Enrichment can still overwrite if it finds a
+            # better web candidate later.
+            pis['_image_path'] = cluster_candidates[0]['path']
+
     return pis
 
 
@@ -547,9 +979,19 @@ def _extract_variant_pis(file_paths: list[str], primary_name: str,
 
     try:
         client = _get_client()
-        # Upload every doc so the model sees full context.
+        # Upload every non-XLSX doc so the model sees full context;
+        # XLSX files are rendered inline as text (see triage_scan for the
+        # same rationale — Gemini's Files API doesn't ingest spreadsheets
+        # reliably).
         uploaded = []
+        xlsx_blocks: list[str] = []
         for fp in file_paths:
+            if _is_xlsx_path(fp):
+                xlsx_blocks.append(
+                    f"--- {os.path.basename(fp)} (Excel) ---\n"
+                    + _xlsx_to_text(fp)
+                )
+                continue
             uf = client.files.upload(file=fp)
             for _ in range(30):
                 state = getattr(uf, 'state', None)
@@ -561,7 +1003,13 @@ def _extract_variant_pis(file_paths: list[str], primary_name: str,
                 uf = client.files.get(name=file_name)
             uploaded.append(uf)
 
-        contents = [prompt] + uploaded
+        full_prompt = prompt
+        if xlsx_blocks:
+            full_prompt += (
+                "\n\nADDITIONAL EXCEL CONTENT (extracted as text, [Row N] = 1-indexed row):\n"
+                + "\n\n".join(xlsx_blocks)
+            )
+        contents = [full_prompt] + uploaded
         from .api_metering import gemini_call
         response = gemini_call(
             prompt_id='bulk_variant_pis_extraction',
