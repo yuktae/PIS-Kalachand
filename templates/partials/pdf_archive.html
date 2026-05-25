@@ -1,0 +1,358 @@
+{# Shared PDF Archive view used by marketing / director / web wrappers.
+   Requires `archive_rows` in context, each row shaped like:
+       { 'product': <Product>, 'pis_approved_at': dt|None, 'spec_approved_at': dt|None }
+   (see helpers.get_archive_rows).
+
+   Card layout is intentionally horizontal — image on the left, all
+   metadata + download CTAs on the right — so a user can scan brand /
+   approval dates without losing the visual anchor of the product photo.
+#}
+<div x-data="pdfArchive()" class="page-fade-in">
+
+    {# ── HERO SECTION ──────────────────────────────────────────── #}
+    <div class="mb-6 relative rounded-3xl bg-gradient-to-br from-white via-white to-red-50/40 border border-gray-100 p-8 shadow-sm overflow-hidden">
+        <div class="absolute inset-0 bg-[radial-gradient(#fee2e2_1px,transparent_1px)] [background-size:18px_18px] opacity-40 pointer-events-none"></div>
+        <div class="absolute -top-12 -right-12 w-48 h-48 bg-red-100/40 rounded-full blur-3xl pointer-events-none"></div>
+        <div class="absolute -bottom-12 -left-12 w-40 h-40 bg-red-100/30 rounded-full blur-3xl pointer-events-none"></div>
+
+        <div class="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+            <div>
+                <p class="text-[10px] font-bold text-red-600 uppercase tracking-widest mb-1">Archive</p>
+                <h2 class="text-3xl font-extrabold text-slate-900 tracking-tight">PDF Archive</h2>
+                <p class="text-slate-500 text-sm mt-1.5">Access final PIS and SpecSheets for all
+                    <span class="font-bold text-emerald-600">Approved</span> products.
+                </p>
+            </div>
+
+            <div class="flex items-center gap-3">
+                <span class="text-xs font-bold text-gray-400 uppercase tracking-wider"
+                    x-text="filteredProducts.length + ' of ' + products.length + ' products'"></span>
+                <button type="button" x-show="hasActiveFilters" @click="clearAll()"
+                    class="text-[10px] font-bold uppercase tracking-widest text-red-600 hover:text-red-800 border border-red-200 hover:border-red-400 rounded-lg px-3 py-1.5 transition-colors">
+                    Clear filters
+                </button>
+            </div>
+        </div>
+    </div>
+
+    {# ── FILTER BAR ────────────────────────────────────────────── #}
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_1fr_1fr] gap-3">
+            {# Search #}
+            <div class="relative">
+                <svg class="w-4 h-4 absolute left-3.5 top-3.5 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                </svg>
+                <input x-model="search" type="text" placeholder="Search product or brand…"
+                    class="w-full pl-10 pr-3 py-2.5 bg-gray-50 border border-gray-100 focus:bg-white focus:border-red-300 focus:ring-2 focus:ring-red-100 rounded-xl text-sm font-medium transition-all outline-none placeholder-gray-400">
+            </div>
+
+            {# Brand #}
+            <div class="relative">
+                <svg class="w-4 h-4 absolute left-3.5 top-3.5 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
+                </svg>
+                <select x-model="brandFilter"
+                    class="w-full pl-10 pr-3 py-2.5 bg-gray-50 border border-gray-100 focus:bg-white focus:border-red-300 focus:ring-2 focus:ring-red-100 rounded-xl text-sm font-medium transition-all outline-none cursor-pointer appearance-none">
+                    <option value="">All brands</option>
+                    <template x-for="b in uniqueBrands" :key="b">
+                        <option :value="b" x-text="b"></option>
+                    </template>
+                </select>
+            </div>
+
+            {# Category — new filter alongside Brand #}
+            <div class="relative">
+                <svg class="w-4 h-4 absolute left-3.5 top-3.5 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 10h16M4 14h10M4 18h7"/>
+                </svg>
+                <select x-model="categoryFilter"
+                    class="w-full pl-10 pr-3 py-2.5 bg-gray-50 border border-gray-100 focus:bg-white focus:border-red-300 focus:ring-2 focus:ring-red-100 rounded-xl text-sm font-medium transition-all outline-none cursor-pointer appearance-none">
+                    <option value="">All categories</option>
+                    <template x-for="c in uniqueCategories" :key="c">
+                        <option :value="c" x-text="c"></option>
+                    </template>
+                </select>
+            </div>
+
+            {# Date from — filters on most-recent approval (Spec → PIS → created) #}
+            <div class="relative">
+                <svg class="w-4 h-4 absolute left-3.5 top-3.5 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                </svg>
+                <input x-model="dateFrom" type="date"
+                    class="w-full pl-10 pr-3 py-2.5 bg-gray-50 border border-gray-100 focus:bg-white focus:border-red-300 focus:ring-2 focus:ring-red-100 rounded-xl text-sm font-medium transition-all outline-none">
+                <span class="absolute -top-2 left-3 px-1.5 bg-white text-[9px] font-bold text-gray-400 uppercase tracking-widest">From</span>
+            </div>
+
+            {# Date to #}
+            <div class="relative">
+                <svg class="w-4 h-4 absolute left-3.5 top-3.5 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                </svg>
+                <input x-model="dateTo" type="date"
+                    class="w-full pl-10 pr-3 py-2.5 bg-gray-50 border border-gray-100 focus:bg-white focus:border-red-300 focus:ring-2 focus:ring-red-100 rounded-xl text-sm font-medium transition-all outline-none">
+                <span class="absolute -top-2 left-3 px-1.5 bg-white text-[9px] font-bold text-gray-400 uppercase tracking-widest">To</span>
+            </div>
+        </div>
+    </div>
+
+    {# ── CARD GRID ─────────────────────────────────────────────── #}
+    <div x-show="filteredProducts.length > 0"
+         class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-12">
+        <template x-for="p in filteredProducts" :key="'archive-'+p.id">
+            <div class="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 overflow-hidden group">
+                <div class="flex gap-4 p-4">
+
+                    {# Image (left) — square on mobile, slightly larger on lg.
+                       Clickable to open lightbox when image exists. #}
+                    <div class="w-32 h-32 sm:w-36 sm:h-36 flex-shrink-0 bg-gray-50 rounded-xl overflow-hidden border border-gray-100 relative"
+                         :class="p.image ? 'cursor-zoom-in' : ''"
+                         @click="p.image && openLightbox(p.image)">
+                        <template x-if="p.image">
+                            <img :src="p.image"
+                                class="w-full h-full object-contain mix-blend-multiply p-3 transition-transform duration-500 group-hover:scale-105"
+                                @error="$el.style.display='none'">
+                        </template>
+                        <template x-if="!p.image">
+                            <div class="w-full h-full flex flex-col items-center justify-center text-gray-300">
+                                <svg class="w-8 h-8 mb-1" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                </svg>
+                                <span class="text-[10px] font-bold uppercase tracking-wider">No image</span>
+                            </div>
+                        </template>
+                    </div>
+
+                    {# Content (right) #}
+                    <div class="flex-1 min-w-0 flex flex-col">
+
+                        {# Title row — product name + stage chip on the right.
+                           Chip color hints at workflow phase so the archive
+                           still reads as a status board, not a flat dump. #}
+                        <div class="flex items-start justify-between gap-2 mb-1">
+                            <h3 class="text-base font-bold text-slate-900 leading-tight truncate group-hover:text-red-600 transition-colors"
+                                x-text="p.model_name"></h3>
+                            <span class="px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded shrink-0 border"
+                                  :class="stageBadgeClass(p.stage)"
+                                  x-text="stageLabel(p.stage)"></span>
+                        </div>
+
+                        {# Brand · Category — secondary metadata #}
+                        <p class="text-xs text-slate-500 mb-3 truncate">
+                            <span class="font-semibold text-slate-600" x-text="p.brand"></span>
+                            <template x-if="p.category && p.category !== 'Uncategorised'">
+                                <span>
+                                    <span class="text-gray-300 mx-1">·</span>
+                                    <span x-text="p.category"></span>
+                                </span>
+                            </template>
+                        </p>
+
+                        {# Approval dates — two compact rows.
+                           Em-dash when the corresponding approval hasn't
+                           happened yet (typical for products still in the
+                           SpecSheet phase that haven't been finalized). #}
+                        <div class="space-y-1 mb-3 mt-auto">
+                            <div class="flex items-center justify-between text-[11px]">
+                                <span class="text-gray-400 font-bold uppercase tracking-widest">PIS approved</span>
+                                <span class="text-slate-700 font-bold" x-text="p.pis_approved || '—'"></span>
+                            </div>
+                            <div class="flex items-center justify-between text-[11px]">
+                                <span class="text-gray-400 font-bold uppercase tracking-widest">Spec approved</span>
+                                <span class="text-slate-700 font-bold" x-text="p.spec_approved || '—'"></span>
+                            </div>
+                        </div>
+
+                        {# Download CTAs — half-width each, side-by-side.
+                           Each button is disabled (rendered as a non-clickable
+                           pill with reduced opacity) when its underlying PDF
+                           isn't ready yet — i.e. the corresponding approval
+                           timestamp is missing. Tooltip explains why. #}
+                        <div class="flex items-center gap-2">
+                            <template x-if="p.pis_approved_iso">
+                                <a :href="p.pis_pdf_url" target="_blank"
+                                    class="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-bold uppercase tracking-wider text-red-600 bg-red-50 hover:bg-red-600 hover:text-white border border-red-100 hover:border-red-600 transition-all">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                    </svg>
+                                    PIS
+                                </a>
+                            </template>
+                            <template x-if="!p.pis_approved_iso">
+                                <span title="PIS not yet approved"
+                                    class="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-bold uppercase tracking-wider text-gray-400 bg-gray-50 border border-gray-100 cursor-not-allowed">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                                    </svg>
+                                    PIS
+                                </span>
+                            </template>
+
+                            <template x-if="p.spec_approved_iso">
+                                <a :href="p.spec_pdf_url" target="_blank"
+                                    class="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-bold uppercase tracking-wider text-slate-700 bg-slate-50 hover:bg-slate-900 hover:text-white border border-slate-100 hover:border-slate-900 transition-all">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                    </svg>
+                                    Spec
+                                </a>
+                            </template>
+                            <template x-if="!p.spec_approved_iso">
+                                <span title="SpecSheet not yet approved"
+                                    class="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-bold uppercase tracking-wider text-gray-400 bg-gray-50 border border-gray-100 cursor-not-allowed">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                                    </svg>
+                                    Spec
+                                </span>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </template>
+    </div>
+
+    {# ── EMPTY STATE ──────────────────────────────────────────── #}
+    <div x-show="filteredProducts.length === 0"
+         class="bg-white rounded-2xl border border-gray-100 shadow-sm py-16 text-center mb-12">
+        <div class="w-14 h-14 bg-red-50 rounded-2xl flex items-center justify-center mx-auto mb-3 text-red-300">
+            <svg class="w-7 h-7" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+        </div>
+        <p class="text-sm font-bold text-slate-700">No archived documents found</p>
+        <p class="text-xs text-slate-400 mt-1" x-show="hasActiveFilters">Try clearing your filters.</p>
+        <p class="text-xs text-slate-400 mt-1" x-show="!hasActiveFilters">No approved products yet.</p>
+        <button type="button" x-show="hasActiveFilters" @click="clearAll()"
+            class="mt-4 text-[10px] font-bold uppercase tracking-widest text-red-600 hover:text-red-800 border border-red-200 hover:border-red-400 rounded-lg px-3 py-1.5 transition-colors">
+            Clear all filters
+        </button>
+    </div>
+
+    {# ── LIGHTBOX ─────────────────────────────────────────────── #}
+    <div x-show="lightboxSrc" x-cloak x-transition
+         class="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-6"
+         @click="lightboxSrc = ''"
+         @keydown.escape.window="lightboxSrc = ''">
+        <img :src="lightboxSrc" class="max-w-full max-h-full rounded-2xl shadow-2xl" @click.stop>
+        <button type="button" @click="lightboxSrc = ''"
+            class="absolute top-6 right-6 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur text-white flex items-center justify-center transition-colors">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+        </button>
+    </div>
+</div>
+
+<style>
+.page-fade-in {
+    animation: pageFadeIn 0.3s ease-out;
+}
+@keyframes pageFadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+</style>
+
+<script>
+function pdfArchive() {
+    return {
+        search: '',
+        brandFilter: '',
+        categoryFilter: '',
+        dateFrom: '',
+        dateTo: '',
+        lightboxSrc: '',
+
+        products: [
+            {% for row in archive_rows %}
+            {% set p = row.product %}
+            {
+                id: {{ p.id }},
+                model_name: `{{ p.model_name|e }}`,
+                brand: `{{ (p.pis_data.header_info.brand if p.pis_data and p.pis_data.header_info else 'Unknown')|e }}`,
+                category: `{{ product_category_label(p)|e }}`,
+                image: `{{ resolve_image_url(p.image_path) if p.image_path else '' }}`,
+                stage: `{{ p.workflow_stage }}`,
+                pis_approved:      `{{ row.pis_approved_at.strftime('%d %b %Y') if row.pis_approved_at else '' }}`,
+                spec_approved:     `{{ row.spec_approved_at.strftime('%d %b %Y') if row.spec_approved_at else '' }}`,
+                pis_approved_iso:  `{{ row.pis_approved_at.strftime('%Y-%m-%d') if row.pis_approved_at else '' }}`,
+                spec_approved_iso: `{{ row.spec_approved_at.strftime('%Y-%m-%d') if row.spec_approved_at else '' }}`,
+                created_at_iso:    `{{ p.created_at.strftime('%Y-%m-%d') if p.created_at else '' }}`,
+                pis_pdf_url:  `{{ url_for('marketing.download_pis_pdf', product_id=p.id) }}`,
+                spec_pdf_url: `{{ url_for('web.download_specsheet', product_id=p.id) }}`
+            },
+            {% endfor %}
+        ],
+
+        get uniqueBrands() {
+            return [...new Set(this.products.map(p => p.brand).filter(Boolean))].sort();
+        },
+        get uniqueCategories() {
+            return [...new Set(
+                this.products
+                    .map(p => p.category)
+                    .filter(c => c && c !== 'Uncategorised')
+            )].sort();
+        },
+        get hasActiveFilters() {
+            return !!(this.search || this.brandFilter || this.categoryFilter || this.dateFrom || this.dateTo);
+        },
+        clearAll() {
+            this.search = '';
+            this.brandFilter = '';
+            this.categoryFilter = '';
+            this.dateFrom = '';
+            this.dateTo = '';
+        },
+
+        // Effective archive date for filtering: prefer the most-recent
+        // approval (Spec → PIS), otherwise fall back to creation date so
+        // every row is comparable. Avoids excluding products that don't
+        // have an explicit approval timestamp yet.
+        effectiveDate(p) {
+            return p.spec_approved_iso || p.pis_approved_iso || p.created_at_iso || '';
+        },
+
+        get filteredProducts() {
+            const q = this.search.trim().toLowerCase();
+            return this.products.filter(p => {
+                if (q && !p.model_name.toLowerCase().includes(q)
+                      && !p.brand.toLowerCase().includes(q)) return false;
+                if (this.brandFilter && p.brand !== this.brandFilter) return false;
+                if (this.categoryFilter && p.category !== this.categoryFilter) return false;
+                const ed = this.effectiveDate(p);
+                if (this.dateFrom && (!ed || ed < this.dateFrom)) return false;
+                if (this.dateTo   && (!ed || ed > this.dateTo))   return false;
+                return true;
+            });
+        },
+
+        openLightbox(src) { this.lightboxSrc = src; },
+
+        // Stage → friendly label + chip color. Mirrors the conventions used
+        // on the dashboards so a quick scan of the archive still hints at
+        // workflow status (some "approved" products are mid-SpecSheet).
+        stageLabel(stage) {
+            return ({
+                'finalized':              'Finalized',
+                'ready_for_web':          'Ready for Web',
+                'specsheet_draft':        'SpecSheet Draft',
+                'pending_director_spec':  'Awaiting Spec Review',
+                'web_changes_requested':  'Changes Requested',
+            })[stage] || (stage || '').replace(/_/g, ' ');
+        },
+        stageBadgeClass(stage) {
+            return ({
+                'finalized':              'bg-emerald-50 text-emerald-700 border-emerald-100',
+                'ready_for_web':          'bg-indigo-50 text-indigo-700 border-indigo-100',
+                'specsheet_draft':        'bg-indigo-50 text-indigo-700 border-indigo-100',
+                'pending_director_spec':  'bg-amber-50 text-amber-700 border-amber-100',
+                'web_changes_requested':  'bg-red-50 text-red-700 border-red-100',
+            })[stage] || 'bg-slate-50 text-slate-600 border-slate-100';
+        },
+    };
+}
+</script>

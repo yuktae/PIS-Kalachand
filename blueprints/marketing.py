@@ -214,12 +214,10 @@ def history_marketing():
 def marketing_archive():
     # Marketing + Admin can view the archive. Admin needs read access for
     # oversight; the archive itself is read-only so there's no risk.
+    from helpers import get_archive_rows
     approved_stages = [Stage.FINALIZED, Stage.READY_FOR_WEB, Stage.SPECSHEET_DRAFT, Stage.PENDING_DIRECTOR_SPEC, Stage.WEB_CHANGES_REQUESTED]
-    archived_products = Product.query.filter(
-        Product.workflow_stage.in_(approved_stages),
-        Product.deleted_at.is_(None)
-    ).order_by(Product.created_at.desc()).all()
-    return render_template('archive_marketing.html', products=archived_products)
+    archive_rows = get_archive_rows(approved_stages)
+    return render_template('archive_marketing.html', archive_rows=archive_rows)
 
 
 # ── PRODUCT CREATION ─────────────────────────────────────────────────────────

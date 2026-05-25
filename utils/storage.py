@@ -36,6 +36,32 @@ def store_image(local_path: str, _label: str = '') -> str:
     return _local_relative(local_path)
 
 
+def resolve_image_url(path: str, expiry_hours: int = 4) -> str:
+    """Return a browser-loadable URL for a stored product image.
+
+    `get_image_url` only knows how to sign Azure blob URLs — it returns
+    local paths (e.g. `uploads/foo.jpg`) UNCHANGED, which the browser
+    then resolves relative to the current page (e.g.
+    `/dashboard/.../uploads/foo.jpg` → 404). This wrapper picks the right
+    handler:
+      - Absolute http(s) URL  → `get_image_url` (SAS-signs Azure blobs,
+                                  leaves third-party URLs untouched).
+      - Local relative path   → wraps in Flask's static URL prefix.
+
+    Exposed as a Jinja global so templates can write
+        :src="resolve_image_url(product.image_path)"
+    and not worry about the storage backend.
+    """
+    if not path:
+        return ''
+    if path.startswith('http://') or path.startswith('https://'):
+        return get_image_url(path, expiry_hours)
+    # Defer the Flask import so this module stays importable from non-
+    # request contexts (jobs, CLI scripts).
+    from flask import url_for
+    return url_for('static', filename=path.lstrip('/'))
+
+
 def get_image_url(path: str, expiry_hours: int = 4) -> str:
     """
     Convert a stored image path into a URL safe for browser use.

@@ -102,12 +102,10 @@ def dashboard_web():
 @web_bp.route('/dashboard/web/archive')
 @require_role('web')
 def web_archive():
+    from helpers import get_archive_rows
     approved_stages = [Stage.FINALIZED, Stage.READY_FOR_WEB, Stage.SPECSHEET_DRAFT, Stage.PENDING_DIRECTOR_SPEC, Stage.WEB_CHANGES_REQUESTED]
-    archived_products = Product.query.filter(
-        Product.workflow_stage.in_(approved_stages),
-        Product.deleted_at.is_(None)
-    ).order_by(Product.created_at.desc()).all()
-    return render_template('archive_web.html', products=archived_products)
+    archive_rows = get_archive_rows(approved_stages)
+    return render_template('archive_web.html', archive_rows=archive_rows)
 
 
 @web_bp.route('/dashboard/web/forbidden-words')

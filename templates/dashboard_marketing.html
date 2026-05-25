@@ -19,7 +19,7 @@
             can_delete: {{ 'true' if can_delete_stage(session.get('role'), p.workflow_stage) else 'false' }},
             category: `{{ product_category_label(p) }}`,
             stage_display: (function(s) {
-                if (s === 'marketing_draft') return 'AI Generated PIS';
+                if (s === 'marketing_draft') return 'New AI Generated PIS';
                 if (s === 'marketing_in_progress') return 'PIS Draft';
                 if (s === 'marketing_changes_requested') return 'Change Requested';
                 if (s === 'pending_director_pis') return 'In Review';
@@ -376,7 +376,7 @@
             </div>
         </div>
 
-        <!-- AI Generated PIS (was Draft PIS) -->
+        <!-- New AI Generated PIS (was Draft PIS) -->
         <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex items-center gap-3 hover:border-yellow-200 transition-colors group cursor-pointer overflow-hidden"
             @click="filter = 'draft'">
             <div class="w-9 h-9 rounded-lg bg-yellow-50 flex items-center justify-center text-yellow-600 flex-shrink-0 group-hover:bg-yellow-100 transition-colors">
@@ -545,7 +545,7 @@
                         class="flex-1 px-4 py-2.5 rounded-lg text-xs transition-all whitespace-nowrap">All</button>
                     <button @click="filter = 'draft'"
                         :class="filter === 'draft' ? 'bg-white text-yellow-600 shadow-sm font-semibold' : 'text-gray-500 hover:text-slate-700'"
-                        class="flex-1 px-4 py-2.5 rounded-lg text-xs transition-all whitespace-nowrap">AI Generated PIS</button>
+                        class="flex-1 px-4 py-2.5 rounded-lg text-xs transition-all whitespace-nowrap">New AI Generated PIS</button>
                     <button @click="filter = 'in_process'"
                         :class="filter === 'in_process' ? 'bg-white text-amber-600 shadow-sm font-semibold' : 'text-gray-500 hover:text-slate-700'"
                         class="flex-1 px-4 py-2.5 rounded-lg text-xs transition-all whitespace-nowrap">PIS Draft</button>
@@ -571,7 +571,7 @@
                 <template x-if="filter !== 'all'">
                     <button @click="filter = 'all'"
                         class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-100 text-slate-700 text-xs font-semibold hover:bg-slate-200 transition-colors">
-                        <span x-text="filter === 'draft' ? 'AI Generated PIS' : filter === 'in_process' ? 'PIS Draft' : filter === 'review' ? 'In Review' : filter === 'changes' ? 'Change Requested' : filter === 'approved' ? 'Approved PIS' : filter"></span>
+                        <span x-text="filter === 'draft' ? 'New AI Generated PIS' : filter === 'in_process' ? 'PIS Draft' : filter === 'review' ? 'In Review' : filter === 'changes' ? 'Change Requested' : filter === 'approved' ? 'Approved PIS' : filter"></span>
                         <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
                     </button>
                 </template>

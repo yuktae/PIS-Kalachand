@@ -1138,6 +1138,65 @@ def classify_flat_pis_origins(
     return (field_origins, spec_origins)
 
 
+# ================= PDF ARCHIVE ROWS =================
+#
+# Shared loader for the per-role PDF Archive page. The three archive routes
+# (marketing/director/web) all need the same data shape: each approved
+# product paired with its most-recent PIS-approval and SpecSheet-approval
+# timestamps so the card can show "PIS approved 23 May" / "Spec approved
+# 23 May" instead of just `created_at`.
+#
+# Approval timestamps are sourced from ProductHistory rows whose
+# action_title matches '%pis approved%' / '%specsheet approved%' — same
+# query the admin Stats page uses for avg-time-to-finalize, so behaviour
+# stays consistent if the action labels ever evolve.
+
+def get_archive_rows(approved_stages):
+    """Return archived products + their latest PIS/Spec approval times.
+
+    Each row is:
+        {
+            'product':          <Product>,
+            'pis_approved_at':  <datetime | None>,
+            'spec_approved_at': <datetime | None>,
+        }
+
+    Products are ordered newest-first by `created_at`, matching the
+    legacy archive listing order so existing user mental models hold.
+    """
+    from sqlalchemy import func
+    from model import ProductHistory
+
+    products = (Product.query
+                .filter(Product.workflow_stage.in_(approved_stages),
+                        Product.deleted_at.is_(None))
+                .order_by(Product.created_at.desc())
+                .all())
+    if not products:
+        return []
+
+    product_ids = [p.id for p in products]
+
+    def _latest_by_title(pattern):
+        rows = (db.session.query(
+                    ProductHistory.product_id,
+                    func.max(ProductHistory.timestamp))
+                .filter(ProductHistory.product_id.in_(product_ids),
+                        ProductHistory.action_title.ilike(pattern))
+                .group_by(ProductHistory.product_id)
+                .all())
+        return {pid: ts for pid, ts in rows}
+
+    pis_approved  = _latest_by_title('%pis approved%')
+    spec_approved = _latest_by_title('%specsheet approved%')
+
+    return [{
+        'product':          p,
+        'pis_approved_at':  pis_approved.get(p.id),
+        'spec_approved_at': spec_approved.get(p.id),
+    } for p in products]
+
+
 # ================= FORBIDDEN WORDS =================
 # Storage / normalization / category-merge moved to utils.forbidden_words.
 # Re-exported here so existing `from helpers import ...` callers keep working

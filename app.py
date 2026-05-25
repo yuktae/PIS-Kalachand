@@ -115,7 +115,7 @@ def create_app() -> Flask:
         return response
 
     # ── TEMPLATE GLOBALS ────────────────────────────────────────────────────
-    from utils.storage import get_image_url
+    from utils.storage import get_image_url, resolve_image_url
     from utils.workflow import can_delete as _can_delete_stage
     from helpers import (
         get_product_category, get_product_category_label,
@@ -124,6 +124,7 @@ def create_app() -> Flask:
     # Jinja2 accepts any callable here; Pyrefly's stub for the globals dict
     # is narrower than the runtime behavior, so silence the spurious error.
     application.jinja_env.globals['get_image_url'] = get_image_url  # type: ignore[assignment]
+    application.jinja_env.globals['resolve_image_url'] = resolve_image_url  # type: ignore[assignment]
     application.jinja_env.globals['product_category'] = get_product_category  # type: ignore[assignment]
     application.jinja_env.globals['product_category_label'] = get_product_category_label  # type: ignore[assignment]
     application.jinja_env.globals['can_delete_stage'] = _can_delete_stage  # type: ignore[assignment]
