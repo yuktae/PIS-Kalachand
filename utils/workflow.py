@@ -52,32 +52,40 @@ class Stage:
 # stage. Used by both the backend (api.py delete endpoints) and the frontend
 # (dashboards hide the trash icon on rows the caller can't delete).
 #
-# Rules:
-#   - Marketing deletes their own early-stage drafts only. Once a PIS has
-#     been submitted to a director (pending_director_pis) or sent back with
-#     change requests (marketing_changes_requested), it carries director
-#     history and stays in the audit trail.
-#   - Director deletes only things they have already approved
-#     (ready_for_web + finalized). Items awaiting their review
-#     (pending_director_pis, pending_director_spec) cannot be deleted —
-#     a director should approve or request changes, not silently drop
-#     work submitted to them.
-#   - Web deletes only finalized specsheets — clean-up of completed work.
-#   - Admin can delete any stage (escape hatch; matches today's behavior).
+# Current rules (2026-05 — narrowed from the previous escape-hatch model):
+#   - Marketing deletes only their initial AI-generated drafts (the
+#     "New AI Generated PIS" tab — workflow_stage='marketing_draft'). The
+#     moment editing begins (marketing_in_progress) or a director gets
+#     involved, the row stays in the audit trail.
+#   - Director and Web have NO manual delete option. The product
+#     either moves forward through the workflow or, once finalized,
+#     gets cleaned up automatically by utils.finalized_cleanup after
+#     180 days. This prevents accidental loss of approved work.
+#   - Admin manually deletes only FINALIZED products. Older finalized
+#     rows are swept by the periodic auto-deletion task; the admin
+#     button is for the rare case of an early manual removal.
 #
-# `_ANY` is a sentinel set membership check delegates to.
-class _AnyStage:
-    def __contains__(self, _stage):
-        return True
+# Previously kept _AnyStage sentinel for admin; removed when admin lost
+# the all-stages escape hatch.
 
-
-_ANY = _AnyStage()
+_ALL_STAGES = frozenset({
+    Stage.MARKETING_DRAFT, Stage.MARKETING_IN_PROGRESS,
+    Stage.MARKETING_CHANGES_REQUESTED, Stage.PENDING_DIRECTOR_PIS,
+    Stage.READY_FOR_WEB, Stage.SPECSHEET_DRAFT,
+    Stage.PENDING_DIRECTOR_SPEC, Stage.WEB_CHANGES_REQUESTED,
+    Stage.FINALIZED,
+})
 
 DELETE_PERMISSIONS = {
-    'marketing': {Stage.MARKETING_DRAFT, Stage.MARKETING_IN_PROGRESS},
-    'director':  {Stage.READY_FOR_WEB, Stage.FINALIZED},
-    'web':       {Stage.FINALIZED},
-    'admin':     _ANY,
+    'marketing': {Stage.MARKETING_DRAFT},
+    'director':  set(),
+    'web':       set(),
+    # Admin keeps a global escape hatch — needed for the dedicated
+    # Product Deletion page where individual products at ANY stage
+    # can be removed. The 6-month automatic sweep still only touches
+    # FINALIZED products (see utils.finalized_cleanup) — this set
+    # only governs MANUAL admin deletes.
+    'admin':     _ALL_STAGES,
 }
 
 
@@ -87,22 +95,17 @@ def can_delete(role, stage):
     Roles outside the four known names (None, '', stray values) always
     return False — fail-closed so a misconfigured session can't delete.
     """
-    allowed = DELETE_PERMISSIONS.get(role)
-    if allowed is None:
-        return False
-    return stage in allowed
+    return stage in DELETE_PERMISSIONS.get(role, set())
 
 
 def deletable_stages(role):
-    """Return the concrete set of stages `role` may delete, or None for
-    admin (meaning "any stage"). Used by clear_active / bulk_delete to
-    build a SQL WHERE clause without enumerating cases per role."""
-    allowed = DELETE_PERMISSIONS.get(role)
-    if allowed is None:
-        return frozenset()      # unknown role → nothing deletable
-    if isinstance(allowed, _AnyStage):
-        return None             # admin → no stage filter
-    return frozenset(allowed)
+    """Return the concrete set of stages `role` may delete.
+
+    Empty set for roles that can't delete anything (director, web,
+    unknown). bulk_delete / clear_active use this to build the WHERE
+    clause without enumerating per-role cases.
+    """
+    return frozenset(DELETE_PERMISSIONS.get(role, set()))
 
 
 # ── DISPLAY LABELS ────────────────────────────────────────────────────────────

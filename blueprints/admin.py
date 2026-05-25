@@ -582,3 +582,117 @@ def admin_history_cleanup_run():
     from utils.history_cleanup import cleanup_expired_history
     result = cleanup_expired_history(dry_run=dry_run)
     return jsonify(result)
+
+
+# ── FINALIZED-PRODUCT CLEANUP ────────────────────────────────────────────────
+# Soft-deletes products that have been in `finalized` for longer than the
+# retention window (180 days). Manual trigger from the admin panel;
+# Easypanel can also hit this via cron for unattended runs.
+
+@admin_bp.route('/api/admin/finalized_cleanup/status')
+@require_role('admin', api=True)
+def admin_finalized_cleanup_status():
+    """Return the last-run summary for the finalized-product cleanup."""
+    from utils.finalized_cleanup import read_cleanup_status, FINALIZED_RETENTION_DAYS
+    payload = read_cleanup_status() or {}
+    payload.setdefault('retention_days', FINALIZED_RETENTION_DAYS)
+    return jsonify(payload)
+
+
+@admin_bp.route('/api/admin/finalized_cleanup/run', methods=['POST'])
+@require_role('admin', api=True)
+def admin_finalized_cleanup_run():
+    """Soft-delete every finalized product older than the retention
+    window. POST {"dry_run": true} to preview without deleting."""
+    body = request.get_json(silent=True) or {}
+    dry_run = bool(body.get('dry_run'))
+    from utils.finalized_cleanup import cleanup_expired_finalized
+    result = cleanup_expired_finalized(dry_run=dry_run)
+    return jsonify(result)
+
+
+# ── PRODUCT DELETION PAGE ────────────────────────────────────────────────────
+# Admin-only dedicated screen for manually wiping individual or bulk
+# products, plus the auto-cleanup tile that used to live on the Users
+# page. Powered by the GET /api/admin/products/list endpoint below for
+# its product table.
+
+@admin_bp.route('/admin/deletion')
+@require_role('admin')
+def admin_deletion():
+    """Dedicated deletion control center for admins."""
+    return render_template('admin_deletion.html')
+
+
+@admin_bp.route('/api/admin/products/list')
+@require_role('admin', api=True)
+def admin_products_list():
+    """Paginated active-product list used by the deletion page.
+
+    Query params:
+      q       — substring match on model_name / brand / model_number
+                (case-insensitive)
+      stage   — exact workflow_stage filter (or 'all' for no filter)
+      page    — 1-indexed
+      per_page — default 30, max 100
+
+    Returns: {items: [...], total: N, page, per_page, pages}.
+    Each item carries id, model_name, brand, stage (raw + display),
+    category, created_at (ISO), and image (static-relative URL).
+    """
+    from sqlalchemy import or_, func
+    from utils.workflow import display_stage
+    from utils.storage import resolve_image_url
+    from helpers import get_product_category_label
+
+    q = (request.args.get('q') or '').strip()
+    stage = (request.args.get('stage') or '').strip()
+    try:
+        page = max(1, int(request.args.get('page', 1)))
+        per_page = max(1, min(100, int(request.args.get('per_page', 30))))
+    except (TypeError, ValueError):
+        page, per_page = 1, 30
+
+    qry = Product.query.filter(Product.deleted_at.is_(None))
+    if stage and stage != 'all':
+        qry = qry.filter(Product.workflow_stage == stage)
+    if q:
+        # Search in model_name plus the two common JSONB locations for brand
+        # / model_number. Use JSONB ->> for an indexed text extract.
+        like = f"%{q}%"
+        qry = qry.filter(or_(
+            Product.model_name.ilike(like),
+            Product.pis_data['header_info']['brand'].astext.ilike(like),
+            Product.pis_data['header_info']['model_number'].astext.ilike(like),
+        ))
+
+    total = qry.with_entities(func.count(Product.id)).scalar() or 0
+    products = (qry.order_by(Product.created_at.desc())
+                 .offset((page - 1) * per_page)
+                 .limit(per_page)
+                 .all())
+
+    items = []
+    for p in products:
+        header = (p.pis_data or {}).get('header_info', {}) if isinstance(p.pis_data, dict) else {}
+        items.append({
+            'id':           p.id,
+            'model_name':   p.model_name or 'Untitled',
+            'brand':        (header.get('brand') or '').strip() or '—',
+            'model_number': (header.get('model_number') or '').strip(),
+            'stage':        p.workflow_stage,
+            'stage_label':  display_stage(p.workflow_stage),
+            'category':     get_product_category_label(p),
+            'created_at':   p.created_at.isoformat() if p.created_at else None,
+            'last_edited':  p.last_edited_at.isoformat() if p.last_edited_at else None,
+            'image':        resolve_image_url(p.image_path) if p.image_path else '',
+        })
+
+    pages = (total + per_page - 1) // per_page if total else 0
+    return jsonify({
+        'items':    items,
+        'total':    total,
+        'page':     page,
+        'per_page': per_page,
+        'pages':    pages,
+    })

@@ -1894,11 +1894,11 @@ def api_bulk_delete_products():
         return jsonify({"error": "ids must be integers"}), 400
 
     role = session.get('role')
-    allowed_stages = deletable_stages(role)   # None for admin (no filter)
+    # Always a concrete frozenset (possibly empty for director/web).
+    allowed_stages = deletable_stages(role)
 
     q = Product.query.filter(Product.id.in_(ids), Product.deleted_at.is_(None))
-    if allowed_stages is not None:
-        q = q.filter(Product.workflow_stage.in_(allowed_stages))
+    q = q.filter(Product.workflow_stage.in_(allowed_stages))
     affected = q.update(
         {'deleted_at': datetime.now(timezone.utc).replace(tzinfo=None)},
         synchronize_session=False,
@@ -2075,17 +2075,19 @@ def api_clear_active_products():
     """Soft-delete every currently active product the caller's role is
     allowed to delete. Used by the dashboard 'Clear All' button.
 
-    Stage gating means each role's Clear All now clears only their own
-    deletable stages: marketing wipes only drafts, director wipes only
-    review/approved/finalized, web wipes only finalized. Admin still
-    clears everything. Returns the count cleared."""
+    Stage gating means each role's Clear All only clears their own
+    deletable stages. Under the current rules (2026-05) that's:
+        marketing → marketing_draft only
+        admin     → finalized only
+        director  → nothing (empty allowlist)
+        web       → nothing (empty allowlist)
+    Returns the count cleared."""
     now = datetime.now(timezone.utc).replace(tzinfo=None)
     role = session.get('role')
     allowed_stages = deletable_stages(role)
 
     q = Product.query.filter(Product.deleted_at.is_(None))
-    if allowed_stages is not None:
-        q = q.filter(Product.workflow_stage.in_(allowed_stages))
+    q = q.filter(Product.workflow_stage.in_(allowed_stages))
     affected = q.update({'deleted_at': now}, synchronize_session=False)
     db.session.commit()
     return jsonify({"ok": True, "deleted_count": affected})

@@ -1,0 +1,663 @@
+{% extends "base.html" %}
+
+{# Admin → Product Deletion. Three sections:
+     1. Individual deletion  — search/filter the active catalog,
+        delete any single product at any stage.
+     2. Bulk deletion        — multi-select all Finalized products,
+        delete in one shot.
+     3. Auto-cleanup tile    — the background daily sweep status
+        (relocated here from the Users page so all deletion
+        controls live in one place).
+   The page is admin-only; the route gates with @require_role('admin').
+#}
+{% block content %}
+<div x-data="productDeletion()" x-init="init()" class="page-fade-in">
+
+    {# ── HERO ────────────────────────────────────────────────── #}
+    <div class="mb-8 relative rounded-3xl bg-gradient-to-br from-white via-white to-red-50/40 border border-gray-100 p-8 shadow-sm overflow-hidden">
+        <div class="absolute inset-0 bg-[radial-gradient(#fee2e2_1px,transparent_1px)] [background-size:18px_18px] opacity-40 pointer-events-none"></div>
+        <div class="absolute -top-12 -right-12 w-48 h-48 bg-red-100/40 rounded-full blur-3xl pointer-events-none"></div>
+        <div class="absolute -bottom-12 -left-12 w-40 h-40 bg-red-100/30 rounded-full blur-3xl pointer-events-none"></div>
+
+        <div class="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+            <div>
+                <p class="text-[10px] font-bold text-red-600 uppercase tracking-widest mb-1">Admin · Deletion</p>
+                <h2 class="text-3xl font-extrabold text-slate-900 tracking-tight">Product Deletion</h2>
+                <p class="text-slate-500 text-sm mt-1.5">Soft-delete products. Audit trail and restore stay available.</p>
+            </div>
+            <div class="flex items-center gap-3 text-right">
+                <div class="bg-white border border-gray-100 rounded-xl px-4 py-2">
+                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Active products</p>
+                    <p class="text-lg font-bold text-slate-900 mt-0.5" x-text="total"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {# ── STICKY SECTION NAV (pill switcher) ───────────────────
+       Mirrors the Stats & Analytics nav. Clicking a pill scrolls
+       to that section; the active pill auto-updates as the user
+       scrolls through the page (IntersectionObserver below). #}
+    <div class="sticky top-0 z-20 -mx-6 md:-mx-10 px-6 md:px-10 py-3 bg-[#F8F9FC]/80 backdrop-blur-md border-b border-gray-100 mb-8">
+        <div class="flex flex-wrap gap-2">
+            <template x-for="s in sections" :key="s.id">
+                <button @click="scrollTo(s.id)"
+                    :class="activeSection === s.id ? 'bg-slate-900 text-white shadow-lg shadow-slate-200' : 'bg-white text-slate-600 border border-gray-200 hover:bg-slate-50'"
+                    class="px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2">
+                    <span x-html="s.icon"></span>
+                    <span x-text="s.label"></span>
+                </button>
+            </template>
+        </div>
+    </div>
+
+    {# ── SECTION 1 — Individual deletion ─────────────────────── #}
+    <section id="section-individual" class="mb-10 scroll-mt-24">
+        <div class="flex items-center gap-3 mb-4">
+            <div class="w-1 h-6 bg-red-500 rounded-full"></div>
+            <h3 class="text-lg font-bold text-slate-800">Individual Deletion</h3>
+            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">
+                Admin only · any stage
+            </span>
+        </div>
+
+        {# Filter bar: search + stage dropdown. Updates the table on
+           change with a small debounce so typing doesn't hammer the
+           endpoint. #}
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-4">
+            <div class="grid grid-cols-1 md:grid-cols-[1.5fr_1fr_auto] gap-3">
+                <div class="relative">
+                    <svg class="w-4 h-4 absolute left-3.5 top-3.5 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                    </svg>
+                    <input x-model.debounce.300ms="search" @input="page = 1; reload()"
+                           type="text" placeholder="Search by name, brand, model…"
+                           class="w-full pl-10 pr-3 py-2.5 bg-gray-50 border border-gray-100 focus:bg-white focus:border-red-300 focus:ring-2 focus:ring-red-100 rounded-xl text-sm font-medium transition-all outline-none">
+                </div>
+
+                <div class="relative">
+                    <svg class="w-4 h-4 absolute left-3.5 top-3.5 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L15 12.414V19a1 1 0 01-.553.894l-4 2A1 1 0 019 21v-8.586L3.293 6.707A1 1 0 013 6V4z"/>
+                    </svg>
+                    <select x-model="stageFilter" @change="page = 1; reload()"
+                            class="w-full pl-10 pr-3 py-2.5 bg-gray-50 border border-gray-100 focus:bg-white focus:border-red-300 focus:ring-2 focus:ring-red-100 rounded-xl text-sm font-medium transition-all outline-none cursor-pointer appearance-none">
+                        <option value="all">All stages</option>
+                        <template x-for="s in stages" :key="s.value">
+                            <option :value="s.value" x-text="s.label"></option>
+                        </template>
+                    </select>
+                </div>
+
+                <button type="button" x-show="hasActiveFilters" @click="clearFilters()"
+                    class="text-[11px] font-bold uppercase tracking-widest text-red-600 hover:text-red-800 border border-red-200 hover:border-red-400 rounded-xl px-4 py-2.5 transition-colors">
+                    Clear
+                </button>
+            </div>
+        </div>
+
+        {# Product table. Image (when available), name+brand, stage chip,
+           created date, delete CTA. Empty / loading / no-results states. #}
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-sm">
+                    <thead class="bg-gray-50/50 text-xs uppercase font-bold text-gray-400 tracking-wider border-b border-gray-100">
+                        <tr>
+                            <th class="px-6 py-3.5">Product</th>
+                            <th class="px-6 py-3.5">Stage</th>
+                            <th class="px-6 py-3.5">Created</th>
+                            <th class="px-6 py-3.5 text-right">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-50">
+                        <template x-if="loading">
+                            <tr><td colspan="4" class="px-6 py-12 text-center text-slate-400 text-sm">Loading…</td></tr>
+                        </template>
+                        <template x-if="!loading && items.length === 0">
+                            <tr>
+                                <td colspan="4" class="px-6 py-16 text-center">
+                                    <div class="w-14 h-14 bg-red-50 rounded-2xl flex items-center justify-center mx-auto mb-3 text-red-300">
+                                        <svg class="w-7 h-7" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-4v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                    </div>
+                                    <p class="text-sm font-bold text-slate-700">No products match the filters</p>
+                                    <p class="text-xs text-slate-400 mt-1" x-show="hasActiveFilters">Try clearing them.</p>
+                                </td>
+                            </tr>
+                        </template>
+                        <template x-for="p in items" :key="'row-'+p.id">
+                            <tr class="hover:bg-red-50/30 transition-colors">
+                                <td class="px-6 py-3">
+                                    <div class="flex items-center gap-3 min-w-0">
+                                        <div class="w-12 h-12 rounded-lg bg-gray-50 border border-gray-100 overflow-hidden flex-shrink-0 flex items-center justify-center">
+                                            <template x-if="p.image">
+                                                <img :src="p.image" class="w-full h-full object-contain mix-blend-multiply p-1.5">
+                                            </template>
+                                            <template x-if="!p.image">
+                                                <svg class="w-5 h-5 text-gray-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                                            </template>
+                                        </div>
+                                        <div class="min-w-0">
+                                            <p class="font-bold text-slate-900 text-sm truncate" x-text="p.model_name"></p>
+                                            <p class="text-[11px] text-slate-500 truncate">
+                                                <span class="font-semibold" x-text="p.brand"></span>
+                                                <template x-if="p.category && p.category !== 'Uncategorised'">
+                                                    <span><span class="text-gray-300 mx-1">·</span><span x-text="p.category"></span></span>
+                                                </template>
+                                            </p>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-3">
+                                    <span class="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded border"
+                                          :class="stageBadgeClass(p.stage)"
+                                          x-text="p.stage_label"></span>
+                                </td>
+                                <td class="px-6 py-3 text-slate-500 text-xs whitespace-nowrap" x-text="formatDate(p.created_at)"></td>
+                                <td class="px-6 py-3 text-right">
+                                    <button type="button" @click="requestDelete(p)"
+                                        class="px-3 py-1.5 rounded-lg text-[11px] font-bold uppercase tracking-wider text-red-600 bg-red-50 hover:bg-red-600 hover:text-white border border-red-100 hover:border-red-600 transition-all inline-flex items-center gap-1.5">
+                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                        Delete
+                                    </button>
+                                </td>
+                            </tr>
+                        </template>
+                    </tbody>
+                </table>
+            </div>
+
+            {# Pagination — symmetric Prev / Next with current page indicator. #}
+            <div x-show="pages > 1" class="px-6 py-3 border-t border-gray-100 flex items-center justify-between gap-3 bg-gray-50/50">
+                <button type="button" @click="if (page > 1) { page--; reload(); }"
+                    :disabled="page <= 1"
+                    class="text-[11px] font-bold uppercase tracking-widest text-slate-600 hover:text-slate-900 disabled:opacity-30 disabled:cursor-not-allowed px-3 py-1.5 border border-slate-200 rounded-lg">
+                    ← Prev
+                </button>
+                <span class="text-[11px] text-slate-500"
+                      x-text="'Page ' + page + ' of ' + pages + ' · ' + total + ' product' + (total === 1 ? '' : 's')"></span>
+                <button type="button" @click="if (page < pages) { page++; reload(); }"
+                    :disabled="page >= pages"
+                    class="text-[11px] font-bold uppercase tracking-widest text-slate-600 hover:text-slate-900 disabled:opacity-30 disabled:cursor-not-allowed px-3 py-1.5 border border-slate-200 rounded-lg">
+                    Next →
+                </button>
+            </div>
+        </div>
+    </section>
+
+    {# ── SECTION 2 — Bulk deletion (Finalized only) ──────────── #}
+    <section id="section-bulk" class="mb-10 scroll-mt-24">
+        <div class="flex items-center gap-3 mb-4">
+            <div class="w-1 h-6 bg-emerald-500 rounded-full"></div>
+            <h3 class="text-lg font-bold text-slate-800">Bulk Deletion</h3>
+            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">
+                Finalized products only
+            </span>
+        </div>
+
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-100 bg-emerald-50/30 flex items-baseline justify-between gap-3 flex-wrap">
+                <div>
+                    <p class="text-sm font-bold text-slate-900">Approved & Finalized only</p>
+                    <p class="text-[11px] text-slate-500 mt-0.5">
+                        Use this for clearing out completed work. In-progress products
+                        must be deleted individually above.
+                    </p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button type="button" @click="toggleSelectAllFinalized()"
+                        class="text-[11px] font-bold uppercase tracking-widest text-slate-700 border border-slate-300 hover:border-slate-500 rounded-lg px-3 py-1.5">
+                        <span x-text="finalizedSelectAllLabel"></span>
+                    </button>
+                    <button type="button" @click="requestBulkDelete()"
+                        :disabled="finalizedSelected.size === 0"
+                        class="text-[11px] font-bold uppercase tracking-widest bg-red-600 hover:bg-red-700 text-white rounded-lg px-3 py-1.5 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                        Delete <span x-text="finalizedSelected.size"></span>
+                    </button>
+                </div>
+            </div>
+
+            <div x-show="loadingFinalized" class="px-6 py-12 text-center text-slate-400 text-sm">Loading finalized products…</div>
+            <div x-show="!loadingFinalized && finalizedItems.length === 0"
+                 class="px-6 py-12 text-center text-slate-400 text-sm">
+                No finalized products to delete.
+            </div>
+
+            <div x-show="!loadingFinalized && finalizedItems.length > 0" class="divide-y divide-gray-50">
+                {# Collapsed: only the first 8. Expand button reveals the rest. #}
+                <template x-for="p in visibleFinalizedItems" :key="'fin-'+p.id">
+                    <label class="flex items-center gap-4 px-6 py-3 hover:bg-emerald-50/30 cursor-pointer transition-colors">
+                        <input type="checkbox"
+                               :checked="finalizedSelected.has(p.id)"
+                               @change="toggleFinalized(p.id)"
+                               class="w-4 h-4 rounded border-slate-300 text-red-600 focus:ring-red-500">
+                        <div class="w-10 h-10 rounded-lg bg-gray-50 border border-gray-100 overflow-hidden flex-shrink-0 flex items-center justify-center">
+                            <template x-if="p.image">
+                                <img :src="p.image" class="w-full h-full object-contain mix-blend-multiply p-1">
+                            </template>
+                            <template x-if="!p.image">
+                                <svg class="w-4 h-4 text-gray-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                            </template>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-sm font-bold text-slate-900 truncate" x-text="p.model_name"></p>
+                            <p class="text-[11px] text-slate-500 truncate">
+                                <span class="font-semibold" x-text="p.brand"></span>
+                                <span class="text-gray-300 mx-1">·</span>
+                                <span x-text="'Created ' + formatDate(p.created_at)"></span>
+                            </p>
+                        </div>
+                        <span class="px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded bg-emerald-50 text-emerald-700 border border-emerald-100">Finalized</span>
+                    </label>
+                </template>
+            </div>
+
+            {# Expand / collapse footer — only shown when there are more
+               items than the collapsed window. #}
+            <div x-show="!loadingFinalized && finalizedItems.length > finalizedCollapsedCount"
+                 class="px-6 py-3 border-t border-gray-100 bg-gray-50/50 flex items-center justify-center">
+                <button type="button" @click="finalizedExpanded = !finalizedExpanded"
+                    class="text-[11px] font-bold uppercase tracking-widest text-slate-600 hover:text-slate-900 transition-colors flex items-center gap-1.5">
+                    <span x-show="!finalizedExpanded"
+                          x-text="'Show all ' + finalizedItems.length + ' finalized products'"></span>
+                    <span x-show="finalizedExpanded">Show fewer</span>
+                    <svg class="w-3 h-3 transition-transform" :class="finalizedExpanded ? 'rotate-180' : ''"
+                         fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </section>
+
+    {# ── SECTION 3 — Automatic cleanup tile ──────────────────── #}
+    <section id="section-auto" class="mb-12 scroll-mt-24" x-data="finalizedCleanup()" x-init="load()">
+        <div class="flex items-center gap-3 mb-4">
+            <div class="w-1 h-6 bg-slate-700 rounded-full"></div>
+            <h3 class="text-lg font-bold text-slate-800">Automatic Cleanup</h3>
+            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">
+                Background sweep · daily
+            </span>
+        </div>
+
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+            <div class="flex items-baseline justify-between gap-4 flex-wrap mb-4">
+                <div>
+                    <p class="text-sm font-bold text-slate-900">Finalized-product retention</p>
+                    <p class="text-xs text-slate-500 mt-1">
+                        A background thread sweeps Finalized products older than
+                        <span class="font-bold text-slate-700"
+                              x-text="(lastRun?.retention_days ?? retentionDays) + ' days'"></span>
+                        once a day. Manual buttons override the schedule.
+                    </p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button type="button" @click="run(true)" :disabled="busy"
+                        class="text-[11px] font-bold uppercase tracking-widest text-slate-700 border border-slate-300 hover:border-slate-500 rounded-lg px-3 py-1.5 disabled:opacity-40">
+                        Dry run
+                    </button>
+                    <button type="button" @click="run(false)" :disabled="busy"
+                        class="text-[11px] font-bold uppercase tracking-widest bg-red-600 hover:bg-red-700 text-white rounded-lg px-3 py-1.5 disabled:opacity-40">
+                        Run now
+                    </button>
+                </div>
+            </div>
+
+            <div x-show="busy" class="text-xs text-slate-500">Working…</div>
+
+            <div x-show="!busy && lastRun" class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                <div>
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Last run</p>
+                    <p class="text-xs text-slate-900 font-bold mt-1" x-text="lastRun?.ran_at?.slice(0, 19).replace('T', ' ') || '—'"></p>
+                    <p class="text-[10px] text-slate-400 mt-0.5" x-show="lastRun?.dry_run">(dry-run)</p>
+                </div>
+                <div>
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Eligible</p>
+                    <p class="text-lg font-bold text-slate-900 mt-1" x-text="lastRun?.eligible ?? 0"></p>
+                    <p class="text-[10px] text-slate-400 mt-0.5"
+                       x-text="'finalized > ' + (lastRun?.retention_days ?? retentionDays) + ' d'"></p>
+                </div>
+                <div>
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Deleted</p>
+                    <p class="text-lg font-bold text-slate-900 mt-1" x-text="lastRun?.deleted ?? 0"></p>
+                </div>
+                <div>
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Cutoff</p>
+                    <p class="text-xs text-slate-900 font-bold mt-1" x-text="lastRun?.cutoff_iso?.slice(0, 10) || '—'"></p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    {# ── CONFIRMATION MODAL — individual or bulk ─────────────── #}
+    <div x-show="showConfirm" x-cloak x-transition
+         class="fixed inset-0 z-[80] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+         @keydown.escape.window="if (!deleting) cancelConfirm()">
+        <div class="bg-white rounded-3xl w-full max-w-sm p-8 shadow-2xl text-center"
+             @click.outside="if (!deleting) cancelConfirm()">
+            <div class="w-14 h-14 bg-red-50 text-red-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <svg class="w-7 h-7" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+                </svg>
+            </div>
+            <h3 class="text-lg font-bold text-slate-900 mb-2" x-text="confirmTitle"></h3>
+            <p class="text-sm text-slate-500 mb-6 leading-relaxed" x-text="confirmBody"></p>
+            <div class="flex gap-3">
+                <button type="button" @click="cancelConfirm()" :disabled="deleting"
+                    class="flex-1 py-3 bg-gray-100 text-gray-700 rounded-xl font-bold hover:bg-gray-200 transition-colors text-sm disabled:opacity-40">
+                    Cancel
+                </button>
+                <button type="button" @click="confirmDelete()" :disabled="deleting"
+                    class="flex-1 py-3 bg-red-600 hover:bg-red-700 disabled:bg-red-300 text-white rounded-xl font-bold transition-colors text-sm shadow-lg shadow-red-200">
+                    <span x-show="!deleting">Delete</span>
+                    <span x-show="deleting">Deleting…</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.page-fade-in {
+    animation: pageFadeIn 0.3s ease-out;
+}
+@keyframes pageFadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+</style>
+
+<script>
+function productDeletion() {
+    return {
+        // ── Section navigation ───────────────────────────────────
+        // The active pill auto-tracks as the user scrolls; clicking
+        // a pill smooth-scrolls to that section.
+        activeSection: 'section-individual',
+        sections: [
+            {
+                id: 'section-individual',
+                label: 'Individual',
+                icon: '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>',
+            },
+            {
+                id: 'section-bulk',
+                label: 'Bulk',
+                icon: '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/></svg>',
+            },
+            {
+                id: 'section-auto',
+                label: 'Auto-cleanup',
+                icon: '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>',
+            },
+        ],
+
+        // ── Filter state ─────────────────────────────────────────
+        // perPage=8 to keep the table compact per user feedback; the
+        // pager below the table lets admins step through 8 at a time.
+        search: '',
+        stageFilter: 'all',
+        page: 1,
+        perPage: 8,
+        loading: false,
+        items: [],
+        total: 0,
+        pages: 0,
+
+        // Catalog of stages for the dropdown. The labels mirror the
+        // display names server-side (kept in sync manually — drift here
+        // only hurts the dropdown label, not the filter behaviour).
+        stages: [
+            {value: 'marketing_draft',             label: 'New AI Generated PIS'},
+            {value: 'marketing_in_progress',       label: 'Marketing In Progress'},
+            {value: 'marketing_changes_requested', label: 'Marketing — Changes Requested'},
+            {value: 'pending_director_pis',        label: 'Awaiting PIS Review'},
+            {value: 'ready_for_web',               label: 'Ready for Web Team'},
+            {value: 'specsheet_draft',             label: 'SpecSheet Draft'},
+            {value: 'pending_director_spec',       label: 'Awaiting SpecSheet Review'},
+            {value: 'web_changes_requested',       label: 'Web — Changes Requested'},
+            {value: 'finalized',                   label: 'Finalized'},
+        ],
+
+        // ── Bulk-finalized state ─────────────────────────────────
+        // Collapsed by default to 8 rows. The user-facing "Show all"
+        // button (rendered after the list) flips finalizedExpanded.
+        loadingFinalized: false,
+        finalizedItems: [],
+        finalizedSelected: new Set(),
+        finalizedExpanded: false,
+        finalizedCollapsedCount: 8,
+
+        get visibleFinalizedItems() {
+            return this.finalizedExpanded
+                ? this.finalizedItems
+                : this.finalizedItems.slice(0, this.finalizedCollapsedCount);
+        },
+
+        // ── Confirmation modal state ─────────────────────────────
+        showConfirm: false,
+        deleting: false,
+        confirmTitle: '',
+        confirmBody: '',
+        pendingIds: [],          // ids to soft-delete on confirm
+        pendingKind: '',         // 'individual' | 'bulk'
+
+        get hasActiveFilters() {
+            return !!(this.search || (this.stageFilter && this.stageFilter !== 'all'));
+        },
+        get finalizedSelectAllLabel() {
+            return this.finalizedSelected.size === this.finalizedItems.length && this.finalizedItems.length > 0
+                ? 'Unselect all' : 'Select all';
+        },
+
+        async init() {
+            this._setupSectionObserver();
+            await this.reload();
+            await this.loadFinalized();
+        },
+
+        // IntersectionObserver-based scroll spy so the active pill in
+        // the sticky nav updates as the user scrolls past each section.
+        // Same pattern as templates/admin_stats.html.
+        _setupSectionObserver() {
+            const opts = { rootMargin: '-30% 0px -60% 0px', threshold: 0 };
+            const obs = new IntersectionObserver((entries) => {
+                for (const e of entries) {
+                    if (e.isIntersecting) {
+                        this.activeSection = e.target.id;
+                    }
+                }
+            }, opts);
+            this.sections.forEach(s => {
+                const el = document.getElementById(s.id);
+                if (el) obs.observe(el);
+            });
+        },
+
+        scrollTo(id) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            this.activeSection = id;
+            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        },
+
+        clearFilters() {
+            this.search = '';
+            this.stageFilter = 'all';
+            this.page = 1;
+            this.reload();
+        },
+
+        async reload() {
+            this.loading = true;
+            try {
+                const params = new URLSearchParams({
+                    page: this.page, per_page: this.perPage,
+                });
+                if (this.search) params.set('q', this.search);
+                if (this.stageFilter && this.stageFilter !== 'all') params.set('stage', this.stageFilter);
+                const r = await fetch('/api/admin/products/list?' + params);
+                const j = await r.json();
+                this.items = j.items || [];
+                this.total = j.total || 0;
+                this.pages = j.pages || 0;
+            } catch (e) {
+                console.error('products/list failed', e);
+                this.items = []; this.total = 0; this.pages = 0;
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        async loadFinalized() {
+            // Fetch all finalized products (page through them) into one
+            // flat list. Cap at 500 — anyone with 500+ finalized rows
+            // should use the auto-cleanup, not the manual bulk picker.
+            this.loadingFinalized = true;
+            this.finalizedItems = [];
+            this.finalizedSelected = new Set();
+            try {
+                const collected = [];
+                let p = 1;
+                for (;;) {
+                    const params = new URLSearchParams({
+                        page: p, per_page: 100, stage: 'finalized',
+                    });
+                    const r = await fetch('/api/admin/products/list?' + params);
+                    const j = await r.json();
+                    const items = j.items || [];
+                    collected.push(...items);
+                    if (collected.length >= (j.total || 0) || items.length < 100 || collected.length >= 500) break;
+                    p++;
+                }
+                this.finalizedItems = collected;
+            } catch (e) {
+                console.error('finalized list failed', e);
+            } finally {
+                this.loadingFinalized = false;
+            }
+        },
+
+        toggleFinalized(id) {
+            const s = new Set(this.finalizedSelected);
+            if (s.has(id)) s.delete(id); else s.add(id);
+            this.finalizedSelected = s;
+        },
+        toggleSelectAllFinalized() {
+            if (this.finalizedSelected.size === this.finalizedItems.length) {
+                this.finalizedSelected = new Set();
+            } else {
+                this.finalizedSelected = new Set(this.finalizedItems.map(p => p.id));
+            }
+        },
+
+        // ── Confirmation flow ────────────────────────────────────
+        requestDelete(p) {
+            this.pendingIds = [p.id];
+            this.pendingKind = 'individual';
+            this.confirmTitle = 'Delete this product?';
+            this.confirmBody = '"' + p.model_name + '" will be removed from every portal '
+                + '(PIS, SpecSheet, dashboards). The row stays in the database so '
+                + 'audit-trail and restore continue to work.';
+            this.showConfirm = true;
+        },
+        requestBulkDelete() {
+            if (this.finalizedSelected.size === 0) return;
+            this.pendingIds = Array.from(this.finalizedSelected);
+            this.pendingKind = 'bulk';
+            this.confirmTitle = 'Delete ' + this.pendingIds.length + ' finalized product'
+                + (this.pendingIds.length === 1 ? '' : 's') + '?';
+            this.confirmBody = 'Every selected product will be soft-deleted across all '
+                + 'portals. Audit-trail and restore stay accessible.';
+            this.showConfirm = true;
+        },
+        cancelConfirm() {
+            this.showConfirm = false;
+            this.pendingIds = [];
+            this.pendingKind = '';
+        },
+        async confirmDelete() {
+            if (!this.pendingIds.length) return this.cancelConfirm();
+            this.deleting = true;
+            try {
+                const r = await fetch('/api/products/bulk_delete', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ids: this.pendingIds}),
+                });
+                const j = await r.json();
+                if (!r.ok || j.error) {
+                    alert(j.error || ('Delete failed (' + r.status + ')'));
+                } else {
+                    // Refresh both lists so the deleted rows disappear.
+                    await Promise.all([this.reload(), this.loadFinalized()]);
+                }
+            } catch (e) {
+                alert('Network error.');
+                console.error(e);
+            } finally {
+                this.deleting = false;
+                this.cancelConfirm();
+            }
+        },
+
+        // ── Display helpers ──────────────────────────────────────
+        formatDate(iso) {
+            if (!iso) return '—';
+            try {
+                const d = new Date(iso);
+                return d.toLocaleDateString('en-GB', {day: 'numeric', month: 'short', year: 'numeric'});
+            } catch { return iso.slice(0, 10); }
+        },
+        stageBadgeClass(stage) {
+            return ({
+                'marketing_draft':              'bg-slate-50 text-slate-700 border-slate-100',
+                'marketing_in_progress':        'bg-slate-50 text-slate-700 border-slate-100',
+                'marketing_changes_requested':  'bg-red-50 text-red-700 border-red-100',
+                'pending_director_pis':         'bg-amber-50 text-amber-700 border-amber-100',
+                'ready_for_web':                'bg-indigo-50 text-indigo-700 border-indigo-100',
+                'specsheet_draft':              'bg-indigo-50 text-indigo-700 border-indigo-100',
+                'pending_director_spec':        'bg-amber-50 text-amber-700 border-amber-100',
+                'web_changes_requested':        'bg-red-50 text-red-700 border-red-100',
+                'finalized':                    'bg-emerald-50 text-emerald-700 border-emerald-100',
+            })[stage] || 'bg-slate-50 text-slate-600 border-slate-100';
+        },
+    };
+}
+
+// Cleanup-tile mini-component, lifted verbatim from admin_users.html so
+// the auto-cleanup section keeps working when both pages co-exist for
+// a while. Once we drop the tile from the Users page, this can stay
+// here as the sole copy.
+function finalizedCleanup() {
+    return {
+        busy: false,
+        lastRun: null,
+        retentionDays: 180,
+        async load() {
+            try {
+                const r = await fetch('/api/admin/finalized_cleanup/status');
+                const j = await r.json();
+                if (j && (j.ran_at || j.retention_days)) this.lastRun = j;
+            } catch (e) { console.error(e); }
+        },
+        async run(dryRun) {
+            this.busy = true;
+            try {
+                const r = await fetch('/api/admin/finalized_cleanup/run', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({dry_run: !!dryRun}),
+                });
+                const j = await r.json();
+                if (j.error) alert(j.error); else this.lastRun = j;
+            } catch (e) {
+                alert('Network error.');
+                console.error(e);
+            } finally {
+                this.busy = false;
+            }
+        },
+    };
+}
+</script>
+{% endblock %}

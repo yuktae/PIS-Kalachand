@@ -235,6 +235,14 @@ def create_app() -> Flask:
             db.session.rollback()
             print('ℹ️ Admin account already exists or seed skipped (multi-worker race)')
 
+    # ── BACKGROUND SCHEDULERS ────────────────────────────────────────────────
+    # Daemon thread that auto-sweeps finalized products older than the
+    # retention window once a day. Safe in single-worker gunicorn (our
+    # current Dockerfile setup). For multi-worker deploys the status-file
+    # dedup keeps it idempotent.
+    from utils.finalized_cleanup import start_scheduler as _start_finalized_cleanup
+    _start_finalized_cleanup(application)
+
     return application
 
 

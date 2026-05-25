@@ -44,6 +44,12 @@ ENV/
 !/static/uploads/.gitkeep
 /data/pis_jobs.json
 
+# Runtime status files written by the background cleanup tasks
+# (see utils/history_cleanup.py and utils/finalized_cleanup.py).
+# Per-environment state, never want to commit.
+/static/history_cleanup_status.json
+/static/finalized_cleanup_status.json
+
 # Internal planning docs
 YUK/
 
