@@ -320,16 +320,29 @@
                 {% endif %}
             </div>
             {% if spend_trend and trend_max_cost > 0 %}
+            {# Hover surface ('group') is the WHOLE column so the tooltip
+               appears whether the user hovers the empty area or the filled
+               bar — important when daily spend is zero. #}
             <div class="flex items-end gap-1.5 h-24">
                 {% for d in spend_trend %}
                 {% set pct = (d.cost / trend_max_cost * 100) if trend_max_cost > 0 else 0 %}
-                <div class="flex-1 flex flex-col items-center gap-1 group cursor-default">
+                <div class="flex-1 flex flex-col items-center gap-1 group cursor-default relative">
                     <div class="w-full bg-slate-100 rounded-t-md relative overflow-hidden" style="height: 80px;">
                         <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-violet-500 to-violet-400 rounded-t-md transition-all"
-                             style="height: {{ pct }}%"
-                             title="{{ d.label }} · ${{ '%.4f' % d.cost }} · {{ d.calls }} calls"></div>
+                             style="height: {{ pct }}%"></div>
                     </div>
                     <p class="text-[9px] text-slate-400 font-medium">{{ d.short }}</p>
+
+                    {# Styled tooltip — same pattern as the Products Created
+                       chart above. Three lines: date, spend, calls so the
+                       layout doesn't grow horizontally for long days. #}
+                    <div class="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 px-2.5 py-1.5 bg-slate-900 text-white rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-20">
+                        <p class="text-[10px] font-bold text-slate-200">{{ d.label }}</p>
+                        <p class="text-[11px] font-bold text-white mt-0.5">${{ '%.4f' % d.cost }}</p>
+                        <p class="text-[10px] text-slate-300 font-medium">{{ d.calls }} call{{ '' if d.calls == 1 else 's' }}</p>
+                        {# Pointer arrow #}
+                        <div class="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-[5px] border-r-[5px] border-t-[5px] border-l-transparent border-r-transparent border-t-slate-900"></div>
+                    </div>
                 </div>
                 {% endfor %}
             </div>

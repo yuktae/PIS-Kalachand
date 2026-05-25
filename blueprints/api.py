@@ -2377,7 +2377,12 @@ def api_product_versions(product_id):
         "id": v.id, "version_num": v.version_num, "label": v.label,
         "workflow_stage": v.workflow_stage, "is_major": v.is_major,
         "created_by": v.created_by.display_name if v.created_by else "System",
-        "created_at": v.created_at.strftime('%d %b %Y, %H:%M')
+        # `created_at` stays as the pre-formatted display string for any
+        # existing caller that renders it directly. `created_at_iso` is
+        # added so the audit-trail timeline can interleave versions with
+        # /timeline events by timestamp without re-parsing locale text.
+        "created_at": v.created_at.strftime('%d %b %Y, %H:%M'),
+        "created_at_iso": v.created_at.isoformat() if v.created_at else None,
     } for v in versions]
     return jsonify(result)
 

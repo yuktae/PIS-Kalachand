@@ -1,12 +1,23 @@
-{# Phase 6 — Timeline v2 (red-themed)
+{# Phase 7 — Unified audit-trail timeline (red-themed)
 
-   Per-product audit trail. Two coordinated panels:
-     • Timeline panel  (top)    — events grouped by date, stage-coloured
-     • Versions panel  (below)  — every snapshot, always restorable
+   Per-product audit trail rendered as ONE chronological stream.
+   Replaces the older two-panel layout (timeline + separate
+   "Restore versions" card) — they're now merged so every snapshot
+   has its View / Restore controls on the same card that shows the
+   event that produced it.
 
-   Both panels reference the same underlying versions, so a user with no
-   linked events (legacy product, pre-Phase-1 history) still sees a full
-   list of restore points.
+   Two kinds of items appear on the spine:
+     • Event nodes      — backed by a ProductHistory row. If the event
+                          also created a snapshot, the version chip +
+                          View/Restore buttons attach to the card.
+     • Snapshot-only    — a ProductVersion that has no matching event
+                          (legacy products, auto-saves between events).
+                          Visually de-emphasised so they don't drown
+                          out real activity.
+
+   The merge happens client-side in `mergedGroups` — no event data
+   is duplicated; we just inject orphan versions into the existing
+   date buckets and re-sort.
 
    Requires `product.id` in template context.
 #}
@@ -83,101 +94,151 @@
         Loading timeline…
     </div>
 
-    <div x-show="!loadingTimeline && groups.length === 0"
+    <div x-show="!loadingTimeline && !loadingVersions && mergedGroups.length === 0"
          class="bg-white border border-gray-100 rounded-2xl py-16 text-center shadow-sm">
         <div class="w-12 h-12 bg-red-50 rounded-2xl flex items-center justify-center mx-auto mb-3 text-red-300">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/></svg>
         </div>
         <p class="text-sm font-bold text-gray-700">No events match the current filters</p>
         <p class="text-xs text-gray-400 mt-1" x-show="lane !== 'all' || dateFrom || dateTo">Try clearing the filters above.</p>
-        <p class="text-xs text-gray-400 mt-1" x-show="lane === 'all' && !dateFrom && !dateTo">This product has no recorded events yet.</p>
+        <p class="text-xs text-gray-400 mt-1" x-show="lane === 'all' && !dateFrom && !dateTo">This product has no recorded events or versions yet.</p>
     </div>
 
-    <template x-for="g in groups" :key="g.date">
-        <div class="mb-8">
-            <h3 class="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-3 px-2"
-                x-text="formatDateHeader(g.date)"></h3>
+    {# ── UNIFIED TIMELINE ─────────────────────────────────────────
+       One continuous vertical spine for the whole stream. The spine is
+       drawn on the outer wrapper (not per-date) so it visually
+       connects across day boundaries; date headers sit on top of it
+       like milestones on a real timeline. #}
+    <div class="relative">
+        {# The spine itself — gradient line, fades at top and bottom so
+           it doesn't crash into the date headers or trailing space. #}
+        <div class="absolute left-[14px] top-2 bottom-2 w-0.5 bg-gradient-to-b from-red-200 via-red-100 to-red-50"
+             x-show="!loadingTimeline && mergedGroups.length > 0"></div>
 
-            <ol class="relative border-l-2 border-gray-100 ml-3 space-y-3">
-                <template x-for="e in g.events" :key="e.id">
-                    <li class="ml-6">
-                        <span class="absolute -left-[9px] mt-3 w-4 h-4 rounded-full border-4 border-white shadow-sm"
-                              :class="laneDotClass(e.swim_lane)"></span>
+        <template x-for="g in mergedGroups" :key="g.date">
+            <div class="mb-6 relative">
+                {# Date pin — small red knob sitting on the spine, with the
+                   date label flowing to the right. #}
+                <div class="flex items-center gap-3 mb-4 relative">
+                    <span class="w-7 h-7 rounded-full bg-gradient-to-br from-red-500 to-red-700 shadow-sm shadow-red-200 flex items-center justify-center shrink-0 z-10">
+                        <svg class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                        </svg>
+                    </span>
+                    <h3 class="text-[11px] font-bold text-gray-500 uppercase tracking-widest"
+                        x-text="formatDateHeader(g.date)"></h3>
+                </div>
 
-                        <div class="bg-white border border-gray-100 rounded-2xl p-5 hover:border-gray-200 hover:shadow-md transition-all group">
-                            <div class="flex items-start justify-between gap-3 flex-wrap">
-                                <div class="min-w-0 flex-1">
-                                    <div class="flex items-center gap-2.5 mb-2 flex-wrap">
-                                        <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider"
-                                              :class="laneBadgeClass(e.swim_lane)"
-                                              x-text="laneLabel(e.swim_lane)"></span>
-                                        <span class="text-base font-bold text-gray-900" x-text="e.action"></span>
-                                        <span x-show="e.version_num"
-                                              class="text-[11px] text-gray-400 font-mono"
-                                              x-text="'v' + e.version_num"></span>
-                                        <span x-show="e.type === 'success'"
-                                              class="px-1.5 py-0.5 bg-emerald-50 text-emerald-700 rounded text-[10px] font-bold uppercase tracking-wider">approved</span>
-                                        <span x-show="e.type === 'action'"
-                                              class="px-1.5 py-0.5 bg-red-50 text-red-700 rounded text-[10px] font-bold uppercase tracking-wider">action</span>
-                                        <span x-show="e.type === 'waiting'"
-                                              class="px-1.5 py-0.5 bg-blue-50 text-blue-700 rounded text-[10px] font-bold uppercase tracking-wider">waiting</span>
+                <ol class="space-y-3 ml-10">
+                    <template x-for="e in g.items" :key="e.key">
+                        {# Each row carries one of three visual treatments:
+                            • current      — pulsing emerald, no restore
+                            • event        — lane-coloured dot, full card
+                            • snapshotOnly — hollow ring, lighter card
+                        #}
+                        <li class="relative">
+                            {# Dot on the spine — positioned so its centre
+                               sits exactly on the 14px spine line. #}
+                            <span class="absolute -left-[33px] top-4 z-10"
+                                  :class="{
+                                      'animate-pulse': e.isCurrent,
+                                  }">
+                                <span class="block w-4 h-4 rounded-full border-[3px] border-white shadow-sm"
+                                      :class="dotClassFor(e)"></span>
+                            </span>
+
+                            {# Thin horizontal connector from spine to card #}
+                            <span class="absolute -left-[18px] top-[22px] w-3 h-0.5 bg-gray-200"></span>
+
+                            <div class="bg-white rounded-2xl p-5 transition-all group border border-gray-100 hover:border-gray-200 hover:shadow-md">
+
+                                <div class="flex items-start justify-between gap-3 flex-wrap">
+                                    <div class="min-w-0 flex-1">
+                                        {# Title row — stage badge, action, version chip, type pill, current/major markers. #}
+                                        <div class="flex items-center gap-2.5 mb-2 flex-wrap">
+                                            <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider"
+                                                  :class="laneBadgeClass(e.swim_lane)"
+                                                  x-text="laneLabel(e.swim_lane)"></span>
+                                            <span class="text-base font-bold text-gray-900" x-text="e.action"></span>
+                                            <span x-show="e.version_num"
+                                                  class="text-[11px] text-gray-400 font-mono"
+                                                  x-text="'v' + e.version_num"></span>
+                                            <span x-show="e.isCurrent"
+                                                  class="px-1.5 py-0.5 bg-red-50 text-red-700 rounded text-[10px] font-bold uppercase tracking-wider border border-red-100">Current</span>
+                                            <span x-show="!e.isCurrent && e.is_major && e.isSnapshotOnly"
+                                                  class="px-1.5 py-0.5 bg-emerald-50 text-emerald-700 rounded text-[10px] font-bold uppercase tracking-wider">Major</span>
+                                            <span x-show="e.isSnapshotOnly && !e.is_major"
+                                                  class="px-1.5 py-0.5 bg-gray-100 text-gray-500 rounded text-[10px] font-bold uppercase tracking-wider">Draft</span>
+                                            <span x-show="e.type === 'success' && !e.isSnapshotOnly"
+                                                  class="px-1.5 py-0.5 bg-emerald-50 text-emerald-700 rounded text-[10px] font-bold uppercase tracking-wider">approved</span>
+                                            <span x-show="e.type === 'action' && !e.isSnapshotOnly"
+                                                  class="px-1.5 py-0.5 bg-red-50 text-red-700 rounded text-[10px] font-bold uppercase tracking-wider">action</span>
+                                            <span x-show="e.type === 'waiting' && !e.isSnapshotOnly"
+                                                  class="px-1.5 py-0.5 bg-blue-50 text-blue-700 rounded text-[10px] font-bold uppercase tracking-wider">waiting</span>
+                                        </div>
+
+                                        <p class="text-sm text-gray-600 mb-3 leading-relaxed" x-show="e.description" x-text="e.description"></p>
+
+                                        <div class="flex items-center gap-3.5 text-xs text-gray-500 flex-wrap">
+                                            <span class="flex items-center gap-1.5">
+                                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3"/><circle cx="12" cy="12" r="9"/></svg>
+                                                <span x-text="e.time"></span>
+                                            </span>
+                                            <span class="flex items-center gap-1.5">
+                                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                                                <span x-text="e.actor || 'System'"></span>
+                                            </span>
+                                            <span x-show="e.actor_role"
+                                                  class="uppercase tracking-widest font-bold text-gray-500 text-[11px]"
+                                                  x-text="e.actor_role"></span>
+                                            <button type="button" x-show="e.has_field_changes"
+                                                @click="toggleChanges(e.id, e.version_num)"
+                                                class="text-red-600 hover:text-red-800 font-bold underline">
+                                                <span x-text="e.field_change_count + ' field change' + (e.field_change_count === 1 ? '' : 's')"></span>
+                                            </button>
+                                        </div>
                                     </div>
-                                    <p class="text-sm text-gray-600 mb-3 leading-relaxed" x-show="e.description" x-text="e.description"></p>
-                                    <div class="flex items-center gap-3.5 text-xs text-gray-500 flex-wrap">
-                                        <span class="flex items-center gap-1.5">
-                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3"/><circle cx="12" cy="12" r="9"/></svg>
-                                            <span x-text="e.time"></span>
-                                        </span>
-                                        <span class="flex items-center gap-1.5">
-                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
-                                            <span x-text="e.actor || 'System'"></span>
-                                        </span>
-                                        <span x-show="e.actor_role"
-                                              class="uppercase tracking-widest font-bold text-gray-500 text-[11px]"
-                                              x-text="e.actor_role"></span>
-                                        <button type="button" x-show="e.has_field_changes"
-                                            @click="toggleChanges(e.id, e.version_num)"
-                                            class="text-red-600 hover:text-red-800 font-bold underline">
-                                            <span x-text="e.field_change_count + ' field change' + (e.field_change_count === 1 ? '' : 's')"></span>
+
+                                    {# Action buttons — View always shows when a snapshot exists;
+                                       Restore hidden for the current version and for read-only roles. #}
+                                    <div class="flex items-center gap-2 shrink-0" x-show="e.has_snapshot">
+                                        <button type="button" @click="previewVersion(e.version_id, e.version_num)"
+                                            class="text-[11px] font-bold uppercase tracking-widest text-gray-600 hover:text-gray-900 border border-gray-200 hover:border-gray-400 rounded-lg px-3 py-1.5 transition-colors flex items-center gap-1.5">
+                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                                            View
+                                        </button>
+                                        <button type="button"
+                                            x-show="canRestore && !e.isCurrent"
+                                            @click="restoreVersion(e.version_id, e.version_num)"
+                                            class="text-[11px] font-bold uppercase tracking-widest bg-red-600 hover:bg-red-700 text-white rounded-lg px-3 py-1.5 shadow-sm shadow-red-100 transition-colors flex items-center gap-1.5">
+                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                                            Restore
                                         </button>
                                     </div>
                                 </div>
 
-                                <div class="flex items-center gap-2 shrink-0"
-                                     x-show="e.has_snapshot">
-                                    <button type="button" @click="previewVersion(e.version_id, e.version_num)"
-                                        class="text-[11px] font-bold uppercase tracking-widest text-gray-600 hover:text-gray-900 border border-gray-200 hover:border-gray-400 rounded-lg px-3 py-1.5 transition-colors">
-                                        View
-                                    </button>
-                                    <button type="button" @click="restoreVersion(e.version_id, e.version_num)"
-                                        x-show="canRestore"
-                                        class="text-[11px] font-bold uppercase tracking-widest bg-red-600 hover:bg-red-700 text-white rounded-lg px-3 py-1.5 shadow-sm shadow-red-100 transition-colors">
-                                        Restore
-                                    </button>
+                                {# Expandable field-change list — only shows fields
+                                   that actually differ from the previous version
+                                   (filter applied via /compare in toggleChanges). #}
+                                <div x-show="changesOpen[e.id]" x-cloak
+                                     class="mt-4 pt-4 border-t border-gray-50 space-y-2">
+                                    <template x-for="c in (changesCache[e.version_num] || [])" :key="c.id">
+                                        <div class="grid grid-cols-[140px_1fr_1fr] gap-3 text-xs items-start">
+                                            <span class="font-bold text-gray-700" x-text="c.field_name"></span>
+                                            <div class="bg-red-50 border border-red-100 rounded-md px-2 py-1 text-red-700 truncate" x-text="c.old_value || '(empty)'"></div>
+                                            <div class="bg-emerald-50 border border-emerald-100 rounded-md px-2 py-1 text-emerald-700 font-medium truncate" x-text="c.new_value || '(empty)'"></div>
+                                        </div>
+                                    </template>
+                                    <p x-show="changesCache[e.version_num] === undefined" class="text-[11px] text-gray-400">Loading changes…</p>
+                                    <p x-show="changesCache[e.version_num] && changesCache[e.version_num].length === 0" class="text-[11px] text-gray-400 italic">No editor field changed at this event.</p>
                                 </div>
                             </div>
-
-                            {# Expandable field-change list — only shows fields
-                               that actually differ from the previous version
-                               (filter applied via /compare in toggleChanges). #}
-                            <div x-show="changesOpen[e.id]" x-cloak
-                                 class="mt-4 pt-4 border-t border-gray-50 space-y-2">
-                                <template x-for="c in (changesCache[e.version_num] || [])" :key="c.id">
-                                    <div class="grid grid-cols-[140px_1fr_1fr] gap-3 text-xs items-start">
-                                        <span class="font-bold text-gray-700" x-text="c.field_name"></span>
-                                        <div class="bg-red-50 border border-red-100 rounded-md px-2 py-1 text-red-700 truncate" x-text="c.old_value || '(empty)'"></div>
-                                        <div class="bg-emerald-50 border border-emerald-100 rounded-md px-2 py-1 text-emerald-700 font-medium truncate" x-text="c.new_value || '(empty)'"></div>
-                                    </div>
-                                </template>
-                                <p x-show="changesCache[e.version_num] === undefined" class="text-[11px] text-gray-400">Loading changes…</p>
-                                <p x-show="changesCache[e.version_num] && changesCache[e.version_num].length === 0" class="text-[11px] text-gray-400 italic">No editor field changed at this event.</p>
-                            </div>
-                        </div>
-                    </li>
-                </template>
-            </ol>
-        </div>
-    </template>
+                        </li>
+                    </template>
+                </ol>
+            </div>
+        </template>
+    </div>
 
     {# ── PAGINATION ───────────────────────────────────────────── #}
     <div class="flex items-center justify-between gap-3 mt-8 mb-12"
@@ -188,89 +249,6 @@
         <button type="button" @click="page++; load()"
             :disabled="(page * perPage) >= totalEvents"
             class="text-xs font-bold uppercase tracking-widest text-gray-600 hover:text-gray-900 disabled:opacity-30 disabled:cursor-not-allowed px-4 py-2 border border-gray-200 rounded-xl">Next →</button>
-    </div>
-
-    {# ── ALL VERSIONS PANEL (below timeline) ──────────────────── #}
-    <div class="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden mt-12">
-        <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between gap-4">
-            <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-2xl bg-gradient-to-br from-red-500 to-red-700 flex items-center justify-center shadow-sm shadow-red-100">
-                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-                    </svg>
-                </div>
-                <div>
-                    <h3 class="text-base font-extrabold text-gray-900">Restore versions</h3>
-                    <p class="text-xs text-gray-500">Every snapshot — restore any one</p>
-                </div>
-            </div>
-            <button type="button" @click="versionsCollapsed = !versionsCollapsed"
-                class="text-[10px] font-bold uppercase tracking-widest text-gray-500 hover:text-gray-900">
-                <span x-text="versionsCollapsed ? 'Expand ▾' : 'Collapse ▴'"></span>
-            </button>
-        </div>
-
-        <div x-show="!versionsCollapsed" x-transition class="divide-y divide-gray-50">
-            <template x-if="!loadingVersions && versions.length === 0">
-                <div class="px-6 py-12 text-center text-gray-400 text-sm">
-                    No versions yet for this product.
-                </div>
-            </template>
-            <template x-if="loadingVersions">
-                <div class="px-6 py-12 text-center text-gray-400 text-sm">Loading versions…</div>
-            </template>
-
-            <template x-for="(v, i) in versions" :key="v.id">
-                <div class="px-6 py-4 hover:bg-gray-50/80 transition-colors flex items-center justify-between gap-4 group">
-                    <div class="flex items-center gap-4 min-w-0">
-                        <div class="w-10 h-10 rounded-xl flex items-center justify-center text-[11px] font-bold shrink-0"
-                             :class="i === 0 ? 'bg-red-50 text-red-700 border border-red-100' :
-                                     (v.is_major ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
-                                                 : 'bg-gray-50 text-gray-500 border border-gray-100')"
-                             x-text="'v' + v.version_num"></div>
-                        <div class="min-w-0">
-                            <div class="flex items-center gap-2 flex-wrap">
-                                <p class="text-sm font-bold text-gray-900 truncate" x-text="v.label"></p>
-                                <span x-show="i === 0"
-                                      class="text-[9px] font-bold uppercase tracking-widest bg-red-50 text-red-700 px-1.5 py-0.5 rounded">Current</span>
-                                <span x-show="v.is_major && i !== 0"
-                                      class="text-[9px] font-bold uppercase tracking-widest bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded">Major</span>
-                                <span x-show="!v.is_major"
-                                      class="text-[9px] font-bold uppercase tracking-widest bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded">Draft</span>
-                                <span x-show="v.workflow_stage"
-                                      class="text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded"
-                                      :class="laneBadgeClass(swimLaneOf(v.workflow_stage))"
-                                      x-text="laneLabel(swimLaneOf(v.workflow_stage))"></span>
-                            </div>
-                            <div class="flex items-center gap-3 mt-1 text-[11px] text-gray-400">
-                                <span class="flex items-center gap-1">
-                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
-                                    <span x-text="v.created_by || 'System'"></span>
-                                </span>
-                                <span class="flex items-center gap-1">
-                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                                    <span x-text="v.created_at"></span>
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="flex items-center gap-2 shrink-0">
-                        <button type="button" @click="previewVersion(v.id, v.version_num)"
-                            class="text-[10px] font-bold uppercase tracking-widest text-gray-600 hover:text-gray-900 border border-gray-200 hover:border-gray-400 rounded-lg px-3 py-1.5 transition-colors flex items-center gap-1.5">
-                            <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
-                            View
-                        </button>
-                        <button type="button" x-show="canRestore && i !== 0"
-                            @click="restoreVersion(v.id, v.version_num)"
-                            class="text-[10px] font-bold uppercase tracking-widest bg-red-600 hover:bg-red-700 text-white rounded-lg px-3 py-1.5 shadow-sm shadow-red-100 transition-colors flex items-center gap-1.5">
-                            <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-                            Restore
-                        </button>
-                    </div>
-                </div>
-            </template>
-        </div>
     </div>
 
     {# ── COMPARE MODAL ────────────────────────────────────────── #}
@@ -542,6 +520,11 @@ function timelineV2(productId) {
         loadingTimeline: true,
         versions: [],
         groups: [],
+        // mergedGroups = `groups` with orphan snapshots (versions that
+        // have no matching ProductHistory row) injected at their own
+        // timestamp. Rebuilt by rebuildMergedGroups() after either of
+        // the two API responses comes back.
+        mergedGroups: [],
         summary: null,
         totalEvents: 0,
         page: 1,
@@ -551,7 +534,6 @@ function timelineV2(productId) {
         dateTo: '',
         changesOpen: {},
         changesCache: {},
-        versionsCollapsed: false,
 
         // Restore modal state
         showRestoreModal: false,
@@ -594,6 +576,7 @@ function timelineV2(productId) {
                 this.versions = [];
             } finally {
                 this.loadingVersions = false;
+                this.rebuildMergedGroups();
             }
         },
 
@@ -617,7 +600,183 @@ function timelineV2(productId) {
                 this.groups = [];
             } finally {
                 this.loadingTimeline = false;
+                this.rebuildMergedGroups();
             }
+        },
+
+        // Build the unified stream every time either side loads.
+        // Algorithm:
+        //   1. Take every event from the paginated timeline. These are
+        //      grouped by date already and already carry version_id when
+        //      a snapshot exists.
+        //   2. Find versions whose id is NOT referenced by any event in
+        //      `groups`. These are orphan snapshots — most often auto-
+        //      saves between real events, or legacy versions on products
+        //      that pre-date ProductHistory.
+        //   3. Apply the active stage + date filters to the orphans too,
+        //      so the lane tabs and date pickers stay consistent.
+        //   4. Convert each orphan into a synthetic timeline item with
+        //      the same shape as an event card; mark `isSnapshotOnly`.
+        //   5. Drop them into the matching date bucket (creating a new
+        //      one if necessary), then sort each bucket by timestamp DESC.
+        //   6. Tag the item linked to the latest version as `isCurrent`
+        //      so it gets the pulsing dot + "Current" pill + no Restore.
+        rebuildMergedGroups() {
+            const eventVersionIds = new Set();
+            const buckets = new Map(); // date string → { date, items: [] }
+
+            // Seed buckets with the events we already have.
+            for (const g of this.groups || []) {
+                const items = (g.events || []).map(e => {
+                    if (e.version_id) eventVersionIds.add(e.version_id);
+                    return {
+                        ...e,
+                        key: `e:${e.id}`,
+                        isSnapshotOnly: false,
+                        isCurrent: false,
+                        is_major: false, // filled below when we know which version_num it maps to
+                    };
+                });
+                buckets.set(g.date, { date: g.date, items });
+            }
+
+            // Build a quick lookup version_id → version object so we can
+            // tag events with `is_major` (helps the "Major" pill on
+            // event-linked snapshots without an extra round-trip).
+            const versionsById = new Map();
+            for (const v of this.versions || []) versionsById.set(v.id, v);
+
+            for (const bucket of buckets.values()) {
+                for (const it of bucket.items) {
+                    if (it.version_id && versionsById.has(it.version_id)) {
+                        it.is_major = !!versionsById.get(it.version_id).is_major;
+                    }
+                }
+            }
+
+            // Inject orphan versions, respecting the same filters the
+            // /timeline endpoint applies.
+            const dateFromMs = this.dateFrom ? new Date(this.dateFrom + 'T00:00:00').getTime() : null;
+            const dateToMs   = this.dateTo   ? new Date(this.dateTo   + 'T23:59:59').getTime() : null;
+            const laneFilter = (this.lane && this.lane !== 'all') ? this.lane : null;
+
+            // Twin-match window. Many actions in this codebase write a
+            // ProductHistory event AND a ProductVersion in the same
+            // transaction without setting ProductHistory.version_id —
+            // they end up looking like two separate rows even though
+            // they represent the same moment. We absorb the version
+            // INTO the matching event when (same actor, same swim_lane,
+            // within ±90s). Outside this window we treat the version
+            // as a genuine orphan and create a snapshot card for it.
+            const TWIN_WINDOW_MS = 90 * 1000;
+
+            const findTwinEvent = (versionTsMs, actor, swimLane) => {
+                if (!actor) return null;
+                const a = actor.trim().toLowerCase();
+                for (const bucket of buckets.values()) {
+                    for (const it of bucket.items) {
+                        if (it.version_id) continue;        // already paired
+                        if (it.isSnapshotOnly) continue;    // synthetic, not a real event
+                        if (!it.timestamp) continue;
+                        if ((it.actor || '').trim().toLowerCase() !== a) continue;
+                        if (it.swim_lane !== swimLane) continue;
+                        const itMs = new Date(it.timestamp).getTime();
+                        if (Math.abs(itMs - versionTsMs) > TWIN_WINDOW_MS) continue;
+                        return it;
+                    }
+                }
+                return null;
+            };
+
+            for (const v of this.versions || []) {
+                if (eventVersionIds.has(v.id)) continue;
+                if (!v.created_at_iso) continue; // no usable timestamp, skip
+                const ts = new Date(v.created_at_iso);
+                const tsMs = ts.getTime();
+                if (dateFromMs !== null && tsMs < dateFromMs) continue;
+                if (dateToMs   !== null && tsMs > dateToMs)   continue;
+                const swimLane = this.swimLaneOf(v.workflow_stage);
+                if (laneFilter && swimLane !== laneFilter) continue;
+
+                // Try to absorb this version into a matching event first.
+                const twin = findTwinEvent(tsMs, v.created_by, swimLane);
+                if (twin) {
+                    twin.version_id   = v.id;
+                    twin.version_num  = v.version_num;
+                    twin.has_snapshot = true;
+                    twin.is_major     = !!v.is_major;
+                    eventVersionIds.add(v.id);
+                    continue;
+                }
+
+                // No twin → genuine orphan, render as a standalone snapshot card.
+                const dateStr = ts.toISOString().slice(0, 10);
+                if (!buckets.has(dateStr)) {
+                    buckets.set(dateStr, { date: dateStr, items: [] });
+                }
+                buckets.get(dateStr).items.push({
+                    key: `v:${v.id}`,
+                    id: `synthetic-v${v.id}`,
+                    timestamp: v.created_at_iso,
+                    time: ts.toTimeString().slice(0, 5),
+                    action: v.label || `Snapshot v${v.version_num}`,
+                    description: '',
+                    type: 'snapshot',
+                    stage: v.workflow_stage,
+                    swim_lane: swimLane,
+                    actor: v.created_by,
+                    actor_role: '',
+                    version_id: v.id,
+                    version_num: v.version_num,
+                    has_snapshot: true,
+                    has_field_changes: false,
+                    field_change_count: 0,
+                    isSnapshotOnly: true,
+                    isCurrent: false,
+                    is_major: !!v.is_major,
+                });
+            }
+
+            // Sort items inside each bucket newest-first, then sort
+            // buckets the same way.
+            const sortedGroups = Array.from(buckets.values())
+                .map(g => ({
+                    date: g.date,
+                    items: g.items.sort((a, b) => (b.timestamp || '').localeCompare(a.timestamp || '')),
+                }))
+                .sort((a, b) => b.date.localeCompare(a.date));
+
+            // Tag the most-recent version as current — same rule the
+            // old Restore Versions panel applied (versions[0] === current).
+            if (this.versions && this.versions.length > 0) {
+                const currentVersionId = this.versions[0].id;
+                outer: for (const g of sortedGroups) {
+                    for (const it of g.items) {
+                        if (it.version_id === currentVersionId) {
+                            it.isCurrent = true;
+                            break outer;
+                        }
+                    }
+                }
+            }
+
+            this.mergedGroups = sortedGroups;
+        },
+
+        // Visual treatment for the spine dot — three states:
+        //   • current     → solid emerald with ring (most recent version)
+        //   • event       → lane-coloured solid dot (real ProductHistory event)
+        //   • snapshotOnly → hollow ring (subtle, doesn't drown out events)
+        dotClassFor(item) {
+            if (item.isCurrent) return 'bg-emerald-500 ring-2 ring-emerald-200';
+            if (item.isSnapshotOnly) {
+                // Major orphan snapshots get a small emerald accent so they're
+                // still visually distinct from auto-save drafts.
+                return item.is_major
+                    ? 'bg-white border-2 border-emerald-400'
+                    : 'bg-white border-2 border-gray-300';
+            }
+            return this.laneDotClass(item.swim_lane);
         },
 
         setLane(id) {
@@ -667,6 +826,13 @@ function timelineV2(productId) {
         },
 
         _findEvent(eventId) {
+            // Look in mergedGroups first (renders are driven from there)
+            // and fall back to the raw timeline groups for safety.
+            for (const g of this.mergedGroups || []) {
+                for (const e of g.items || []) {
+                    if (e.id === eventId) return e;
+                }
+            }
             for (const g of this.groups || []) {
                 for (const e of g.events || []) {
                     if (e.id === eventId) return e;
