@@ -1030,9 +1030,13 @@ def enhance_image_with_gemini(image_path: str,
                            types.Part.from_bytes(data=src_bytes, mime_type="image/png")]
 
     try:
-        response = _get_client().models.generate_content(
+        from .api_metering import gemini_call
+        response = gemini_call(
+            prompt_id="image_retouch",
             model=_RETOUCH_MODEL,
             contents=contents,
+            image_count_hint=1,
+            client=_get_client(),
         )
     except Exception as e:
         print(f"  ⚠ Retouch model call failed: {type(e).__name__}: {e}")
@@ -1137,10 +1141,14 @@ def generate_image_with_imagen(product_name: str,
         prompt += f"\n\nADDITIONAL DIRECTION FROM USER:\n{note}"
 
     try:
-        response = _get_client().models.generate_images(
+        from .api_metering import imagen_call
+        response = imagen_call(
+            prompt_id="image_generate",
             model=_IMAGEN_MODEL,
             prompt=prompt,
             config={'number_of_images': 1, 'aspect_ratio': '4:3'},
+            image_count_hint=1,
+            client=_get_client(),
         )
     except Exception as e:
         print(f"  ⚠ Imagen call failed: {type(e).__name__}: {e}")

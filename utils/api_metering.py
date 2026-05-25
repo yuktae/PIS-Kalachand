@@ -206,6 +206,51 @@ def gemini_call(*, prompt_id: str, model: str,
         _bump_job_aggregates(jid, cost)
 
 
+def imagen_call(*, prompt_id: str, model: str,
+                prompt: str, config: Any = None,
+                image_count_hint: int = 1,
+                client: Any = None) -> Any:
+    """Call Imagen's generate_images and log per-image cost. Mirrors
+    `gemini_call`, but targets the `generate_images` endpoint that Imagen
+    uses instead of `generate_content`. Returns the same response object."""
+    if client is None:
+        from .ai_generation import _get_client as _default_client
+        client = _default_client()
+
+    started = time.monotonic()
+    response = None
+    error_text = None
+    try:
+        kwargs: dict[str, Any] = {"model": model, "prompt": prompt}
+        if config is not None:
+            kwargs["config"] = config
+        response = client.models.generate_images(**kwargs)
+        return response
+    except Exception as e:
+        error_text = f"{type(e).__name__}: {str(e)[:160]}"
+        raise
+    finally:
+        latency_ms = int((time.monotonic() - started) * 1000)
+        count = image_count_hint or 1
+        cost = pricing.cost_for_image_call(model, count) if response else Decimal("0")
+        jid = current_job_id()
+        _write_log_row(
+            job_id=jid,
+            prompt_id=prompt_id,
+            provider="gemini",
+            model=model,
+            input_tokens=0,
+            output_tokens=0,
+            cached_tokens=0,
+            image_count=count,
+            query_count=0,
+            latency_ms=latency_ms,
+            cost_usd=cost,
+            error=error_text,
+        )
+        _bump_job_aggregates(jid, cost)
+
+
 def log_search_call(*, provider: str, query_count: int = 1,
                     latency_ms: int = 0, error: str | None = None,
                     prompt_id: str | None = None) -> None:

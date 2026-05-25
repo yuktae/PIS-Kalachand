@@ -297,6 +297,8 @@ def admin_stats():
     def _provider_label(provider, model):
         # Friendly labels for the UI.
         if provider == 'gemini':
+            if model and model.startswith('imagen-'):
+                return f"Imagen {model.replace('imagen-', '')}"
             return f"Gemini {model.replace('gemini-', '')}" if model else 'Gemini'
         return {
             'google_cse':   'Google Custom Search',

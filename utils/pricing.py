@@ -8,6 +8,7 @@ prices — utils.api_metering reads from here at call time.
 Sources & dates of last verification (update these when you bump prices):
   - Gemini 2.5 Flash text:        $0.075 / 1M in, $0.30  / 1M out      (Jan 2026 list price)
   - Gemini 2.5 Flash image gen:   $0.039 per image                     (Jan 2026 list price)
+  - Imagen 4.0 Standard:          $0.04  per image                     (Jan 2026 list price)
   - Google Custom Search JSON:    $5.00  / 1000 queries                (after free tier)
   - Brave Search Web API:         $3.00  / 1000 queries (Base plan)
   - DuckDuckGo:                   free
@@ -24,9 +25,10 @@ TEXT_MODEL_PRICING = {
     "gemini-2.5-pro":         {"input_per_1m": Decimal("1.25"),  "output_per_1m": Decimal("5.00")},
 }
 
-# Per-image pricing (image-generation models, a.k.a. nano-banana).
+# Per-image pricing (image-generation models, a.k.a. nano-banana + Imagen).
 IMAGE_MODEL_PRICING = {
-    "gemini-2.5-flash-image": {"per_image": Decimal("0.039")},
+    "gemini-2.5-flash-image":  {"per_image": Decimal("0.039")},
+    "imagen-4.0-generate-001": {"per_image": Decimal("0.040")},
 }
 
 # Per-1000-query pricing for search providers.
