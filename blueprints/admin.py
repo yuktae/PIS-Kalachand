@@ -7,7 +7,7 @@ from flask import Blueprint, session, redirect, url_for, render_template, reques
 
 from model import db, User, ProductVersion, FieldChangeLog, Product, ProductHistory, Job, ApiCallLog
 from utils.decorators import require_role
-from utils.workflow import Stage
+from utils.workflow import Stage, STAGE_PHASES, display_stage
 from utils.prompt_manager import (
     load_all_prompts, save_prompt as save_prompt_to_db,
     reset_prompt as reset_prompt_to_default, reset_all_prompts,
@@ -124,8 +124,35 @@ def admin_stats():
     stage_rows = (db.session.query(Product.workflow_stage, func.count(Product.id))
                   .filter(Product.deleted_at.is_(None))
                   .group_by(Product.workflow_stage).all())
-    stage_breakdown = [{'stage': s or 'unknown', 'count': c} for s, c in stage_rows]
-    stage_breakdown.sort(key=lambda x: x['count'], reverse=True)
+    stage_counts = {(s or 'unknown'): c for s, c in stage_rows}
+
+    # Group the raw counts into pipeline phases for the Pipeline Snapshot card.
+    # Phases with zero total are dropped; within a phase, stages with zero
+    # count are also dropped (matches how stage_breakdown filtered implicitly).
+    total_active_stages = sum(stage_counts.values()) or 0
+    pipeline_phases = []
+    for key, label, members in STAGE_PHASES:
+        rows = []
+        for member in members:
+            cnt = stage_counts.get(member, 0)
+            if cnt <= 0:
+                continue
+            rows.append({
+                'stage': member,
+                'label': display_stage(member),
+                'count': cnt,
+                'pct': (cnt / total_active_stages * 100) if total_active_stages else 0,
+            })
+        if not rows:
+            continue
+        phase_total = sum(r['count'] for r in rows)
+        pipeline_phases.append({
+            'key': key,
+            'label': label,
+            'total': phase_total,
+            'pct': (phase_total / total_active_stages * 100) if total_active_stages else 0,
+            'rows': rows,
+        })
 
     # Approvals this week — count "Approved" history entries
     approvals_this_week = ProductHistory.query.filter(
@@ -149,16 +176,63 @@ def admin_stats():
         if deltas:
             avg_finalize_days = round(sum(deltas) / len(deltas), 1)
 
-    # Daily product creation — last 14 days
+    # Product creation over a selectable window. ?products_period controls
+    # the granularity:
+    #   week     → last 7 days,   daily buckets
+    #   month    → last 30 days,  daily buckets   (default)
+    #   quarter  → last 12 weeks, weekly buckets  (Mon-anchored)
+    products_period_arg = (request.args.get('products_period') or 'month').lower()
+    if products_period_arg not in ('week', 'month', 'quarter'):
+        products_period_arg = 'month'
+
+    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
     daily_counts = []
-    for i in range(13, -1, -1):
-        day = now - timedelta(days=i)
-        day_start = day.replace(hour=0, minute=0, second=0, microsecond=0)
-        day_end   = day_start + timedelta(days=1)
-        cnt = Product.query.filter(Product.created_at >= day_start,
-                                   Product.created_at < day_end,
-                                   Product.deleted_at.is_(None)).count()
-        daily_counts.append({'label': day.strftime('%d %b'), 'short': day.strftime('%a'), 'value': cnt})
+
+    if products_period_arg == 'quarter':
+        # 12 weekly buckets ending on the current ISO week. Anchor each
+        # bucket to its Monday so labels line up consistently.
+        this_monday = today_start - timedelta(days=today_start.weekday())
+        for i in range(11, -1, -1):
+            bucket_start = this_monday - timedelta(weeks=i)
+            bucket_end   = bucket_start + timedelta(days=7)
+            cnt = Product.query.filter(Product.created_at >= bucket_start,
+                                       Product.created_at < bucket_end,
+                                       Product.deleted_at.is_(None)).count()
+            daily_counts.append({
+                'label': f"Week of {bucket_start.strftime('%d %b')}",
+                'short': bucket_start.strftime('%d %b'),
+                'value': cnt,
+                'is_today': False,
+            })
+        products_period_label = 'Last 12 weeks'
+        products_period_unit  = 'Weekly'
+    else:
+        days_back = 7 if products_period_arg == 'week' else 30
+        for i in range(days_back - 1, -1, -1):
+            day = now - timedelta(days=i)
+            day_start = day.replace(hour=0, minute=0, second=0, microsecond=0)
+            day_end   = day_start + timedelta(days=1)
+            cnt = Product.query.filter(Product.created_at >= day_start,
+                                       Product.created_at < day_end,
+                                       Product.deleted_at.is_(None)).count()
+            # In a 30-day view "Mon/Tue/..." labels repeat 4× and become
+            # noisy. Use day-of-month numbers there; keep weekday names in
+            # the 7-day view where they're informative.
+            short = day.strftime('%a') if days_back == 7 else day.strftime('%d')
+            daily_counts.append({
+                'label': day.strftime('%d %b'),
+                'short': short,
+                'value': cnt,
+                'is_today': day_start == today_start,
+            })
+        if products_period_arg == 'week':
+            products_period_label = 'This week'
+            products_period_unit  = 'Daily'
+        else:
+            products_period_label = 'Last 30 days'
+            products_period_unit  = 'Daily'
+
+    products_period_total = sum(d['value'] for d in daily_counts)
 
     # ── Section 3: AI / Job Activity ──────────────────────────────────────
     # Period scope — admin can pass ?ai_period=7|30|all (default 30 days).
@@ -329,10 +403,15 @@ def admin_stats():
         finalized_count=finalized_count,
         active_users=active_users,
         products_this_week=products_this_week,
-        stage_breakdown=stage_breakdown,
+        pipeline_phases=pipeline_phases,
+        total_active_stages=total_active_stages,
         approvals_this_week=approvals_this_week,
         avg_finalize_days=avg_finalize_days,
         daily_counts=daily_counts,
+        products_period=products_period_arg,
+        products_period_label=products_period_label,
+        products_period_unit=products_period_unit,
+        products_period_total=products_period_total,
         total_jobs=total_jobs,
         completed_jobs=completed_jobs,
         failed_jobs=failed_jobs,

@@ -92,48 +92,108 @@
             </div>
         </div>
 
-        <!-- Daily creation chart -->
+        <!-- Products-created chart with Week / Month / Quarter selector -->
         <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm mb-4">
-            <div class="flex items-center justify-between mb-4">
-                <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Products Created — Last 14 Days</p>
-                <p class="text-[10px] font-bold text-slate-400">Daily</p>
+            <div class="flex items-start justify-between gap-3 mb-4 flex-wrap">
+                <div>
+                    <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Products Created — {{ products_period_label }}</p>
+                    <p class="text-[11px] text-slate-500 mt-1">
+                        <span class="font-bold text-slate-700">{{ products_period_total }}</span>
+                        product{{ '' if products_period_total == 1 else 's' }} created
+                        · {{ products_period_unit }}
+                    </p>
+                </div>
+                <div class="flex items-center gap-1 bg-slate-50 rounded-xl border border-gray-100 p-1">
+                    {% for opt_val, opt_label in [('week','Week'), ('month','Month'), ('quarter','Quarter')] %}
+                    <a href="?products_period={{ opt_val }}{% if ai_period %}&ai_period={{ ai_period }}{% endif %}#section-workflow"
+                       class="px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all
+                              {% if products_period == opt_val %}bg-slate-900 text-white shadow-sm{% else %}text-slate-500 hover:bg-white{% endif %}">
+                        {{ opt_label }}
+                    </a>
+                    {% endfor %}
+                </div>
             </div>
             {% set max_daily = daily_counts | map(attribute='value') | max %}
-            <div class="flex items-end gap-1.5 h-40">
-                {% for d in daily_counts %}
-                <div class="flex-1 flex flex-col items-center gap-1.5 group relative">
-                    <div class="w-full rounded-t-md transition-all bg-gradient-to-t from-blue-500 to-blue-400 hover:from-blue-600 hover:to-blue-500"
-                         style="height: {{ ((d.value / max_daily * 100) if max_daily and max_daily > 0 else 0) }}%;
-                                min-height: {{ '4px' if d.value > 0 else '2px' }};"></div>
-                    <span class="text-[9px] font-bold text-slate-400">{{ d.short }}</span>
-                    <div class="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-900 text-white text-[10px] font-bold rounded-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-                        {{ d.label }}: <strong>{{ d.value }}</strong>
+            {% if max_daily and max_daily > 0 %}
+            <div class="relative h-48">
+                {# Faint baseline so the chart doesn't look like dead space when values are small. #}
+                <div class="absolute inset-x-0 bottom-5 border-t border-dashed border-slate-200"></div>
+                <div class="flex items-end gap-1 h-full relative">
+                    {% for d in daily_counts %}
+                    <div class="flex-1 flex flex-col items-center justify-end gap-1.5 group relative h-full">
+                        <div class="w-full rounded-t-md transition-all
+                                    {% if d.is_today %}bg-gradient-to-t from-emerald-500 to-emerald-400 ring-2 ring-emerald-200{% else %}bg-gradient-to-t from-blue-500 to-blue-400 hover:from-blue-600 hover:to-blue-500{% endif %}"
+                             style="height: {{ ((d.value / max_daily * 92) if max_daily and max_daily > 0 else 0) }}%;
+                                    min-height: {{ '6px' if d.value > 0 else '2px' }};
+                                    {% if d.value == 0 %}background: #e2e8f0;{% endif %}"></div>
+                        <span class="text-[9px] font-bold {% if d.is_today %}text-emerald-700{% else %}text-slate-400{% endif %} truncate max-w-full">{{ d.short }}</span>
+                        <div class="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-900 text-white text-[10px] font-bold rounded-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
+                            {{ d.label }}: <strong>{{ d.value }}</strong>
+                        </div>
                     </div>
+                    {% endfor %}
                 </div>
-                {% endfor %}
             </div>
+            {% else %}
+            <p class="text-sm text-slate-400 text-center py-12">No products created in this window.</p>
+            {% endif %}
         </div>
 
-        <!-- Stage breakdown -->
+        <!-- Pipeline Snapshot — stages grouped by phase, colored consistently -->
         <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-            <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Workflow Stage Distribution</p>
-            {% if stage_breakdown %}
-            {% set total_active = stage_breakdown | sum(attribute='count') %}
-            <div class="space-y-2.5">
-                {% for s in stage_breakdown %}
+            <div class="flex items-baseline justify-between mb-5">
+                <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Pipeline Snapshot</p>
+                <span class="text-[10px] text-slate-400">{{ total_active_stages }} active product{{ '' if total_active_stages == 1 else 's' }}</span>
+            </div>
+            {% if pipeline_phases %}
+            <div class="space-y-5">
+                {% for phase in pipeline_phases %}
+                {# Per-phase color: marketing slate, director amber, web indigo, done emerald.
+                   "changes_requested" stages stay red regardless of phase. #}
+                {% set phase_color = {
+                    'marketing': 'slate',
+                    'director':  'amber',
+                    'web':       'indigo',
+                    'done':      'emerald'
+                }[phase.key] %}
                 <div>
-                    <div class="flex items-center justify-between mb-1">
-                        <p class="text-xs font-bold text-slate-700 capitalize">{{ s.stage.replace('_', ' ') }}</p>
-                        <span class="text-[11px] font-bold text-slate-500">{{ s.count }} <span class="text-slate-400 font-medium">({{ ((s.count / total_active * 100) | round(0) | int) if total_active else 0 }}%)</span></span>
+                    <div class="flex items-center justify-between mb-2.5">
+                        <p class="text-[11px] font-bold uppercase tracking-wider text-slate-600 flex items-center gap-2">
+                            <span class="w-1.5 h-1.5 rounded-full
+                                {% if phase.key == 'marketing' %}bg-slate-500
+                                {% elif phase.key == 'director' %}bg-amber-500
+                                {% elif phase.key == 'web' %}bg-indigo-500
+                                {% else %}bg-emerald-500{% endif %}"></span>
+                            {{ phase.label }}
+                        </p>
+                        <span class="text-[11px] font-bold text-slate-500">
+                            {{ phase.total }}
+                            <span class="text-slate-400 font-medium">({{ phase.pct | round(0) | int }}%)</span>
+                        </span>
                     </div>
-                    <div class="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-                        <div class="h-full rounded-full
-                            {% if 'finalized' in s.stage %}bg-emerald-500
-                            {% elif 'pending' in s.stage %}bg-amber-500
-                            {% elif 'changes_requested' in s.stage %}bg-red-500
-                            {% elif 'specsheet' in s.stage or 'web' in s.stage %}bg-indigo-500
-                            {% else %}bg-slate-500{% endif %}"
-                             style="width: {{ ((s.count / total_active * 100) if total_active else 0) }}%"></div>
+                    <div class="space-y-2 pl-3.5 border-l-2
+                        {% if phase.key == 'marketing' %}border-slate-100
+                        {% elif phase.key == 'director' %}border-amber-100
+                        {% elif phase.key == 'web' %}border-indigo-100
+                        {% else %}border-emerald-100{% endif %}">
+                        {% for row in phase.rows %}
+                        {% set is_changes = 'changes_requested' in row.stage %}
+                        <div>
+                            <div class="flex items-center justify-between mb-1">
+                                <p class="text-xs font-bold text-slate-700">{{ row.label }}</p>
+                                <span class="text-[11px] font-bold text-slate-500">{{ row.count }} <span class="text-slate-400 font-medium">({{ row.pct | round(0) | int }}%)</span></span>
+                            </div>
+                            <div class="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                                <div class="h-full rounded-full
+                                    {% if is_changes %}bg-red-500
+                                    {% elif phase.key == 'marketing' %}bg-slate-500
+                                    {% elif phase.key == 'director' %}bg-amber-500
+                                    {% elif phase.key == 'web' %}bg-indigo-500
+                                    {% else %}bg-emerald-500{% endif %}"
+                                     style="width: {{ row.pct }}%"></div>
+                            </div>
+                        </div>
+                        {% endfor %}
                     </div>
                 </div>
                 {% endfor %}

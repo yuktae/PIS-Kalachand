@@ -103,3 +103,55 @@ def deletable_stages(role):
     if isinstance(allowed, _AnyStage):
         return None             # admin → no stage filter
     return frozenset(allowed)
+
+
+# ── DISPLAY LABELS ────────────────────────────────────────────────────────────
+#
+# Human-friendly names for the workflow_stage values above. The raw values
+# (`pending_director_pis`, etc.) capitalize poorly via `.replace('_',' ').title()`
+# — "Pis" instead of "PIS", awkward verbosity. Use STAGE_DISPLAY_NAMES anywhere
+# you'd otherwise pretty-print a stage string.
+STAGE_DISPLAY_NAMES = {
+    Stage.MARKETING_DRAFT:              'Marketing Draft',
+    Stage.MARKETING_IN_PROGRESS:        'Marketing In Progress',
+    Stage.MARKETING_CHANGES_REQUESTED:  'Marketing — Changes Requested',
+    Stage.PENDING_DIRECTOR_PIS:         'Awaiting PIS Review',
+    Stage.READY_FOR_WEB:                'Ready for Web Team',
+    Stage.SPECSHEET_DRAFT:              'SpecSheet Draft',
+    Stage.PENDING_DIRECTOR_SPEC:        'Awaiting SpecSheet Review',
+    Stage.WEB_CHANGES_REQUESTED:        'Web — Changes Requested',
+    Stage.FINALIZED:                    'Finalized',
+}
+
+
+# Pipeline phase grouping — used by the admin Stats dashboard to render the
+# Pipeline Snapshot card as a funnel rather than a flat list. Each entry maps
+# a phase key to (display label, ordered list of member stages).
+STAGE_PHASES = [
+    ('marketing', 'Marketing', [
+        Stage.MARKETING_DRAFT,
+        Stage.MARKETING_IN_PROGRESS,
+        Stage.MARKETING_CHANGES_REQUESTED,
+    ]),
+    ('director', 'Director Review', [
+        Stage.PENDING_DIRECTOR_PIS,
+        Stage.PENDING_DIRECTOR_SPEC,
+    ]),
+    ('web', 'Web', [
+        Stage.READY_FOR_WEB,
+        Stage.SPECSHEET_DRAFT,
+        Stage.WEB_CHANGES_REQUESTED,
+    ]),
+    ('done', 'Done', [
+        Stage.FINALIZED,
+    ]),
+]
+
+
+def display_stage(stage):
+    """Pretty-print a workflow_stage value. Falls back to a title-cased
+    replacement of underscores for any unknown/legacy value so the UI never
+    shows the raw snake_case string."""
+    if not stage:
+        return 'Unknown'
+    return STAGE_DISPLAY_NAMES.get(stage, stage.replace('_', ' ').title())
