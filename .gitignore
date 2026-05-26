@@ -79,3 +79,8 @@ Thumbs.db
 # stay tracked.
 tests/ai_tests/v*_pytest_output.log
 tests/ai_tests/v*_refresh_output.log
+
+# Graphify-generated knowledge graph (graph.html, graph.json, chunks,
+# report). Regenerate locally with `/graphify-windows .` — stale every
+# time code changes, so never want to commit.
+/graphify-out/
